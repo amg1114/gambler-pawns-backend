@@ -35,11 +35,8 @@ $ pnpm install
 ## Running the app
 
 ```bash
-# development
-$ pnpm run start
-
-# watch mode
-$ pnpm run start:dev
+# development (watch mode)
+$ pnpm run dev
 
 # production mode
 $ pnpm run start:prod
