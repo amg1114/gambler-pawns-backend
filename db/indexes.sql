@@ -1,8 +1,8 @@
 -- Indexes implemented for quick search for some colums
 
--- For user's: nicknames, emails, clubs and friends 
-CREATE INDEX idx_nickname ON user(nickname);
-CREATE INDEX idx_email ON user(email);
+-- For users's: nicknames, emails, clubs and friends 
+CREATE INDEX idx_nickname ON users(nickname);
+CREATE INDEX idx_email ON users(email);
 CREATE INDEX idx_users_clubs_user_id ON users_members_of_club(fk_user_id);
 CREATE INDEX idx_friendship_user_ids ON friendship(user_id_1, user_id_2);
 
@@ -18,15 +18,15 @@ CREATE INDEX idx_likes_post_id ON like_in_post_of_club(fk_post_id);
 CREATE INDEX idx_comments_post_id ON comment_in_post(fk_post_id);
 
 -- For Leadboard:
-CREATE INDEX idx_elo_rapid ON user(elo_rapid);
-CREATE INDEX idx_elo_blitz ON user(elo_blitz);
-CREATE INDEX idx_elo_bullet ON user(elo_bullet);
-CREATE INDEX idx_elo_arcade ON user(elo_arcade);
+CREATE INDEX idx_elo_rapid ON users(elo_rapid);
+CREATE INDEX idx_elo_blitz ON users(elo_blitz);
+CREATE INDEX idx_elo_bullet ON users(elo_bullet);
+CREATE INDEX idx_elo_arcade ON users(elo_arcade);
 
 
 -- For Notifications:
 CREATE INDEX idx_notifications_user_id ON notification_of_user(fk_user_who_receive_id);
 
 -- For Store:
--- Multicolumn index to check products bought by user
+-- Multicolumn index to check products bought by users
 CREATE INDEX idx_assets_user_product ON product_asset_bought_by_user(fk_user_id, fk_product_asset_id);
