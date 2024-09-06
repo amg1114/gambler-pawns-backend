@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS user_avatar_img (
   user_avatar_img_id SMALLINT PRIMARY KEY AUTO_INCREMENT,
   file_name VARCHAR(255) NOT NULL
 );
--- avatar images are stored in: public/userAvatars/<file_name>
+-- avatar images are stored in: public/user_avatars/<file_name>
 
 
 CREATE TABLE IF NOT EXISTS user (
