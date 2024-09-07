@@ -1,15 +1,16 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Inject } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcrypt';
-import { SignUpDto, LoginDto } from './auth.dto';
-import { DrizzleService } from '../drizzle/drizzle.service';
-import { users } from '../drizzle/schema';
+import { SignUpDto, LoginDto } from './dto/auth.dto';
+import { DRIZZLE } from '../drizzle/drizzle.module';
+import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '../drizzle/schema';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private drizzle: DrizzleService,
+    @Inject(DRIZZLE) private drizzle: NodePgDatabase<typeof schema>,
     private jwtService: JwtService,
   ) {}
 
@@ -35,11 +36,12 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto) {
-    const user = await this.drizzle.db
+    const user = await this.drizzle
       .select()
-      .from(users)
-      .where(eq(users.email, loginDto.email))
+      .from(schema.users)
+      .where(eq(schema.users.email, loginDto.email))
       .limit(1);
+
     if (user.length === 0) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -55,7 +57,7 @@ export class AuthService {
     return this.generateToken(user[0]);
   }
 
-  private generateToken(user: typeof users.$inferSelect) {
+  private generateToken(user: typeof schema.users.$inferSelect) {
     const payload = { sub: user.userId, email: user.email };
     return {
       access_token: this.jwtService.sign(payload),
