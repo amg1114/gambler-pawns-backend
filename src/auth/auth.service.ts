@@ -16,8 +16,8 @@ export class AuthService {
 
   async signUp(signUpDto: SignUpDto) {
     const hashedPassword = await bcrypt.hash(signUpDto.password, 10);
-    const newUser = await this.drizzle.db
-      .insert(users)
+    const newUser = await this.drizzle
+      .insert(schema.users)
       .values({
         nickname: signUpDto.nickname,
         email: signUpDto.email,
