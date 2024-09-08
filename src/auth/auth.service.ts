@@ -1,4 +1,9 @@
-import { Injectable, UnauthorizedException, Inject } from "@nestjs/common";
+import {
+    Injectable,
+    UnauthorizedException,
+    Inject,
+    ConflictException,
+} from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { eq, sql } from "drizzle-orm";
 import * as bcrypt from "bcrypt";
@@ -16,7 +21,6 @@ export class AuthService {
     ) {}
 
     async signUp({ nickname, email, password }: SignUpDto) {
-        // 1. verify user does not exist
         const user = await this.drizzle
             .select()
             .from(schema.users)
@@ -26,20 +30,19 @@ export class AuthService {
             .limit(1);
 
         if (user.length > 0) {
-            throw new UnauthorizedException("User already exists");
+            throw new ConflictException(
+                "Nickname or email is already registered",
+            );
         }
 
-        // 2. hash the password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // 3. insert user into the database
         const newUser = await this.drizzle
             .insert(schema.users)
             .values({
                 nickname: nickname,
                 email: email,
                 password: hashedPassword,
-                dateOfBirth: null,
                 eloRapid: 1500,
                 eloBlitz: 1500,
                 eloBullet: 1500,
@@ -54,7 +57,6 @@ export class AuthService {
     }
 
     async login({ nickname, password }: LoginDto) {
-        // 1. verify user exists
         const user = await this.drizzle
             .select()
             .from(schema.users)
@@ -64,7 +66,6 @@ export class AuthService {
         if (user.length === 0)
             throw new UnauthorizedException("Invalid credentials");
 
-        // 2. verify password
         const isPasswordValid = await bcrypt.compare(
             password,
             user[0].password,
@@ -73,7 +74,6 @@ export class AuthService {
             throw new UnauthorizedException("Invalid credentials");
         }
 
-        // 3. generate token
         return this.generateToken(user[0]);
     }
 
