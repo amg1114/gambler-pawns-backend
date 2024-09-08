@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
   nickname  VARCHAR(255) NOT NULL UNIQUE,
   email  VARCHAR(255) NOT NULL UNIQUE,
   password  VARCHAR(255) NOT NULL,
-  date_of_birth DATE NOT NULL,
+  date_of_birth DATE,
   country_flag  VARCHAR(255),
   about text,
   fk_user_avatar_img_id SMALLINT NOT NULL,

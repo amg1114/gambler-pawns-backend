@@ -11,21 +11,19 @@ export const DRIZZLE = Symbol("DRIZZLE-CONNECTION");
             provide: DRIZZLE,
             inject: [ConfigService],
             useFactory: async (configService: ConfigService) => {
-                const databaseUrl = configService.get("DATABASE_URL");
-
                 let pool = undefined;
-                if (process.env.NODE_ENV === "dev") {
+                if (configService.get<string>("NODE_ENV").trim() === "dev") {
                     pool = new Pool({
-                        user: process.env.LOCALDB_USER,
-                        host: process.env.LOCALDB_HOST,
-                        database: process.env.LOCALDB_NAME,
-                        password: process.env.LOCALDB_PASSWORD,
-                        port: parseInt(process.env.LOCALDB_PORT),
+                        user: configService.get<string>("LOCALDB_USER"),
+                        host: configService.get<string>("LOCALDB_HOST"),
+                        database: configService.get<string>("LOCALDB_NAME"),
+                        password: configService.get<string>("LOCALDB_PASSWORD"),
+                        port: configService.get<number>("LOCALDB_PORT"),
                     });
                 } else {
                     pool = new Pool({
-                        connectionString: databaseUrl,
-                        ssl: false,
+                        connectionString: configService.get("DATABASE_URL"),
+                        ssl: true,
                     });
                 }
                 return drizzle(pool, { schema }) as NodePgDatabase<
