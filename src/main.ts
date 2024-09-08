@@ -11,9 +11,9 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   app.enableCors(CORS);
 
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix('api/v1');
 
-  await app.listen(configService.get('PORT'));
+  await app.listen(configService.get<string>('PORT'));
   console.log(`Application is running on: ${await app.getUrl()}`);
 }
 bootstrap();
