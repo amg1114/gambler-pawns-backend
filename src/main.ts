@@ -4,6 +4,7 @@ import { AppModule } from "./app.module";
 import morgan from "morgan";
 import { CORS } from "./constants";
 import { ValidationPipe } from "@nestjs/common";
+import { ResponseInterceptor } from "./response/response.interceptor";
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
@@ -14,6 +15,9 @@ async function bootstrap() {
 
     app.setGlobalPrefix("api/v1");
     app.useGlobalPipes(new ValidationPipe({ transform: true }));
+
+    // interceptor for standard api response
+    app.useGlobalInterceptors(new ResponseInterceptor());
 
     await app.listen(configService.get<string>("PORT"));
     console.log(`Application is running on: ${await app.getUrl()}`);
