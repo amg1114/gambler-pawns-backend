@@ -6,6 +6,7 @@ import { SignUpDto, LoginDto } from "./dto/auth.dto";
 import { DRIZZLE } from "../drizzle/drizzle.module";
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import * as schema from "../drizzle/schema";
+import { randomInt } from "crypto";
 
 @Injectable()
 export class AuthService {
@@ -14,13 +15,13 @@ export class AuthService {
         private jwtService: JwtService,
     ) {}
 
-    async signUp(signUpDto: SignUpDto) {
-        const hashedPassword = await bcrypt.hash(signUpDto.password, 10);
+    async signUp({ nickname, email, password }: SignUpDto) {
+        const hashedPassword = await bcrypt.hash(password, 10);
         const newUser = await this.drizzle
             .insert(schema.users)
             .values({
-                nickname: signUpDto.nickname,
-                email: signUpDto.email,
+                nickname: nickname,
+                email: email,
                 password: hashedPassword,
                 dateOfBirth: null,
                 eloRapid: 1500,
@@ -29,26 +30,25 @@ export class AuthService {
                 eloArcade: 1500,
                 currentCoins: 0,
                 acumulatedAlltimeCoins: 0,
-                fkUserAvatarImgId: 1, // Assuming a default avatar
+                fkUserAvatarImgId: randomInt(1, 26), // Assuming a default avatar
             })
             .returning();
 
         return this.generateToken(newUser[0]);
     }
 
-    async login(loginDto: LoginDto) {
+    async login({ nickname, password }: LoginDto) {
         const user = await this.drizzle
             .select()
             .from(schema.users)
-            .where(eq(schema.users.email, loginDto.email))
+            .where(eq(schema.users.email, nickname))
             .limit(1);
 
-        if (user.length === 0) {
+        if (user.length === 0)
             throw new UnauthorizedException("Invalid credentials");
-        }
 
         const isPasswordValid = await bcrypt.compare(
-            loginDto.password,
+            password,
             user[0].password,
         );
         if (!isPasswordValid) {
@@ -59,9 +59,10 @@ export class AuthService {
     }
 
     private generateToken(user: typeof schema.users.$inferSelect) {
-        const payload = { sub: user.userId, email: user.email };
+        delete user.password;
+        delete user.dateOfBirth;
         return {
-            access_token: this.jwtService.sign(payload),
+            access_token: this.jwtService.sign(user),
         };
     }
 }
