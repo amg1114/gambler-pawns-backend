@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException, Inject } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import * as bcrypt from "bcrypt";
 import { SignUpDto, LoginDto } from "./dto/auth.dto";
 import { DRIZZLE } from "../drizzle/drizzle.module";
@@ -16,7 +16,23 @@ export class AuthService {
     ) {}
 
     async signUp({ nickname, email, password }: SignUpDto) {
+        // 1. verify user does not exist
+        const user = await this.drizzle
+            .select()
+            .from(schema.users)
+            .where(
+                sql` ${schema.users.email} = ${email} OR ${schema.users.nickname} = ${nickname} `,
+            )
+            .limit(1);
+
+        if (user.length > 0) {
+            throw new UnauthorizedException("User already exists");
+        }
+
+        // 2. hash the password
         const hashedPassword = await bcrypt.hash(password, 10);
+
+        // 3. insert user into the database
         const newUser = await this.drizzle
             .insert(schema.users)
             .values({
@@ -30,7 +46,7 @@ export class AuthService {
                 eloArcade: 1500,
                 currentCoins: 0,
                 acumulatedAlltimeCoins: 0,
-                fkUserAvatarImgId: randomInt(1, 26), // Assuming a default avatar
+                fkUserAvatarImgId: randomInt(1, 26), // random avatar
             })
             .returning();
 
@@ -38,15 +54,17 @@ export class AuthService {
     }
 
     async login({ nickname, password }: LoginDto) {
+        // 1. verify user exists
         const user = await this.drizzle
             .select()
             .from(schema.users)
-            .where(eq(schema.users.email, nickname))
+            .where(eq(schema.users.nickname, nickname))
             .limit(1);
 
         if (user.length === 0)
             throw new UnauthorizedException("Invalid credentials");
 
+        // 2. verify password
         const isPasswordValid = await bcrypt.compare(
             password,
             user[0].password,
@@ -55,6 +73,7 @@ export class AuthService {
             throw new UnauthorizedException("Invalid credentials");
         }
 
+        // 3. generate token
         return this.generateToken(user[0]);
     }
 
