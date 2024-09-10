@@ -6,7 +6,7 @@ import { CORS } from "./constants";
 import { ValidationPipe } from "@nestjs/common";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import metadata from "./metadata";
-import { ResponseInterceptor } from "./response/response.interceptor";
+import { FormatAPIResponseInterceptor } from "./interceptors/response.interceptor";
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
@@ -29,7 +29,7 @@ async function bootstrap() {
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup("api/v1", app, document);
     // interceptor for standard api response
-    app.useGlobalInterceptors(new ResponseInterceptor());
+    app.useGlobalInterceptors(new FormatAPIResponseInterceptor());
 
     await app.listen(configService.get<string>("PORT"));
     console.log(`Application is running on: ${await app.getUrl()}`);
