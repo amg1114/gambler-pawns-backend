@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
   email  VARCHAR(255) NOT NULL UNIQUE,
   password  VARCHAR(255) NOT NULL,
   date_of_birth DATE,
-  country_flag  VARCHAR(255),
+  country_code  VARCHAR(255),
   about text,
   fk_user_avatar_img_id SMALLINT NOT NULL,
   elo_rapid INT NOT NULL,

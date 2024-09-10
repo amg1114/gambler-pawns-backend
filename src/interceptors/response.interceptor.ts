@@ -9,7 +9,7 @@ import {
 import { Observable, throwError } from "rxjs";
 import { catchError, map } from "rxjs/operators";
 
-// API response formatted based on: https://github.com/omniti-labs/jsend
+// Interceptor to format the API response
 @Injectable()
 export class FormatAPIResponseInterceptor implements NestInterceptor {
     intercept(
@@ -17,34 +17,52 @@ export class FormatAPIResponseInterceptor implements NestInterceptor {
         next: CallHandler,
     ): Observable<unknown> {
         return next.handle().pipe(
-            // Format response when successful
-            map((data: unknown) => ({
-                status: "success",
-                timestamp: new Date().toISOString(),
-                data,
-            })),
-            // Format response when error
-            catchError((error: unknown) => {
-                const statusCode =
-                    error instanceof HttpException
-                        ? error.getStatus()
-                        : HttpStatus.INTERNAL_SERVER_ERROR;
-
-                const errorResponse = {
-                    status: "fail",
-                    timestamp: new Date().toISOString(),
-                    data: {
-                        message:
-                            error instanceof Error
-                                ? error.message
-                                : "Internal server error",
-                    },
-                };
-
-                return throwError(
-                    () => new HttpException(errorResponse, statusCode),
-                );
-            }),
+            map((res: unknown) => this.responseHandler(res, context)),
+            catchError((err: HttpException) =>
+                throwError(() => this.errorHandler(err, context)),
+            ),
         );
+    }
+
+    // format the error response
+    errorHandler(exception: HttpException, context: ExecutionContext) {
+        const ctx = context.switchToHttp();
+        const response = ctx.getResponse();
+        const request = ctx.getRequest();
+
+        const status =
+            exception instanceof HttpException
+                ? exception.getStatus()
+                : HttpStatus.INTERNAL_SERVER_ERROR;
+
+        delete exception.getStatus;
+
+        console.log(exception);
+        response.status(status).json({
+            status: false,
+            statusCode: status,
+            path: request.url,
+            data: {
+                message: exception.message,
+                error: exception.name,
+            },
+            timestamp: new Date().toISOString(),
+        });
+    }
+
+    // format the success response
+    responseHandler(res: any, context: ExecutionContext) {
+        const ctx = context.switchToHttp();
+        const response = ctx.getResponse();
+        const request = ctx.getRequest();
+        const statusCode = response.statusCode;
+
+        return {
+            status: true,
+            statusCode,
+            path: request.url,
+            data: res,
+            timestamp: new Date().toISOString(),
+        };
     }
 }

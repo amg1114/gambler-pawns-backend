@@ -5,7 +5,7 @@ import {
     ConflictException,
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import { eq, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import * as bcrypt from "bcrypt";
 import { SignUpDto, LoginDto } from "./dto/auth.dto";
 import { DRIZZLE } from "../drizzle/drizzle.module";
@@ -20,7 +20,8 @@ export class AuthService {
         private jwtService: JwtService,
     ) {}
 
-    async signUp({ nickname, email, password }: SignUpDto) {
+    async signUp({ nickname, email, password, countryCode }: SignUpDto) {
+        // 1. validate user does not exist
         const user = await this.drizzle
             .select()
             .from(schema.users)
@@ -35,14 +36,17 @@ export class AuthService {
             );
         }
 
+        // 2. hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        // 3. insert user in database
         const newUser = await this.drizzle
             .insert(schema.users)
             .values({
                 nickname: nickname,
                 email: email,
                 password: hashedPassword,
+                //countryCode: countryCode,
                 eloRapid: 1500,
                 eloBlitz: 1500,
                 eloBullet: 1500,
@@ -53,19 +57,26 @@ export class AuthService {
             })
             .returning();
 
+        // return object
         return this.generateToken(newUser[0]);
     }
 
-    async login({ nickname, password }: LoginDto) {
+    async login({ nickname, email, password }: LoginDto) {
+        // 1. validate user exists using email or nickname
+        const queryCondition =
+            nickname !== undefined
+                ? sql` ${schema.users.nickname} = ${nickname} `
+                : sql` ${schema.users.email} = ${email} `;
         const user = await this.drizzle
             .select()
             .from(schema.users)
-            .where(eq(schema.users.nickname, nickname))
+            .where(queryCondition)
             .limit(1);
 
         if (user.length === 0)
             throw new UnauthorizedException("Invalid credentials");
 
+        // 2. validate password
         const isPasswordValid = await bcrypt.compare(
             password,
             user[0].password,
@@ -73,7 +84,7 @@ export class AuthService {
         if (!isPasswordValid) {
             throw new UnauthorizedException("Invalid credentials");
         }
-
+        // 3. return token
         return this.generateToken(user[0]);
     }
 
