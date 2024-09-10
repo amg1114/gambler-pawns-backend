@@ -35,9 +35,6 @@ export class FormatAPIResponseInterceptor implements NestInterceptor {
                 ? exception.getStatus()
                 : HttpStatus.INTERNAL_SERVER_ERROR;
 
-        delete exception.getStatus;
-
-        console.log(exception);
         response.status(status).json({
             status: false,
             statusCode: status,
