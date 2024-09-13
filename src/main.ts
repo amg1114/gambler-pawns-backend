@@ -16,7 +16,13 @@ async function bootstrap() {
     app.enableCors(CORS);
 
     app.setGlobalPrefix("api/v1");
-    app.useGlobalPipes(new ValidationPipe({ transform: true }));
+    app.useGlobalPipes(
+        new ValidationPipe({
+            transform: true,
+            whitelist: true,
+            forbidNonWhitelisted: false,
+        }),
+    );
 
     const config = new DocumentBuilder()
         .setTitle("Gambler Pawns API Documentation")

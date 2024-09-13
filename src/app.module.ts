@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { DrizzleModule } from "./drizzle/drizzle.module";
 import { AuthModule } from "./auth/auth.module";
+import { GatewayModule } from "./websocket/websocket.module";
 
 @Module({
     imports: [
@@ -11,6 +12,8 @@ import { AuthModule } from "./auth/auth.module";
         }),
         DrizzleModule,
         AuthModule,
+        GatewayModule,
     ],
+    providers: [],
 })
 export class AppModule {}
