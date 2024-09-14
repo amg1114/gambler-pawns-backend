@@ -8,7 +8,7 @@ import { JwtService } from "@nestjs/jwt";
 import { sql } from "drizzle-orm";
 import * as bcrypt from "bcrypt";
 import { SignUpDto, LoginDto } from "./dto/auth.dto";
-import { DRIZZLE } from "../drizzle/drizzle.module";
+import { DrizzleAsyncProvider } from "../drizzle/drizzle.provider";
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import * as schema from "../drizzle/schema";
 import { randomInt } from "crypto";
@@ -16,13 +16,13 @@ import { randomInt } from "crypto";
 @Injectable()
 export class AuthService {
     constructor(
-        @Inject(DRIZZLE) private drizzle: NodePgDatabase<typeof schema>,
+        @Inject(DrizzleAsyncProvider) private db: NodePgDatabase<typeof schema>,
         private jwtService: JwtService,
     ) {}
 
     async signUp({ nickname, email, password, countryCode }: SignUpDto) {
         // 1. validate user does not exist
-        const user = await this.drizzle
+        const user = await this.db
             .select()
             .from(schema.users)
             .where(
@@ -40,20 +40,21 @@ export class AuthService {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // 3. insert user in database
-        const newUser = await this.drizzle
+        const newUser = await this.db
             .insert(schema.users)
             .values({
                 nickname: nickname,
                 email: email,
                 password: hashedPassword,
-                //countryCode: countryCode,
+                countryCode: countryCode,
+                about: "",
+                fkUserAvatarImgId: randomInt(1, 26), // random
                 eloRapid: 1500,
                 eloBlitz: 1500,
                 eloBullet: 1500,
                 eloArcade: 1500,
                 currentCoins: 0,
                 acumulatedAlltimeCoins: 0,
-                fkUserAvatarImgId: randomInt(1, 26), // random avatar
             })
             .returning();
 
@@ -67,7 +68,7 @@ export class AuthService {
             nickname !== undefined
                 ? sql` ${schema.users.nickname} = ${nickname} `
                 : sql` ${schema.users.email} = ${email} `;
-        const user = await this.drizzle
+        const user = await this.db
             .select()
             .from(schema.users)
             .where(queryCondition)
