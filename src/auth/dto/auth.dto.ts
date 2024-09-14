@@ -53,3 +53,16 @@ export class LoginDto {
     @IsString()
     password: string;
 }
+
+export class forgotPasswordDto {
+    @IsEmail()
+    email: string;
+}
+
+export class resetPasswordDto {
+    @IsString()
+    token: string;
+
+    @IsStrongPassword(strongPasswordOptions)
+    newPassword: string;
+}
