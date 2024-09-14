@@ -51,8 +51,8 @@ export const users = pgTable("users", {
     email: varchar("email", { length: 255 }).notNull().unique(),
     password: varchar("password", { length: 255 }).notNull(),
     dateOfBirth: date("date_of_birth"),
-    countryCode: varchar("country_code", { length: 255 }),
-    about: text("about"),
+    countryCode: varchar("country_code", { length: 255 }).notNull(),
+    about: text("about").notNull(),
     fkUserAvatarImgId: integer("fk_user_avatar_img_id")
         .notNull()
         .references(() => userAvatarImg.userAvatarImgId),

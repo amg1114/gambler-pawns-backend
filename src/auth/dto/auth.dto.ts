@@ -6,7 +6,7 @@ import {
     Length,
     IsOptional,
     ValidateIf,
-    IsISO31661Alpha3,
+    IsISO31661Alpha2,
 } from "class-validator";
 
 const strongPasswordOptions = {
@@ -29,7 +29,7 @@ export class SignUpDto {
     @IsStrongPassword(strongPasswordOptions)
     password: string;
 
-    @IsISO31661Alpha3()
+    @IsISO31661Alpha2()
     countryCode: string;
 }
 
