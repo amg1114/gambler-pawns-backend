@@ -1,0 +1,13 @@
+services:
+  database:
+    image: postgres:16.2
+    environment:
+      POSTGRES_DB: ${LOCALDB_NAME}
+      POSTGRES_USER: ${LOCALDB_USER}
+      POSTGRES_PASSWORD: ${LOCALDB_PASSWORD}
+    ports:
+      - "5432:${LOCALDB_PORT}"
+    volumes:
+      - database:/var/lib/postgresql/data
+volumes:
+  database:
