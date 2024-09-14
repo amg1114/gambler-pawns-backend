@@ -26,24 +26,30 @@ export class WebsocketGateway
 
     constructor(private readonly chessService: GameChessManagerService) {}
 
-    // login for debug purposes
+    // log connected and disconnected clients for debugging purposes
     handleConnection(client: Socket) {
         console.log(`Client connected: ${client.id}`);
     }
-
     handleDisconnect(client: Socket) {
         console.log(`Client disconnected: ${client.id}`);
     }
 
     // TODO: help, validation pipe with DTO and class-validator not working
+    /* must sent a JSON stringified object with the following structure:
+    {
+        playerId: string,
+        eloRating: number,
+        mode: "rapid" | "blitz" | "bullet",
+        bet?: number,
+        }
+    */
     @SubscribeMessage("joinGame")
     handleJoinGame(
         @MessageBody() payload: string,
         @ConnectedSocket() socket: Socket,
     ) {
         const data = JSON.parse(payload);
-        console.log(data);
-        console.log("Hola");
+        console.log("Joining game", data);
         const { playerId, eloRating, mode } = data;
         // Register player socket in chess service
         this.chessService.registerPlayerSocket(playerId, socket.id);
@@ -82,10 +88,10 @@ export class WebsocketGateway
             const game = this.chessService.findGameByPlayerId(data.playerId);
             if (game) {
                 const player1Socket = this.chessService.getSocketIdByPlayerId(
-                    game.player1Id,
+                    game.player1.playerId,
                 );
                 const player2Socket = this.chessService.getSocketIdByPlayerId(
-                    game.player2Id,
+                    game.player2.playerId,
                 );
 
                 if (player1Socket && player2Socket) {
@@ -101,10 +107,10 @@ export class WebsocketGateway
             const game = this.chessService.findGameByPlayerId(data.playerId);
             if (game) {
                 const player1Socket = this.chessService.getSocketIdByPlayerId(
-                    game.player1Id,
+                    game.player1.playerId,
                 );
                 const player2Socket = this.chessService.getSocketIdByPlayerId(
-                    game.player2Id,
+                    game.player2.playerId,
                 );
 
                 if (player1Socket && player2Socket) {

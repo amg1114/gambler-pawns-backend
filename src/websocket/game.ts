@@ -1,8 +1,7 @@
 import { Chess } from "chess.js";
-import { Inject } from "@nestjs/common";
-import { DRIZZLE } from "../drizzle/drizzle.module";
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import * as schema from "../drizzle/schema";
+import { Player } from "./entities/player";
 
 // TODO: logica timers
 // TODO: logica apuestas
@@ -10,19 +9,23 @@ import * as schema from "../drizzle/schema";
 // TODO: logica resign
 // TODO: logica abandon
 export class Game {
+    public mode: "rapid" | "blitz" | "bullet";
     public gameId: string; //game id in db
-    public player1: string;
-    public player2: string;
+    public player1: Player;
+    public player2: Player;
     public board: Chess;
     private moveCount = 0;
+    private db: NodePgDatabase<typeof schema>;
 
     constructor(
-        @Inject(DRIZZLE) private drizzle: NodePgDatabase<typeof schema>,
-        player1Id: string,
-        player2Id: string,
+        db: NodePgDatabase<typeof schema>,
+        player1: Player,
+        player2Id: Player,
     ) {
-        this.player1 = player1Id;
-        this.player2 = player2Id;
+        this.db = db;
+        // aqui verifico si es guest, si no lo es, hago una consulta para obtener el elo
+        this.player1.playerId = player1Id;
+        this.player2.playerId = player2Id;
         this.board = new Chess();
 
         // Insert new game in DB
@@ -32,13 +35,13 @@ export class Game {
     }
 
     async createGameInDB() {
-        const result = await this.drizzle
+        const result = await this.db
             .insert(schema.game)
             .values({
-                fk_whites_player: this.player1.id,
-                fk_blacks_player: this.player2.id,
-                elo_whites_before: this.player1.elo,
-                elo_blacks_before: this.player2.elo,
+                fk_whites_player: this.player1.playerId,
+                fk_blacks_player: this.player2.playerId,
+                elo_whites_before: this.player1.eloRating,
+                elo_blacks_before: this.player2.eloRating,
                 pgn: this.board.pgn(), // PGN inicial (vacío al inicio)
                 fk_game_mode: 1, // Ejemplo: 1 para Blitz, 2 para Rapid, etc.
                 game_time: new Date(),
@@ -50,11 +53,11 @@ export class Game {
 
     makeMove(playerId: string, move: { from: string; to: string }) {
         // Validar si es el turno del jugador correcto
-        if (this.moveCount % 2 === 0 && playerId !== this.player1Id) {
+        if (this.moveCount % 2 === 0 && playerId !== this.player1.playerId) {
             return { error: "No es tu turno" };
         }
 
-        if (this.moveCount % 2 === 1 && playerId !== this.player2Id) {
+        if (this.moveCount % 2 === 1 && playerId !== this.player2.playerId) {
             return { error: "No es tu turno" };
         }
 
@@ -113,4 +116,19 @@ export class Game {
       .where(game.game_id.eq(this.gameId));
   }
     */
+}
+
+export class GamePlayer {
+    public playerId: string;
+    public eloRating;
+    public time;
+    public avatarImgPath;
+
+    constructor(playerId: string) {
+        this.playerId = playerId;
+        this.eloRating = this.eloRating;
+        //const time = new Date() TODO: algo así luego miro xd
+        if (playerId.includes("guessPlayer")) {
+        }
+    }
 }

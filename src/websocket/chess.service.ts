@@ -1,13 +1,9 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
+import { DrizzleAsyncProvider } from "../drizzle/drizzle.provider";
+import { NodePgDatabase } from "drizzle-orm/node-postgres";
+import * as schema from "../drizzle/schema";
 import { Game } from "./game";
-
-// hacer una consulta para enviar datos del opnente:
-// elo, nickname, avatar, countryCode
-interface Player {
-    playerId: string;
-    eloRating: number;
-    socketId: string;
-}
+import { Player } from "./entities/player";
 
 @Injectable()
 export class GameChessManagerService {
@@ -15,6 +11,10 @@ export class GameChessManagerService {
     private blitzPool: Player[] = [];
     private bulletPool: Player[] = [];
     private activeGames: Map<string, Game> = new Map(); // Mapa de partidas activas
+
+    constructor(
+        @Inject(DrizzleAsyncProvider) private db: NodePgDatabase<typeof schema>,
+    ) {}
 
     // Almacenamos la relación entre jugadores y sockets
     private playerSocketMap: Map<string, string> = new Map(); // playerId -> socketId
@@ -39,7 +39,7 @@ export class GameChessManagerService {
         const player2 = pool.shift();
 
         if (player1 && player2) {
-            const newGame = new Game(player1.playerId, player2.playerId);
+            const newGame = new Game(this.db, player1, player2);
             this.activeGames.set(player1.playerId, newGame);
             this.activeGames.set(player2.playerId, newGame);
             console.log(
