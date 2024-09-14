@@ -13,7 +13,7 @@ import {
     forgotPasswordDto,
     resetPasswordDto,
 } from "./dto/auth.dto";
-import { DRIZZLE } from "../drizzle/drizzle.module";
+import { DrizzleAsyncProvider } from "../drizzle/drizzle.provider";
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import * as schema from "../drizzle/schema";
 import { randomInt } from "crypto";
@@ -22,14 +22,14 @@ import { MailerService } from "@nestjs-modules/mailer";
 @Injectable()
 export class AuthService {
     constructor(
-        @Inject(DRIZZLE) private drizzle: NodePgDatabase<typeof schema>,
+        @Inject(DrizzleAsyncProvider) private db: NodePgDatabase<typeof schema>,
         private jwtService: JwtService,
         private readonly mailerService: MailerService,
     ) {}
 
     async signUp({ nickname, email, password, countryCode }: SignUpDto) {
         // 1. validate user does not exist
-        const user = await this.drizzle
+        const user = await this.db
             .select()
             .from(schema.users)
             .where(
@@ -47,20 +47,21 @@ export class AuthService {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // 3. insert user in database
-        const newUser = await this.drizzle
+        const newUser = await this.db
             .insert(schema.users)
             .values({
                 nickname: nickname,
                 email: email,
                 password: hashedPassword,
-                //countryCode: countryCode,
+                countryCode: countryCode,
+                about: "",
+                fkUserAvatarImgId: randomInt(1, 26), // random
                 eloRapid: 1500,
                 eloBlitz: 1500,
                 eloBullet: 1500,
                 eloArcade: 1500,
                 currentCoins: 0,
                 acumulatedAlltimeCoins: 0,
-                fkUserAvatarImgId: randomInt(1, 26), // random avatar
             })
             .returning();
 
@@ -74,7 +75,7 @@ export class AuthService {
             nickname !== undefined
                 ? sql` ${schema.users.nickname} = ${nickname} `
                 : sql` ${schema.users.email} = ${email} `;
-        const user = await this.drizzle
+        const user = await this.db
             .select()
             .from(schema.users)
             .where(queryCondition)
@@ -105,7 +106,7 @@ export class AuthService {
 
     private async forgotPassword({ email }: forgotPasswordDto) {
         // la idea es que si no se encuentra en la bdd, igual no se le diga al usuario que no existe por seguridad
-        const user = await this.drizzle
+        const user = await this.db
             .select()
             .from(schema.users)
             .where(sql` ${schema.users.email} = ${email} `)
@@ -130,7 +131,7 @@ export class AuthService {
         const { email } = this.jwtService.verify(token) as { email: string };
 
         // 1. validate user exists
-        const user = await this.drizzle
+        const user = await this.db
             .select()
             .from(schema.users)
             .where(sql` ${schema.users.email} = ${email} `)
@@ -143,7 +144,7 @@ export class AuthService {
         const hashedPassword = await bcrypt.hash(newPassword, 10);
 
         // 3. update password
-        await this.drizzle
+        await this.db
             .update(schema.users)
             .set({ password: hashedPassword })
             .where(sql` ${schema.users.email} = ${email} `)
