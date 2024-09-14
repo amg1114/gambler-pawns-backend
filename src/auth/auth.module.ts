@@ -17,6 +17,7 @@ import { MailerModule } from "@nestjs-modules/mailer";
             }),
         }),
         MailerModule.forRootAsync({
+            inject: [ConfigService],
             useFactory: (configService: ConfigService) => ({
                 transport: {
                     service: "gmail",

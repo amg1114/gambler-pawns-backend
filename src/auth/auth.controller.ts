@@ -1,7 +1,7 @@
 import { Controller, Post, Body, HttpCode } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { SignUpDto, LoginDto } from "./dto/auth.dto";
-import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
+import { ApiBody, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 
 @Controller("auth")
 @ApiTags("auth")
@@ -24,6 +24,7 @@ export class AuthController {
     @ApiResponse({ status: 200, description: "User logged in" })
     @ApiResponse({ status: 401, description: "Wrong credentials" })
     @ApiResponse({ status: 400, description: "Validation error" })
+    @ApiBody({ type: LoginDto })
     @HttpCode(200)
     @Post("login")
     login(@Body() loginDto: LoginDto) {

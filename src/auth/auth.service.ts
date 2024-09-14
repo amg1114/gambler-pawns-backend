@@ -99,6 +99,7 @@ export class AuthService {
     private generateToken(user: typeof schema.users.$inferSelect) {
         delete user.password;
         delete user.dateOfBirth;
+        console.log(user);
         return {
             access_token: this.jwtService.sign(user),
         };
@@ -130,7 +131,6 @@ export class AuthService {
     private async resetPassword({ token, newPassword }: resetPasswordDto) {
         const { email } = this.jwtService.verify(token) as { email: string };
 
-        // 1. validate user exists
         const user = await this.db
             .select()
             .from(schema.users)
@@ -140,10 +140,8 @@ export class AuthService {
         if (user.length === 0)
             throw new UnauthorizedException("Invalid credentials");
 
-        // 2. hash new password
         const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-        // 3. update password
         await this.db
             .update(schema.users)
             .set({ password: hashedPassword })
