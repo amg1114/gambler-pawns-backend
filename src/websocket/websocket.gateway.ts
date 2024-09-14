@@ -1,3 +1,5 @@
+// NOTE: this file is responsible for handling websocket connections and messages
+
 import {
     WebSocketGateway,
     SubscribeMessage,
@@ -35,8 +37,11 @@ export class WebsocketGateway
 
     // TODO: help, validation pipe with DTO and class-validator not working
     @SubscribeMessage("joinGame")
-    handleJoinGame(@MessageBody() data, @ConnectedSocket() socket: Socket) {
-        data = JSON.parse(data);
+    handleJoinGame(
+        @MessageBody() payload: string,
+        @ConnectedSocket() socket: Socket,
+    ) {
+        const data = JSON.parse(payload);
         console.log(data);
         console.log("Hola");
         const { playerId, eloRating, mode } = data;

@@ -1,10 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import { Game } from "./game";
 
+// hacer una consulta para enviar datos del opnente:
+// elo, nickname, avatar, countryCode
 interface Player {
     playerId: string;
     eloRating: number;
-    socketId: string; // Asegúrate de que Player tenga socketId
+    socketId: string;
 }
 
 @Injectable()
@@ -25,6 +27,7 @@ export class GameChessManagerService {
 
     tryToPairPlayers(mode: "rapid" | "blitz" | "bullet") {
         const pool = this.getPoolByMode(mode);
+        // TODO: agregar logica setTimeOut para esperar a que la pool tenga más jugadores +-5s
 
         if (pool.length < 2) return;
 
@@ -64,6 +67,7 @@ export class GameChessManagerService {
         if (game) {
             return game.makeMove(playerId, move);
         }
+        // TODO: aquí iria una WsException ?
         return { error: "Juego no encontrado" };
     }
 
