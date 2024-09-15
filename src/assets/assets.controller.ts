@@ -9,7 +9,7 @@ import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 @ApiTags("assets")
 export class AssetsController {
     constructor(private readonly assetsService: AssetsService) {}
-    
+
     @ApiOperation({ summary: "Get the list of avatar images" })
     @ApiResponse({ status: 200, description: "List of avatar images" })
     @Get("avatars")
@@ -25,6 +25,4 @@ export class AssetsController {
         const avatar = await this.assetsService.getAvatar(id);
         return res.sendFile(join(process.cwd(), avatar));
     }
-
-
 }

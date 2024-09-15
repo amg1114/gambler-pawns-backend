@@ -4,7 +4,7 @@ import { DrizzleModule } from "./drizzle/drizzle.module";
 import { AuthModule } from "./auth/auth.module";
 import { ServeStaticModule } from "@nestjs/serve-static";
 import { join } from "path";
-import { AssetsModule } from './assets/assets.module';
+import { AssetsModule } from "./assets/assets.module";
 
 @Module({
     imports: [

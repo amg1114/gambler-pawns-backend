@@ -72,22 +72,24 @@ describe("AssetsController", () => {
         });
     });
 
-    it('should handle avatar not found (404)', async () => {
-      const mockId = '1';
+    it("should handle avatar not found (404)", async () => {
+        const mockId = "1";
 
-      // Mock the service to return null (not found)
-      jest.spyOn(assetsService, 'getAvatar').mockResolvedValue(null);
+        // Mock the service to return null (not found)
+        jest.spyOn(assetsService, "getAvatar").mockResolvedValue(null);
 
-      const mockResponse: Partial<Response> = {
-        sendFile: jest.fn(),
-        status: jest.fn().mockReturnThis(),
-        json: jest.fn(),
-      };
+        const mockResponse: Partial<Response> = {
+            sendFile: jest.fn(),
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn(),
+        };
 
-      await controller.getAvatar(mockId, mockResponse as Response);
+        await controller.getAvatar(mockId, mockResponse as Response);
 
-      expect(assetsService.getAvatar).toHaveBeenCalledWith(mockId);
-      expect(mockResponse.status).toHaveBeenCalledWith(404);
-      expect(mockResponse.json).toHaveBeenCalledWith({ message: 'Avatar not found' });
+        expect(assetsService.getAvatar).toHaveBeenCalledWith(mockId);
+        expect(mockResponse.status).toHaveBeenCalledWith(404);
+        expect(mockResponse.json).toHaveBeenCalledWith({
+            message: "Avatar not found",
+        });
     });
 });
