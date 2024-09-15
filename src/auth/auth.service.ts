@@ -3,6 +3,7 @@ import {
     UnauthorizedException,
     Inject,
     ConflictException,
+    InternalServerErrorException,
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { sql } from "drizzle-orm";
@@ -18,13 +19,15 @@ import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import * as schema from "../drizzle/schema";
 import { randomInt } from "crypto";
 import { MailerService } from "@nestjs-modules/mailer";
+import { ConfigService } from "@nestjs/config";
 
 @Injectable()
 export class AuthService {
     constructor(
         @Inject(DrizzleAsyncProvider) private db: NodePgDatabase<typeof schema>,
-        private jwtService: JwtService,
+        private readonly jwtService: JwtService,
         private readonly mailerService: MailerService,
+        private readonly configService: ConfigService,
     ) {}
 
     async signUp({ nickname, email, password, countryCode }: SignUpDto) {
@@ -99,37 +102,44 @@ export class AuthService {
     private generateToken(user: typeof schema.users.$inferSelect) {
         delete user.password;
         delete user.dateOfBirth;
-        console.log(user);
         return {
             access_token: this.jwtService.sign(user),
         };
     }
 
-    private async forgotPassword({ email }: forgotPasswordDto) {
-        // la idea es que si no se encuentra en la bdd, igual no se le diga al usuario que no existe por seguridad
-        const user = await this.db
-            .select()
-            .from(schema.users)
-            .where(sql` ${schema.users.email} = ${email} `)
-            .limit(1);
+    async forgotPassword({ email }: forgotPasswordDto) {
+        const token = this.jwtService.sign(
+            { email: email },
+            { expiresIn: "30s" },
+        );
 
-        if (user.length === 0)
-            throw new UnauthorizedException("Invalid credentials");
-
-        const token = this.jwtService.sign({ email: email });
-
-        await this.mailerService.sendMail({
+        //TODO: write a better email
+        const msg = {
+            from:
+                "Gambler Pawns <" +
+                this.configService.get("NODEMAILER_EMAIL") +
+                ">",
             to: email,
-            subject: "Forgot Password",
-            template: "./forgot-password",
-            context: {
-                token: token,
-            },
+            subject: "Password reset",
+            html: "Your requested password reset token is: " + token,
+        };
+
+        await this.mailerService.sendMail(msg).catch(() => {
+            throw new InternalServerErrorException("Failed to send email");
         });
+
+        // This return must be changed so the response doesnt return the token since it will be only accessible by the user's email
+        // This is just for debugging/development purposes
+        return { token: token };
     }
 
-    private async resetPassword({ token, newPassword }: resetPasswordDto) {
-        const { email } = this.jwtService.verify(token) as { email: string };
+    async resetPassword({ token, newPassword }: resetPasswordDto) {
+        let email: string;
+        try {
+            email = this.jwtService.verify(token).email;
+        } catch (error) {
+            throw new UnauthorizedException("Invalid token");
+        }
 
         const user = await this.db
             .select()

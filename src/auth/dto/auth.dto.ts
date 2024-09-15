@@ -7,6 +7,7 @@ import {
     IsOptional,
     ValidateIf,
     IsISO31661Alpha2,
+    IsJWT,
 } from "class-validator";
 
 const strongPasswordOptions = {
@@ -60,7 +61,7 @@ export class forgotPasswordDto {
 }
 
 export class resetPasswordDto {
-    @IsString()
+    @IsJWT()
     token: string;
 
     @IsStrongPassword(strongPasswordOptions)
