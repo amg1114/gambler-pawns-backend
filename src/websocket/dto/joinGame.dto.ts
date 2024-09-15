@@ -1,11 +1,4 @@
-import {
-    IsNumber,
-    IsOptional,
-    IsString,
-    IsEnum,
-    IsJSON,
-    ValidateIf,
-} from "class-validator";
+import { IsNumber, IsOptional, IsString, IsEnum } from "class-validator";
 
 export class JoinGameDTO {
     // payload: string;

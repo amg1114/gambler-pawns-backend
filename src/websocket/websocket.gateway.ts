@@ -12,9 +12,9 @@ import {
 import { Server, Socket } from "socket.io";
 import { CORS } from "../constants";
 import { GameChessManagerService } from "./chess.service";
-import { JoinGameDTO } from "./dto/joinGame.dto";
+import { JoinGameDTO, MakeMoveDTO } from "./dto/";
 import { UseFilters, ValidationPipe } from "@nestjs/common";
-import { CustomWsFilterException, ParseJsonPipe } from "../websocketsUtils/";
+import { CustomWsFilterException, ParseJsonPipe } from "../websocketsUtils";
 
 @UseFilters(CustomWsFilterException)
 @WebSocketGateway({
@@ -36,7 +36,7 @@ export class WebsocketGateway
         console.log(`Client disconnected: ${client.id}`);
     }
 
-    @SubscribeMessage("joinGame")
+    @SubscribeMessage("game:join")
     handleJoinGame(
         @MessageBody(
             new ParseJsonPipe(),
@@ -62,6 +62,8 @@ export class WebsocketGateway
             console.log(player1Socket, player2Socket);
 
             // Notificar a los jugadores que han sido emparejados
+            // enviarles id del juego
+            // color de las piezas
             this.server
                 .to(player1Socket)
                 .emit("gameStart", { color: "white", opponent: player2Socket });
@@ -71,24 +73,31 @@ export class WebsocketGateway
         }
     }
 
-    /*@SubscribeMessage("makeMove")
+    @SubscribeMessage("game:makeMove")
     handleMakeMove(
-        @MessageBody()
-        data: { playerId: string; move: { from: string; to: string } },
+        @MessageBody(
+            new ParseJsonPipe(),
+            new ValidationPipe({ transform: true }),
+        )
+        payload: MakeMoveDTO,
         @ConnectedSocket() socket: Socket,
     ) {
-        const result = this.chessService.handleMove(data.playerId, data.move);
+        console.log("Making move", payload);
+        const result = this.chessService.handleMove(payload.playerId, {
+            from: payload.from,
+            to: payload.to,
+        });
 
         if (result.error) {
             socket.emit("moveError", result.error);
         } else if (result.gameOver) {
-            const game = this.chessService.findGameByPlayerId(data.playerId);
+            const game = this.chessService.findGameByPlayerId(payload.playerId);
             if (game) {
                 const player1Socket = this.chessService.getSocketIdByPlayerId(
-                    game.player1.playerId,
+                    game.whitesPlayer.playerId,
                 );
                 const player2Socket = this.chessService.getSocketIdByPlayerId(
-                    game.player2.playerId,
+                    game.blacksPlayer.playerId,
                 );
 
                 if (player1Socket && player2Socket) {
@@ -101,13 +110,13 @@ export class WebsocketGateway
                 }
             }
         } else {
-            const game = this.chessService.findGameByPlayerId(data.playerId);
+            const game = this.chessService.findGameByPlayerId(payload.playerId);
             if (game) {
                 const player1Socket = this.chessService.getSocketIdByPlayerId(
-                    game.player1.playerId,
+                    game.whitesPlayer.playerId,
                 );
                 const player2Socket = this.chessService.getSocketIdByPlayerId(
-                    game.player2.playerId,
+                    game.blacksPlayer.playerId,
                 );
 
                 if (player1Socket && player2Socket) {
@@ -116,5 +125,5 @@ export class WebsocketGateway
                 }
             }
         }
-    }*/
+    }
 }

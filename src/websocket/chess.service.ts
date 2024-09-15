@@ -12,12 +12,12 @@ export class GameChessManagerService {
     private bulletPool: Player[] = [];
     private activeGames: Map<string, Game> = new Map(); // Mapa de partidas activas
 
+    // Almacenamos la relación entre jugadores y sockets
+    private playerSocketMap: Map<string, string> = new Map(); // playerId -> socketId
+
     constructor(
         @Inject(DrizzleAsyncProvider) private db: NodePgDatabase<typeof schema>,
     ) {}
-
-    // Almacenamos la relación entre jugadores y sockets
-    private playerSocketMap: Map<string, string> = new Map(); // playerId -> socketId
 
     addToPool(player: Player, mode: "rapid" | "blitz" | "bullet") {
         const pool = this.getPoolByMode(mode);
@@ -39,7 +39,10 @@ export class GameChessManagerService {
         const player2 = pool.shift();
 
         if (player1 && player2) {
-            const newGame = new Game(this.db /*player1, player2*/);
+            console.log("Emparejando jugadores", player1, player2);
+            // creating new game and callign createGameInDB in order to insert data in db
+            const newGame = new Game(mode, this.db);
+            newGame.createGameInDB(player1.playerId, player2.playerId);
             this.activeGames.set(player1.playerId, newGame);
             this.activeGames.set(player2.playerId, newGame);
             console.log(

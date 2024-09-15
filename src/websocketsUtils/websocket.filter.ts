@@ -1,6 +1,6 @@
 /*
 Custom exception filter for handling class-validator exceptions in websockets.
-since by default dont provide info about the validation errors.
+since by default nestjs dont provide info about the validation errors when usign websockets.
 
 https://stackoverflow.com/questions/60749135/nestjs-validationpipe-in-websocketgateway-returns-internal-server-error
 */
