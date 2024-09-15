@@ -1,3 +1,4 @@
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Transform } from "class-transformer";
 import {
     IsEmail,
@@ -22,15 +23,19 @@ export class SignUpDto {
     @IsString()
     @Transform(({ value }) => value?.trim())
     @Length(3, 20)
+    @ApiProperty({ example: "John Doe" })
     nickname: string;
 
     @IsEmail()
+    @ApiProperty({ example: "example@example.com" })
     email: string;
 
     @IsStrongPassword(strongPasswordOptions)
+    @ApiProperty({ example: "Jh0n_d0e" })
     password: string;
 
     @IsISO31661Alpha2()
+    @ApiProperty({ example: "CO" })
     countryCode: string;
 }
 
@@ -43,14 +48,22 @@ export class LoginDto {
     @Transform(({ value }) => value.trim())
     @Length(3, 20)
     @ValidateIf((o) => !o.email, nicknameOrEmailMessage)
+    @ApiPropertyOptional({
+        description:
+            "Nickname of the user. Either nickname or email must be provided, but not both.",
+    })
     nickname?: string;
 
     @IsOptional()
     @ValidateIf((o) => !o.nickname, nicknameOrEmailMessage)
     @IsEmail()
+    @ApiPropertyOptional({
+        description:
+            "Email of the user. Either nickname or email must be provided, but not both.",
+    })
     email?: string;
 
-    // Yo don't need to validate password here, since it's already store
+    // Already validated in SignUpDto
     @IsString()
     password: string;
 }

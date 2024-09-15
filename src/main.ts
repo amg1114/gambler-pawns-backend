@@ -29,7 +29,7 @@ async function bootstrap() {
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup("api/v1", app, document);
     // interceptor for standard api response
-    //app.useGlobalInterceptors(new FormatAPIResponseInterceptor());
+    app.useGlobalInterceptors(new FormatAPIResponseInterceptor());
 
     await app.listen(configService.get<string>("PORT"));
     console.log(`Application is running on: ${await app.getUrl()}`);

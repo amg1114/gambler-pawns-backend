@@ -1,17 +1,17 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsBoolean, IsNumber, IsObject, IsString } from "class-validator";
 
-export class SignUpResponse201Dto {
+export class LogInResponse200Dto {
     @IsBoolean()
     @ApiProperty({ example: true })
     status: boolean;
 
     @IsNumber()
-    @ApiProperty({ example: 201 })
+    @ApiProperty({ example: 200 })
     statusCode: number;
 
     @IsString()
-    @ApiProperty({ example: "/api/v1/auth/signup" })
+    @ApiProperty({ example: "/api/v1/auth/login" })
     path: string;
 
     @IsObject()
@@ -28,7 +28,7 @@ export class SignUpResponse201Dto {
     timestamp: string;
 }
 
-export class SignUpResponse400Dto {
+export class LogInResponse400Dto {
     @IsBoolean()
     @ApiProperty({ example: false })
     status: boolean;
@@ -38,7 +38,7 @@ export class SignUpResponse400Dto {
     statusCode: number;
 
     @IsString()
-    @ApiProperty({ example: "/api/v1/auth/signup" })
+    @ApiProperty({ example: "/api/v1/auth/login" })
     path: string;
 
     @IsObject()
@@ -55,29 +55,29 @@ export class SignUpResponse400Dto {
     timestamp: string;
 }
 
-export class SignUpResponse409Dto {
+export class LogInResponse401Dto {
     @IsBoolean()
     @ApiProperty({ example: false })
     status: boolean;
 
     @IsNumber()
-    @ApiProperty({ example: 409 })
+    @ApiProperty({ example: 401 })
     statusCode: number;
 
     @IsString()
-    @ApiProperty({ example: "/api/v1/auth/signup" })
+    @ApiProperty({ example: "/api/v1/auth/login" })
     path: string;
 
     @IsObject()
     @ApiProperty({
         example: {
-            message: ["Nickname or email is already registered"],
-            error: "ConflictException",
+            message: ["Invalid credentials"],
+            error: "UnauthorizedException",
         },
     })
     data: { message: string[]; error: string };
 
     @IsString()
-    @ApiProperty({ example: "2024-09-15T00:21:04.340Z" })
+    @ApiProperty({ example: "2024-09-15T00:30:52.121Z" })
     timestamp: string;
 }
