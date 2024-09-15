@@ -1,15 +1,25 @@
-import { IsString, IsInt, IsEnum } from "class-validator";
+import {
+    IsNumber,
+    IsOptional,
+    IsString,
+    IsEnum,
+    IsJSON,
+    ValidateIf,
+} from "class-validator";
 
 export class JoinGameDTO {
+    // payload: string;
+
     @IsString()
-    nicknamePlayer: string;
+    playerId: string;
 
-    @IsInt()
-    elo: string;
+    @IsNumber()
+    eloRating: number;
 
-    @IsEnum(["rapid", "blitz", "bullet", "arcade"])
-    game_mode: string;
+    @IsEnum(["rapid", "blitz", "bullet"])
+    mode: "rapid" | "blitz" | "bullet";
 
-    //TODO: arcade modifiers
+    @IsOptional()
+    @IsNumber()
+    bet?: number;
 }
-// TODO: hacer que esto funcione

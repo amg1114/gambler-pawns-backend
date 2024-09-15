@@ -39,7 +39,7 @@ export class GameChessManagerService {
         const player2 = pool.shift();
 
         if (player1 && player2) {
-            const newGame = new Game(this.db, player1, player2);
+            const newGame = new Game(this.db /*player1, player2*/);
             this.activeGames.set(player1.playerId, newGame);
             this.activeGames.set(player2.playerId, newGame);
             console.log(

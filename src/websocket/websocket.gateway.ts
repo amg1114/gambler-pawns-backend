@@ -12,9 +12,11 @@ import {
 import { Server, Socket } from "socket.io";
 import { CORS } from "../constants";
 import { GameChessManagerService } from "./chess.service";
-//import { JoinGameDTO } from "./dto/joinGame.dto";
-// TODO: DTO validation not working
+import { JoinGameDTO } from "./dto/joinGame.dto";
+import { UseFilters, ValidationPipe } from "@nestjs/common";
+import { CustomWsFilterException, ParseJsonPipe } from "../websocketsUtils/";
 
+@UseFilters(CustomWsFilterException)
 @WebSocketGateway({
     cors: CORS,
 })
@@ -34,24 +36,19 @@ export class WebsocketGateway
         console.log(`Client disconnected: ${client.id}`);
     }
 
-    // TODO: help, validation pipe with DTO and class-validator not working
-    /* must sent a JSON stringified object with the following structure:
-    {
-        playerId: string,
-        eloRating: number,
-        mode: "rapid" | "blitz" | "bullet",
-        bet?: number,
-        }
-    */
     @SubscribeMessage("joinGame")
     handleJoinGame(
-        @MessageBody() payload: string,
+        @MessageBody(
+            new ParseJsonPipe(),
+            new ValidationPipe({ transform: true }),
+        )
+        payload: JoinGameDTO,
         @ConnectedSocket() socket: Socket,
     ) {
-        const data = JSON.parse(payload);
-        console.log("Joining game", data);
-        const { playerId, eloRating, mode } = data;
-        // Register player socket in chess service
+        console.log("Joining game", payload);
+        const { playerId, eloRating, mode } = payload;
+
+        // Register player and socket in chess service
         this.chessService.registerPlayerSocket(playerId, socket.id);
 
         const pairing = this.chessService.addToPool(
@@ -74,7 +71,7 @@ export class WebsocketGateway
         }
     }
 
-    @SubscribeMessage("makeMove")
+    /*@SubscribeMessage("makeMove")
     handleMakeMove(
         @MessageBody()
         data: { playerId: string; move: { from: string; to: string } },
@@ -119,5 +116,5 @@ export class WebsocketGateway
                 }
             }
         }
-    }
+    }*/
 }

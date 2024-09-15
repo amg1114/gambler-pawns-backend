@@ -19,22 +19,22 @@ export class Game {
 
     constructor(
         db: NodePgDatabase<typeof schema>,
-        player1: Player,
-        player2Id: Player,
+        //player1: Player,
+        //player2Id: Player,
     ) {
         this.db = db;
         // aqui verifico si es guest, si no lo es, hago una consulta para obtener el elo
-        this.player1.playerId = player1Id;
-        this.player2.playerId = player2Id;
-        this.board = new Chess();
+        //this.player1.playerId = player1Id;
+        //this.player2.playerId = player2Id;
+        //this.board = new Chess();
 
         // Insert new game in DB
-        this.createGameInDB();
+        //this.createGameInDB();
         // TODO: cuando ambos jugadores son emparejados devolver un enlace con
         // el id de la partida para que puedan compartirlo y jugar
     }
 
-    async createGameInDB() {
+    /*async createGameInDB() {
         const result = await this.db
             .insert(schema.game)
             .values({
@@ -49,7 +49,7 @@ export class Game {
             .returning("game_id");
 
         this.gameId = result[0].game_id;
-    }
+    }*/
 
     makeMove(playerId: string, move: { from: string; to: string }) {
         // Validar si es el turno del jugador correcto
@@ -91,34 +91,32 @@ export class Game {
         return this.board.fen();
     }
 
-    /*
-    async updatePGNInDB() {
-    // Actualizar el campo 'pgn' con los movimientos actuales
-    await db.update(game)
-      .set({ pgn: this.pgn })
-      .where(game.game_id.eq(this.gameId));
-  }
+    //     async updatePGNInDB() {
+    //     // Actualizar el campo 'pgn' con los movimientos actuales
+    //     await db.update(game)
+    //       .set({ pgn: this.pgn })
+    //       .where(game.game_id.eq(this.gameId));
+    //   }
 
-      async endGame() {
-    // Determinar el ganador
-    let winner: 'white' | 'black' | null = null;
-    if (this.board.isCheckmate()) {
-      winner = this.board.turn() === 'w' ? 'black' : 'white';
-    }
+    //       async endGame() {
+    //     // Determinar el ganador
+    //     let winner: 'white' | 'black' | null = null;
+    //     if (this.board.isCheckmate()) {
+    //       winner = this.board.turn() === 'w' ? 'black' : 'white';
+    //     }
 
-    // Actualizar el juego con el ganador y los elos finales
-    await db.update(game)
-      .set({
-        winner: winner,
-        elo_whites_after: this.player1.elo, // Actualiza con el nuevo elo
-        elo_blacks_after: this.player2.elo, // Actualiza con el nuevo elo
-      })
-      .where(game.game_id.eq(this.gameId));
-  }
-    */
+    //     // Actualizar el juego con el ganador y los elos finales
+    //     await db.update(game)
+    //       .set({
+    //         winner: winner,
+    //         elo_whites_after: this.player1.elo, // Actualiza con el nuevo elo
+    //         elo_blacks_after: this.player2.elo, // Actualiza con el nuevo elo
+    //       })
+    //       .where(game.game_id.eq(this.gameId));
+    //   }
 }
 
-export class GamePlayer {
+/*export class GamePlayer {
     public playerId: string;
     public eloRating;
     public time;
@@ -131,4 +129,4 @@ export class GamePlayer {
         if (playerId.includes("guessPlayer")) {
         }
     }
-}
+}*/
