@@ -15,7 +15,7 @@ export class ParseJsonPipe implements PipeTransform {
         try {
             return JSON.parse(value); // else parse the string to JSON
         } catch (error) {
-            throw new BadRequestException("Invalid JSON payload");
+            //throw new BadRequestException("Invalid JSON payload");
         }
     }
 }

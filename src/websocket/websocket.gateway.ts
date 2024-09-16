@@ -133,7 +133,7 @@ export class WebsocketGateway
             new ValidationPipe({ transform: true }),
         )
         payload: OfferDrawDTO,
-        @ConnectedSocket() socket: Socket,
+        //@ConnectedSocket() socket: Socket,
     ) {
         const game = this.chessService.findGameByPlayerId(payload.playerId);
         if (game) {

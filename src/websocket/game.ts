@@ -105,29 +105,32 @@ export class Game {
         }
 
         if (
-            this.moveCount % 2 === 1 &&
+            this.moveCount % 2 !== 0 &&
             playerId !== this.blacksPlayer.playerId
         ) {
             return { error: "Is not your turn" };
         }
 
         // try to make move
-        const moveResult = this.board.move(move);
-        if (!moveResult) {
-            return { error: "Invalid move" };
-        }
+        try {
+            const moveResult = this.board.move(move);
+            console.log(this.board);
 
-        // check if game is over
-        if (this.board.isGameOver()) {
-            const winner = this.board.turn() === "w" ? "black" : "white";
-            await this.endGame(winner);
-            return { gameOver: true, winner };
-        }
+            // check if game is over
+            if (this.board.isGameOver()) {
+                const winner = this.board.turn() === "w" ? "black" : "white";
+                await this.endGame(winner);
+                return { gameOver: true, winner };
+            }
 
-        // NOTE: dont update pgn in db here, do it in endGame()
-        this.moveCount++;
-        // return current position
-        return { moveResult, board: this.board.fen() };
+            // NOTE: dont update pgn in db here, do it in endGame()
+            this.moveCount++;
+            // return current position
+            return { moveResult, board: this.board.fen() };
+        } catch (e) {
+            console.log(this.board);
+            throw new WsException("Invalid Move");
+        }
     }
 
     async endGame(winner: "white" | "black" | "draw") {
