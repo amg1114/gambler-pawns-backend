@@ -3,6 +3,9 @@ import { ConfigModule } from "@nestjs/config";
 import { DrizzleModule } from "./drizzle/drizzle.module";
 import { AuthModule } from "./auth/auth.module";
 import { GatewayModule } from "./websocket/websocket.module";
+import { ServeStaticModule } from "@nestjs/serve-static";
+import { join } from "path";
+import { AssetsModule } from "./assets/assets.module";
 
 @Module({
     imports: [
@@ -13,6 +16,10 @@ import { GatewayModule } from "./websocket/websocket.module";
         DrizzleModule,
         AuthModule,
         GatewayModule,
+        ServeStaticModule.forRoot({
+            rootPath: join(__dirname, "..", "public"),
+        }),
+        AssetsModule,
     ],
     providers: [],
 })
