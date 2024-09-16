@@ -19,59 +19,63 @@ export class GameChessManagerService {
         @Inject(DrizzleAsyncProvider) private db: NodePgDatabase<typeof schema>,
     ) {}
 
-    addToPool(player: Player, mode: "rapid" | "blitz" | "bullet") {
+    async addToPool(player: Player, mode: "rapid" | "blitz" | "bullet") {
         const pool = this.getPoolByMode(mode);
         pool.push(player);
-        return this.tryToPairPlayers(mode);
+        return await this.tryToPairPlayers(mode);
     }
 
-    tryToPairPlayers(mode: "rapid" | "blitz" | "bullet") {
+    async tryToPairPlayers(mode: "rapid" | "blitz" | "bullet") {
         const pool = this.getPoolByMode(mode);
         // TODO: agregar logica setTimeOut para esperar a que la pool tenga más jugadores +-5s
 
         if (pool.length < 2) return;
 
-        // Ordenar jugadores por Elo
+        // sort array by elo
         pool.sort((a, b) => a.eloRating - b.eloRating);
 
-        // Emparejar a los dos primeros jugadores
+        // pairing first two players in sorted array by elo
         const player1 = pool.shift();
         const player2 = pool.shift();
 
         if (player1 && player2) {
-            console.log("Emparejando jugadores", player1, player2);
             // creating new game and callign createGameInDB in order to insert data in db
             const newGame = new Game(mode, this.db);
-            newGame.createGameInDB(player1.playerId, player2.playerId);
+            await newGame.createGameInDB(player1.playerId, player2.playerId);
+            // save game in memory (HashMap)
             this.activeGames.set(player1.playerId, newGame);
             this.activeGames.set(player2.playerId, newGame);
-            console.log(
-                `Emparejando a ${player1.playerId} y ${player2.playerId}`,
-            );
             return {
+                gameId: newGame.gameId,
                 player1Socket: player1.socketId,
                 player2Socket: player2.socketId,
-                gameId: player1.playerId,
+                playerWhite: newGame.whitesPlayer,
+                playerBlack: newGame.blacksPlayer,
             };
         }
     }
 
-    getPoolByMode(mode: "rapid" | "blitz" | "bullet") {
-        return this[`${mode}Pool`];
-    }
-
-    findGameByPlayerId(playerId: string): Game | undefined {
-        return this.activeGames.get(playerId);
-    }
-
-    handleMove(playerId: string, move: { from: string; to: string }) {
+    async handleMove(playerId: string, move: { from: string; to: string }) {
         const game = this.findGameByPlayerId(playerId);
 
         if (game) {
-            return game.makeMove(playerId, move);
+            return await game.makeMove(playerId, move);
         }
         // TODO: aquí iria una WsException ?
         return { error: "Juego no encontrado" };
+    }
+
+    handleResign(playerId: string) {
+        const game = this.findGameByPlayerId(playerId);
+
+        if (!game) {
+            return { error: "Juego no encontrado" };
+        }
+
+        const winner =
+            game.whitesPlayer.playerId === playerId ? "black" : "white";
+        game.endGame(winner); // Finaliza el juego actualizando el ELO y el estado
+        return { game, winner };
     }
 
     registerPlayerSocket(playerId: string, socketId: string) {
@@ -80,5 +84,13 @@ export class GameChessManagerService {
 
     getSocketIdByPlayerId(playerId: string): string | undefined {
         return this.playerSocketMap.get(playerId);
+    }
+
+    getPoolByMode(mode: "rapid" | "blitz" | "bullet") {
+        return this[`${mode}Pool`];
+    }
+
+    findGameByPlayerId(playerId: string): Game | undefined {
+        return this.activeGames.get(playerId);
     }
 }

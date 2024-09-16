@@ -1,2 +1,2 @@
 export { CustomWsFilterException } from "./websocket.filter";
-export { ParseJsonPipe } from "./websocketParseJson.pipe";
+export { ParseJsonPipe } from "./websocketParseJson.filter";

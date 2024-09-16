@@ -6,9 +6,6 @@ import { eq } from "drizzle-orm";
 
 // TODO: logica timers
 // TODO: logica apuestas
-// TODO: logica offer draw
-// TODO: logica resign
-// TODO: logica abandon
 export class Game {
     public mode: "rapid" | "blitz" | "bullet";
     public gameId: string; //game id in db
@@ -16,6 +13,7 @@ export class Game {
     public blacksPlayer: GamePlayer;
     public board: Chess;
     private moveCount = 0;
+    private drawOffer: string | null = null; // id del jugador que ha hecho la oferta
     private db: NodePgDatabase<typeof schema>;
 
     constructor(
@@ -25,7 +23,6 @@ export class Game {
         this.db = db;
         this.mode = mode;
         this.board = new Chess();
-        console.log(this.board);
     }
 
     async createGameInDB(player1Id: string, player2Id: string) {
@@ -35,7 +32,7 @@ export class Game {
         await this.verifyNonGuestPlayer(this.whitesPlayer);
         await this.verifyNonGuestPlayer(this.blacksPlayer);
 
-        // NOTE: becareful with <player>.isGuest before insert
+        // NOTE: be careful with <player>.isGuest before insert
         const insertValues = {
             gameTimestamp: new Date(),
             pgn: this.board.pgn(),
@@ -56,8 +53,6 @@ export class Game {
                 .insert(schema.game)
                 .values(insertValues)
                 .returning({ insertedGameId: schema.game.gameId });
-
-            console.log("Game id", result[0]);
             this.gameId = result[0].insertedGameId.toString();
         } catch (e) {
             console.log("Error", e);
@@ -83,7 +78,6 @@ export class Game {
             result[0].eloArcade, // TODO: cambiar luego esto dependiendo del modo
             result[0].fkUserAvatarImgId.toString(),
         );
-        console.log("Player", player);
     }
 
     private getModeId(mode: "rapid" | "blitz" | "bullet"): number {
@@ -101,8 +95,8 @@ export class Game {
         }
     }
 
-    makeMove(playerId: string, move: { from: string; to: string }) {
-        // Validar si es el turno del jugador correcto
+    async makeMove(playerId: string, move: { from: string; to: string }) {
+        // Check if is the turn of the current player
         if (
             this.moveCount % 2 === 0 &&
             playerId !== this.whitesPlayer.playerId
@@ -117,17 +111,16 @@ export class Game {
             return { error: "Is not your turn" };
         }
 
-        // Intentar hacer el movimiento
+        // try to make move
         const moveResult = this.board.move(move);
         if (!moveResult) {
             return { error: "Invalid move" };
         }
 
-        // Revisar si el juego ha terminado
+        // check if game is over
         if (this.board.isGameOver()) {
-            // TODO: terminar el juego en ese caso
-            //await this.endGame();
             const winner = this.board.turn() === "w" ? "black" : "white";
+            await this.endGame(winner);
             return { gameOver: true, winner };
         }
 
@@ -137,19 +130,62 @@ export class Game {
         return { moveResult, board: this.board.fen() };
     }
 
-    async endGame() {
-        // Actualizar el juego con el ganador y los elos finales
-        // TODO: logica para actualizar el elo de los jugadores
-        const updateData = {
-            eloWhitesAfterGame: +this.whitesPlayer.eloRating,
-            eloBlacksAfterGame: +this.blacksPlayer.eloRating,
-            winner: "White" as const, // Asegúrate de que esto coincida con tu enum winnerEnum
-        };
+    async endGame(winner: "white" | "black" | "draw") {
+        const eloWhitesAfterGame = this.calculateNewElo(
+            this.whitesPlayer.eloRating,
+            this.blacksPlayer.eloRating,
+            winner === "white" ? 1 : winner === "black" ? 0 : 0.5,
+        );
+        const eloBlacksAfterGame = this.calculateNewElo(
+            this.blacksPlayer.eloRating,
+            this.whitesPlayer.eloRating,
+            winner === "black" ? 1 : winner === "white" ? 0 : 0.5,
+        );
 
-        await this.db
+        //TODO: Maldito update no funciona, me cago en drizzle
+        /*await this.db
             .update(schema.game)
-            .set(updateData)
-            .where(eq(schema.game.gameId, +this.gameId));
+            .set({
+                pgn: this.board.pgn(),
+                winner,
+                eloWhitesAfterGame,
+                eloBlacksAfterGame,
+            })
+            .where(eq(schema.game.gameId, +this.gameId));*/
+    }
+
+    calculateNewElo(currentElo: number, opponentElo: number, score: number) {
+        const kFactor = 32; // Ajuste de K, puede variar según el sistema de elo
+        const expectedScore =
+            1 / (1 + Math.pow(10, (opponentElo - currentElo) / 400));
+        return Math.round(currentElo + kFactor * (score - expectedScore));
+    }
+
+    // Manage draw offers
+    offerDraw(playerId: string): string | null {
+        if (this.drawOffer === null) {
+            this.drawOffer = playerId;
+            return playerId;
+        }
+        return null;
+    }
+
+    acceptDraw() {
+        if (this.drawOffer !== null) {
+            this.endGame("draw");
+        }
+    }
+
+    rejectDraw() {
+        if (this.drawOffer !== null) {
+            this.drawOffer = null;
+        }
+    }
+
+    getOpponentId(playerId: string): string {
+        return playerId === this.whitesPlayer.playerId
+            ? this.blacksPlayer.playerId
+            : this.whitesPlayer.playerId;
     }
 }
 
@@ -159,7 +195,8 @@ export class GamePlayer {
     public side: "Whites" | "Blacks";
     public time: number; // seconds
     // get this info if player is registered
-    // info for frontend
+    // info for
+    // TODO: get this data in service in order to send it
     public nickname: string = null;
     public aboutText: string = null;
     public eloRating: number = null;

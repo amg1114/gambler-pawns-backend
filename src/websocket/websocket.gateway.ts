@@ -1,5 +1,4 @@
-// NOTE: this file is responsible for handling websocket connections and messages
-
+// this file is responsible for handling websocket connections and messages related to chess game
 import {
     WebSocketGateway,
     SubscribeMessage,
@@ -12,7 +11,7 @@ import {
 import { Server, Socket } from "socket.io";
 import { CORS } from "../constants";
 import { GameChessManagerService } from "./chess.service";
-import { JoinGameDTO, MakeMoveDTO } from "./dto/";
+import { JoinGameDTO, MakeMoveDTO, OfferDrawDTO, AcceptDrawDTO } from "./dto";
 import { UseFilters, ValidationPipe } from "@nestjs/common";
 import { CustomWsFilterException, ParseJsonPipe } from "../websocketsUtils";
 
@@ -37,7 +36,7 @@ export class WebsocketGateway
     }
 
     @SubscribeMessage("game:join")
-    handleJoinGame(
+    async handleJoinGame(
         @MessageBody(
             new ParseJsonPipe(),
             new ValidationPipe({ transform: true }),
@@ -51,30 +50,30 @@ export class WebsocketGateway
         // Register player and socket in chess service
         this.chessService.registerPlayerSocket(playerId, socket.id);
 
-        const pairing = this.chessService.addToPool(
+        const pairing = await this.chessService.addToPool(
             { playerId, eloRating, socketId: socket.id },
             mode,
         );
 
         if (pairing) {
-            console.log("actually pairing");
-            const { player1Socket, player2Socket } = pairing;
-            console.log(player1Socket, player2Socket);
+            const { player1Socket, player2Socket, ...rest } = pairing;
 
-            // Notificar a los jugadores que han sido emparejados
-            // enviarles id del juego
-            // color de las piezas
-            this.server
-                .to(player1Socket)
-                .emit("gameStart", { color: "white", opponent: player2Socket });
-            this.server
-                .to(player2Socket)
-                .emit("gameStart", { color: "black", opponent: player1Socket });
+            // Notify players and send required data
+            this.server.to(player1Socket).emit("gameStart", {
+                color: "white",
+                opponent: player2Socket,
+                ...rest,
+            });
+            this.server.to(player2Socket).emit("gameStart", {
+                color: "black",
+                opponent: player1Socket,
+                ...rest,
+            });
         }
     }
 
     @SubscribeMessage("game:makeMove")
-    handleMakeMove(
+    async handleMakeMove(
         @MessageBody(
             new ParseJsonPipe(),
             new ValidationPipe({ transform: true }),
@@ -83,7 +82,7 @@ export class WebsocketGateway
         @ConnectedSocket() socket: Socket,
     ) {
         console.log("Making move", payload);
-        const result = this.chessService.handleMove(payload.playerId, {
+        const result = await this.chessService.handleMove(payload.playerId, {
             from: payload.from,
             to: payload.to,
         });
@@ -123,6 +122,106 @@ export class WebsocketGateway
                     this.server.to(player1Socket).emit("moveMade", result);
                     this.server.to(player2Socket).emit("moveMade", result);
                 }
+            }
+        }
+    }
+
+    @SubscribeMessage("game:offerDraw")
+    handleOfferDraw(
+        @MessageBody(
+            new ParseJsonPipe(),
+            new ValidationPipe({ transform: true }),
+        )
+        payload: OfferDrawDTO,
+        @ConnectedSocket() socket: Socket,
+    ) {
+        const game = this.chessService.findGameByPlayerId(payload.playerId);
+        if (game) {
+            const opponentSocket = this.chessService.getSocketIdByPlayerId(
+                game.getOpponentId(payload.playerId),
+            );
+            if (opponentSocket) {
+                this.server.to(opponentSocket).emit("drawOffered", {
+                    playerId: payload.playerId,
+                    gameId: game.gameId,
+                });
+            }
+        }
+    }
+
+    @SubscribeMessage("game:acceptDraw")
+    handleAcceptDraw(
+        @MessageBody(
+            new ParseJsonPipe(),
+            new ValidationPipe({ transform: true }),
+        )
+        payload: AcceptDrawDTO,
+        //@ConnectedSocket() socket: Socket,
+    ) {
+        const game = this.chessService.findGameByPlayerId(payload.playerId);
+        if (game) {
+            game.endGame("draw");
+            const player1Socket = this.chessService.getSocketIdByPlayerId(
+                game.whitesPlayer.playerId,
+            );
+            const player2Socket = this.chessService.getSocketIdByPlayerId(
+                game.blacksPlayer.playerId,
+            );
+            this.server.to(player1Socket).emit("gameOver", { winner: "draw" });
+            this.server.to(player2Socket).emit("gameOver", { winner: "draw" });
+        }
+    }
+
+    @SubscribeMessage("game:rejectDraw")
+    handleRejectDraw(
+        @MessageBody(
+            new ParseJsonPipe(),
+            new ValidationPipe({ transform: true }),
+        )
+        payload: AcceptDrawDTO,
+        //@ConnectedSocket() socket: Socket,
+    ) {
+        const game = this.chessService.findGameByPlayerId(payload.playerId);
+        if (game) {
+            const opponentSocket = this.chessService.getSocketIdByPlayerId(
+                game.getOpponentId(payload.playerId),
+            );
+            if (opponentSocket) {
+                this.server.to(opponentSocket).emit("drawRejected", {
+                    playerId: payload.playerId,
+                });
+            }
+        }
+    }
+
+    @SubscribeMessage("game:resign")
+    handleResign(
+        @MessageBody(
+            new ParseJsonPipe(),
+            new ValidationPipe({ transform: true }),
+        )
+        payload: { playerId: string },
+        //@ConnectedSocket() socket: Socket,
+    ) {
+        const result = this.chessService.handleResign(payload.playerId);
+
+        if (result && result.game) {
+            const player1Socket = this.chessService.getSocketIdByPlayerId(
+                result.game.whitesPlayer.playerId,
+            );
+            const player2Socket = this.chessService.getSocketIdByPlayerId(
+                result.game.blacksPlayer.playerId,
+            );
+
+            if (player1Socket && player2Socket) {
+                this.server.to(player1Socket).emit("gameOver", {
+                    winner: result.winner,
+                    reason: "resign",
+                });
+                this.server.to(player2Socket).emit("gameOver", {
+                    winner: result.winner,
+                    reason: "resign",
+                });
             }
         }
     }
