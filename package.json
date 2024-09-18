@@ -30,6 +30,7 @@
         "@nestjs/platform-socket.io": "^10.4.1",
         "@nestjs/serve-static": "^4.0.2",
         "@nestjs/swagger": "^7.4.0",
+        "@nestjs/typeorm": "^10.0.2",
         "@nestjs/websockets": "^10.4.1",
         "bcrypt": "^5.1.1",
         "chess.js": "1.0.0-beta.8",
@@ -44,7 +45,9 @@
         "pg": "^8.12.0",
         "reflect-metadata": "^0.2.0",
         "rxjs": "^7.8.1",
-        "socket.io": "^4.7.5"
+        "socket.io": "^4.7.5",
+        "typeorm": "^0.3.20",
+        "typeorm-naming-strategies": "^4.1.0"
     },
     "devDependencies": {
         "@nestjs/cli": "^10.4.5",
