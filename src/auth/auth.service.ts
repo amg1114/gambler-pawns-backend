@@ -5,8 +5,10 @@ import {
     ConflictException,
     InternalServerErrorException,
 } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { User } from "../user/entities/user.entity";
 import { JwtService } from "@nestjs/jwt";
-import { sql } from "drizzle-orm";
 import * as bcrypt from "bcrypt";
 import {
     SignUpDto,
@@ -14,9 +16,6 @@ import {
     forgotPasswordDto,
     resetPasswordDto,
 } from "./dto/auth.dto";
-import { DrizzleAsyncProvider } from "../drizzle/drizzle.provider";
-import { NodePgDatabase } from "drizzle-orm/node-postgres";
-import * as schema from "../drizzle/schema";
 import { randomInt } from "crypto";
 import { MailerService } from "@nestjs-modules/mailer";
 import { ConfigService } from "@nestjs/config";
@@ -24,7 +23,7 @@ import { ConfigService } from "@nestjs/config";
 @Injectable()
 export class AuthService {
     constructor(
-        @Inject(DrizzleAsyncProvider) private db: NodePgDatabase<typeof schema>,
+        @InjectRepository(User) private userRepository: Repository<User>,
         private readonly jwtService: JwtService,
         private readonly mailerService: MailerService,
         private readonly configService: ConfigService,
@@ -32,15 +31,10 @@ export class AuthService {
 
     async signUp({ nickname, email, password, countryCode }: SignUpDto) {
         // 1. validate user does not exist
-        const user = await this.db
-            .select()
-            .from(schema.users)
-            .where(
-                sql` ${schema.users.email} = ${email} OR ${schema.users.nickname} = ${nickname} `,
-            )
-            .limit(1);
-
-        if (user.length > 0) {
+        const user = await this.userRepository.findOne({
+            where: [{ email: email }, { nickname: nickname }],
+        });
+        if (user) {
             throw new ConflictException(
                 "Nickname or email is already registered",
             );
@@ -50,58 +44,49 @@ export class AuthService {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // 3. insert user in database
-        const newUser = await this.db
-            .insert(schema.users)
-            .values({
-                nickname: nickname,
-                email: email,
-                password: hashedPassword,
-                countryCode: countryCode,
-                about: "",
-                fkUserAvatarImgId: randomInt(1, 26), // random
-                eloRapid: 1500,
-                eloBlitz: 1500,
-                eloBullet: 1500,
-                eloArcade: 1500,
-                currentCoins: 0,
-                acumulatedAlltimeCoins: 0,
-            })
-            .returning();
+        // 3. crear nuevo usuario
+        const newUser = this.userRepository.create({
+            nickname,
+            email,
+            password: hashedPassword,
+            countryCode,
+            about: "",
+            fkUserAvatarImgId: randomInt(1, 26), // valor aleatorio
+            eloRapid: 1500,
+            eloBlitz: 1500,
+            eloBullet: 1500,
+            eloArcade: 1500,
+            currentCoins: 0,
+            acumulatedAlltimeCoins: 0,
+        });
+        await this.userRepository.save(newUser);
 
         // return object
-        return this.generateToken(newUser[0]);
+        return this.generateToken(newUser);
     }
 
     async login({ nickname, email, password }: LoginDto) {
-        // 1. validate user exists using email or nickname
-        const queryCondition =
-            nickname !== undefined
-                ? sql` ${schema.users.nickname} = ${nickname} `
-                : sql` ${schema.users.email} = ${email} `;
-        const user = await this.db
-            .select()
-            .from(schema.users)
-            .where(queryCondition)
-            .limit(1);
+        // 1. validar que el usuario existe por email o nickname
+        const user = await this.userRepository.findOne({
+            where: nickname ? { nickname: nickname } : { email: email },
+        });
 
-        if (user.length === 0)
+        if (!user) {
             throw new UnauthorizedException("Invalid credentials");
+        }
 
-        // 2. validate password
-        const isPasswordValid = await bcrypt.compare(
-            password,
-            user[0].password,
-        );
+        // 2. validar la contraseña
+        const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
             throw new UnauthorizedException("Invalid credentials");
         }
-        // 3. return token
-        return this.generateToken(user[0]);
+
+        // 3. devolver el token
+        return this.generateToken(user);
     }
 
-    private generateToken(user: typeof schema.users.$inferSelect) {
+    private generateToken(user: User) {
         delete user.password;
-        delete user.dateOfBirth;
         return {
             access_token: this.jwtService.sign(user),
         };
@@ -113,11 +98,11 @@ export class AuthService {
             { expiresIn: "30s" },
         );
 
-        //TODO: write a better email
+        //TODO: write a better email html+css template
         const msg = {
             from:
                 "Gambler Pawns <" +
-                this.configService.get("NODEMAILER_EMAIL") +
+                this.configService.getOrThrow("NODEMAILER_EMAIL") +
                 ">",
             to: email,
             subject: "Password reset",
@@ -141,21 +126,17 @@ export class AuthService {
             throw new UnauthorizedException("Invalid token");
         }
 
-        const user = await this.db
-            .select()
-            .from(schema.users)
-            .where(sql` ${schema.users.email} = ${email} `)
-            .limit(1);
+        const user = await this.userRepository.findOne({
+            where: { email: email },
+        });
 
-        if (user.length === 0)
+        if (!user) {
             throw new UnauthorizedException("Invalid credentials");
+        }
 
         const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-        await this.db
-            .update(schema.users)
-            .set({ password: hashedPassword })
-            .where(sql` ${schema.users.email} = ${email} `)
-            .execute();
+        user.password = hashedPassword;
+        await this.userRepository.save(user);
     }
 }

@@ -8,7 +8,6 @@ import {
     ManyToMany,
     JoinTable,
     Index,
-    In,
 } from "typeorm";
 import { UserAvatarImg } from "./userAvatar.entity";
 import { UserSolvedPuzzle } from "src/puzzle/entities/userSolvedPuzzle.entity";

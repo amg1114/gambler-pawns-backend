@@ -1,13 +1,13 @@
-import { Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { DrizzleAsyncProvider } from "src/drizzle/drizzle.provider";
-import * as schema from "../drizzle/schema";
-import { sql } from "drizzle-orm";
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { UserAvatarImg } from "../user/entities/userAvatar.entity";
 
 @Injectable()
 export class AssetsService {
     constructor(
-        @Inject(DrizzleAsyncProvider) private db: NodePgDatabase<typeof schema>,
+        @InjectRepository(UserAvatarImg)
+        private userAvatarImgRepository: Repository<UserAvatarImg>,
     ) {}
 
     /**
@@ -16,24 +16,27 @@ export class AssetsService {
      * @returns The avatar image path
      * @throws Error if the avatar image is not found
      */
-    async getAvatar(id: string): Promise<string> {
-        const path = await this.db
-            .select()
-            .from(schema.userAvatarImg)
-            .where(sql`${schema.userAvatarImg.userAvatarImgId} = ${id}`)
-            .limit(1);
+    async getAvatar(id: number): Promise<string> {
+        // Buscar el avatar por su ID usando TypeORM
+        const avatar = await this.userAvatarImgRepository.findOne({
+            where: { userAvatarImgId: id },
+        });
 
-        if (path.length === 0) {
+        if (!avatar) {
             throw new NotFoundException("Avatar not found");
         }
 
-        return `public/user_avatars/${path[0].fileName}`;
+        return `public/user_avatars/${avatar.fileName}`;
     }
 
+    /**
+     * Get the list of all avatar images
+     * @returns Array of avatar images
+     */
     async getAvatarList() {
-        return await this.db
-            .select()
-            .from(schema.userAvatarImg)
-            .orderBy(schema.userAvatarImg.userAvatarImgId);
+        // Obtener la lista de todos los avatares ordenada por `userAvatarImgId`
+        return await this.userAvatarImgRepository.find({
+            order: { userAvatarImgId: "ASC" },
+        });
     }
 }
