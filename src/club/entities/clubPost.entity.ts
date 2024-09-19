@@ -56,6 +56,5 @@ export class ClubPost {
         orphanedRowAction: "delete",
     })
     @JoinTable()
-    @Index("idx_club_posts_likes")
     likes: Relation<User[]>;
 }

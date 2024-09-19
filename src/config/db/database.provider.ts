@@ -18,6 +18,7 @@ const prodPoolOptions = {
         migrationsDir: "src/config/db/migrations",
     },
     migrations: [__dirname + "/migrations/*{.ts,.js}"],
+    migrationsTableName: "migrations_typeorm",
     migrationsRun: true,
     logging: false,
 };

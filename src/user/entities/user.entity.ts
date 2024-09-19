@@ -94,7 +94,6 @@ export class User {
         onUpdate: "CASCADE",
     })
     @JoinTable()
-    @Index("idx_friends")
     friends: Relation<User[]>;
 
     @OneToMany(() => UserSolvedPuzzle, (puzzlesSolved) => puzzlesSolved.user)

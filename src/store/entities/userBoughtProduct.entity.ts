@@ -9,7 +9,7 @@ import {
 import { User } from "../../user/entities/user.entity";
 import { Product } from "./product.entity";
 
-@Index("idx_user_bought_products_user_id", ["user, product"])
+@Index("idx_user_bought_products_user_id", ["user", "product"])
 @Entity()
 export class UserBoughtProduct {
     @PrimaryGeneratedColumn()
