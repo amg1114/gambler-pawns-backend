@@ -9,7 +9,7 @@ import {
     WebSocketServer,
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
-import { CORS } from "../constants";
+import { CORS } from "../config/constants";
 import { GameChessManagerService } from "./chess.service";
 import { JoinGameDTO, MakeMoveDTO, OfferDrawDTO, AcceptDrawDTO } from "./dto";
 import { UseFilters, ValidationPipe } from "@nestjs/common";
@@ -160,7 +160,7 @@ export class WebsocketGateway
     ) {
         const game = this.chessService.findGameByPlayerId(payload.playerId);
         if (game) {
-            game.endGame("draw");
+            game.endGame("Draw");
             const player1Socket = this.chessService.getSocketIdByPlayerId(
                 game.whitesPlayer.playerId,
             );

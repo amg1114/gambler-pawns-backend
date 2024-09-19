@@ -1,9 +1,11 @@
-import { Inject, Injectable } from "@nestjs/common";
-import { DrizzleAsyncProvider } from "../drizzle/drizzle.provider";
-import { NodePgDatabase } from "drizzle-orm/node-postgres";
-import * as schema from "../drizzle/schema";
 import { Game } from "./game";
 import { Player } from "./entities/player";
+import { Injectable } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { Game as GameEntity } from "./entities/game.entity";
+import { GameMode } from "./entities/gameMode.entity";
+import { User } from "../user/entities/user.entity";
 
 @Injectable()
 export class GameChessManagerService {
@@ -16,7 +18,11 @@ export class GameChessManagerService {
     private playerSocketMap: Map<string, string> = new Map(); // playerId -> socketId
 
     constructor(
-        @Inject(DrizzleAsyncProvider) private db: NodePgDatabase<typeof schema>,
+        @InjectRepository(GameEntity)
+        private gameEntityRepository: Repository<GameEntity>,
+        @InjectRepository(User) private userRepository: Repository<User>,
+        @InjectRepository(GameMode)
+        private gameModeRepository: Repository<GameMode>,
     ) {}
 
     async addToPool(player: Player, mode: "rapid" | "blitz" | "bullet") {
@@ -40,7 +46,12 @@ export class GameChessManagerService {
 
         if (player1 && player2) {
             // creating new game and callign createGameInDB in order to insert data in db
-            const newGame = new Game(mode, this.db);
+            const newGame = new Game(
+                mode,
+                this.gameEntityRepository,
+                this.userRepository,
+                this.gameModeRepository,
+            );
             await newGame.createGameInDB(player1.playerId, player2.playerId);
             // save game in memory (HashMap)
             this.activeGames.set(player1.playerId, newGame);
@@ -73,7 +84,7 @@ export class GameChessManagerService {
         }
 
         const winner =
-            game.whitesPlayer.playerId === playerId ? "black" : "white";
+            game.whitesPlayer.playerId === playerId ? "Black" : "White";
         game.endGame(winner); // Finaliza el juego actualizando el ELO y el estado
         return { game, winner };
     }

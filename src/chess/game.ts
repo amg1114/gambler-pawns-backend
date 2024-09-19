@@ -1,8 +1,12 @@
 import { Chess } from "chess.js";
-import { NodePgDatabase } from "drizzle-orm/node-postgres";
-import * as schema from "../drizzle/schema";
 import { WsException } from "@nestjs/websockets";
-import { eq } from "drizzle-orm";
+
+// db entities
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { Game as GameEntity, GameWinner } from "./entities/game.entity";
+import { GameMode } from "./entities/gameMode.entity";
+import { User } from "../user/entities/user.entity";
 
 // TODO: logica timers
 // TODO: logica apuestas
@@ -14,13 +18,16 @@ export class Game {
     public board: Chess;
     private moveCount = 0;
     private drawOffer: string | null = null; // id del jugador que ha hecho la oferta
-    private db: NodePgDatabase<typeof schema>;
 
     constructor(
         mode: "rapid" | "blitz" | "bullet",
-        db: NodePgDatabase<typeof schema>,
+        @InjectRepository(GameEntity)
+        private readonly gameRepository: Repository<GameEntity>,
+        @InjectRepository(User)
+        private readonly userRepository: Repository<User>,
+        @InjectRepository(GameMode)
+        private readonly gameModeRepository: Repository<GameMode>,
     ) {
-        this.db = db;
         this.mode = mode;
         this.board = new Chess();
     }
@@ -32,67 +39,59 @@ export class Game {
         await this.verifyNonGuestPlayer(this.whitesPlayer);
         await this.verifyNonGuestPlayer(this.blacksPlayer);
 
+        // TODO: refactorizar los modos de juego aceptados a lo largo
+        // del lifecycle de la partida
+        const gameMode = await this.gameModeRepository.findOneBy({
+            mode: this.mode,
+        });
+
         // NOTE: be careful with <player>.isGuest before insert
-        const insertValues = {
+        const newGame = this.gameRepository.create({
             gameTimestamp: new Date(),
             pgn: this.board.pgn(),
-            fkWhitesPlayerId: this.whitesPlayer.isGuest
+            whitesPlayer: this.whitesPlayer.isGuest
                 ? null
-                : +this.whitesPlayer.playerId,
-            fkBlacksPlayerId: this.blacksPlayer.isGuest
+                : await this.userRepository.findOneBy({
+                      userId: +this.whitesPlayer.playerId,
+                  }),
+            blacksPlayer: this.blacksPlayer.isGuest
                 ? null
-                : +this.blacksPlayer.playerId,
+                : await this.userRepository.findOneBy({
+                      userId: +this.blacksPlayer.playerId,
+                  }),
             eloWhitesBeforeGame: +this.whitesPlayer.eloRating,
             eloBlacksBeforeGame: +this.blacksPlayer.eloRating,
-            fkGameModeId: +this.getModeId(this.mode), // TODO: refactor getModeId func
-            typePairing: "Random Pairing", // TODO: change this, include info in game:join socket message request
-        } as typeof schema.game.$inferInsert;
+            gameMode: gameMode,
+            typePairing: "Random Pairing", // TODO: cambiar esto con la información adecuada
+        });
 
         try {
-            const result = await this.db
-                .insert(schema.game)
-                .values(insertValues)
-                .returning({ insertedGameId: schema.game.gameId });
-            this.gameId = result[0].insertedGameId.toString();
+            const savedGame = await this.gameRepository.save(newGame);
+            this.gameId = savedGame.gameId.toString();
         } catch (e) {
             console.log("Error", e);
-            throw new WsException("Error creating game in db");
+            throw new WsException("Error creando el juego en la base de datos");
         }
     }
 
     private async verifyNonGuestPlayer(player: GamePlayer) {
-        // if is not a guest player verify if exits in db
         if (player.isGuest) return;
 
-        const result = await this.db
-            .select()
-            .from(schema.users)
-            .where(eq(schema.users.userId, +player.playerId));
+        const user = await this.userRepository.findOneBy({
+            userId: +player.playerId,
+        });
 
-        if (result.length < 0) {
+        if (!user) {
             throw new WsException("El id del usuario no existe");
         }
-        player.assignDataToNonGuestUser(
-            result[0].nickname,
-            result[0].about,
-            result[0].eloArcade, // TODO: cambiar luego esto dependiendo del modo
-            result[0].fkUserAvatarImgId.toString(),
-        );
-    }
 
-    private getModeId(mode: "rapid" | "blitz" | "bullet"): number {
-        // TODO: refactor this aghhhh
-        // Retorna el ID correspondiente para el modo de juego (asume que tienes este mapeo)
-        switch (mode) {
-            case "rapid":
-                return 1;
-            case "blitz":
-                return 3;
-            case "bullet":
-                return 5;
-            default:
-                throw new Error("Modo de juego no válido");
-        }
+        // TODO: revisar en general todas las consultas
+        player.assignDataToNonGuestUser(
+            user.nickname,
+            user.aboutText,
+            user.eloArcade, // TODO: cambiar esto dependiendo del modo
+            user.userAvatarImg.fileName,
+        );
     }
 
     async makeMove(playerId: string, move: { from: string; to: string }) {
@@ -118,7 +117,7 @@ export class Game {
 
             // check if game is over
             if (this.board.isGameOver()) {
-                const winner = this.board.turn() === "w" ? "black" : "white";
+                const winner = this.board.turn() === "w" ? "Black" : "White";
                 await this.endGame(winner);
                 return { gameOver: true, winner };
             }
@@ -133,28 +132,34 @@ export class Game {
         }
     }
 
-    async endGame(winner: "white" | "black" | "draw") {
+    async endGame(winner: GameWinner) {
         const eloWhitesAfterGame = this.calculateNewElo(
             this.whitesPlayer.eloRating,
             this.blacksPlayer.eloRating,
-            winner === "white" ? 1 : winner === "black" ? 0 : 0.5,
+            winner === "White" ? 1 : winner === "Black" ? 0 : 0.5,
         );
         const eloBlacksAfterGame = this.calculateNewElo(
             this.blacksPlayer.eloRating,
             this.whitesPlayer.eloRating,
-            winner === "black" ? 1 : winner === "white" ? 0 : 0.5,
+            winner === "Black" ? 1 : winner === "White" ? 0 : 0.5,
         );
 
-        //TODO: Maldito update no funciona, me cago en drizzle
-        /*await this.db
-            .update(schema.game)
-            .set({
-                pgn: this.board.pgn(),
-                winner,
-                eloWhitesAfterGame,
-                eloBlacksAfterGame,
-            })
-            .where(eq(schema.game.gameId, +this.gameId));*/
+        try {
+            // update game in db
+            await this.gameRepository.update(
+                { gameId: +this.gameId },
+                {
+                    pgn: this.board.pgn(),
+                    winner: winner,
+                    eloWhitesAfterGame: eloWhitesAfterGame,
+                    eloBlacksAfterGame: eloBlacksAfterGame,
+                    // TODO: implement Game result type
+                },
+            );
+        } catch (e) {
+            console.log("Error actualizando el juego en la base de datos", e);
+            throw new WsException("Error actualizando el juego");
+        }
     }
 
     calculateNewElo(currentElo: number, opponentElo: number, score: number) {
@@ -175,7 +180,7 @@ export class Game {
 
     acceptDraw() {
         if (this.drawOffer !== null) {
-            this.endGame("draw");
+            this.endGame("Draw");
         }
     }
 

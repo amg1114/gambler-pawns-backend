@@ -1,11 +1,21 @@
 import { Module } from "@nestjs/common";
+
+// config
 import { ConfigModule } from "@nestjs/config";
-import { DrizzleModule } from "./drizzle/drizzle.module";
-import { AuthModule } from "./auth/auth.module";
-import { GatewayModule } from "./websocket/websocket.module";
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { DataSourceConfig } from "./config/db/database.provider";
 import { ServeStaticModule } from "@nestjs/serve-static";
 import { join } from "path";
+
+// Feature modules
+import { AuthModule } from "./auth/auth.module";
+import { GatewayModule } from "./chess/websocket.module";
 import { AssetsModule } from "./assets/assets.module";
+import { UserModule } from "./user/user.module";
+import { NotificationsModule } from "./notification/notifications.module";
+import { PuzzleModule } from "./puzzle/puzzle.module";
+import { StoreModule } from "./store/store.module";
+import { ClubModule } from "./club/club.module";
 
 @Module({
     imports: [
@@ -13,13 +23,21 @@ import { AssetsModule } from "./assets/assets.module";
             isGlobal: true,
             envFilePath: `.env.${process.env.NODE_ENV.trim()}`,
         }),
-        DrizzleModule,
-        AuthModule,
-        GatewayModule,
+        TypeOrmModule.forRoot({
+            ...DataSourceConfig,
+            autoLoadEntities: true,
+        }),
         ServeStaticModule.forRoot({
             rootPath: join(__dirname, "..", "public"),
         }),
+        AuthModule,
+        GatewayModule,
         AssetsModule,
+        UserModule,
+        NotificationsModule,
+        PuzzleModule,
+        StoreModule,
+        ClubModule,
     ],
     providers: [],
 })

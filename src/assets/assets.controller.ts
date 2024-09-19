@@ -22,7 +22,7 @@ export class AssetsController {
     @ApiResponse({ status: 404, description: "Avatar not found" })
     @Get("avatars/:id")
     async getAvatar(@Param("id") id: string, @Res() res: Response) {
-        const avatar = await this.assetsService.getAvatar(id);
+        const avatar = await this.assetsService.getAvatar(parseInt(id));
         return res.sendFile(join(process.cwd(), avatar));
     }
 }
