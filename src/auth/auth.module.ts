@@ -5,6 +5,9 @@ import { AuthController } from "./auth.controller";
 import { ConfigService } from "@nestjs/config";
 import { MailerModule } from "@nestjs-modules/mailer";
 import { UserService } from "src/user/user.service";
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { User } from "src/user/entities/user.entity";
+import { UserAvatarImg } from "src/user/entities/userAvatar.entity";
 
 @Module({
     imports: [
@@ -27,6 +30,7 @@ import { UserService } from "src/user/user.service";
                 },
             }),
         }),
+        TypeOrmModule.forFeature([User, UserAvatarImg]),
     ],
     providers: [AuthService, UserService],
     controllers: [AuthController],
