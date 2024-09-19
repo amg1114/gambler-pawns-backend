@@ -8,7 +8,7 @@ import {
 } from "typeorm";
 import { UserBoughtProduct } from "./userBoughtProduct.entity";
 
-@Check(`coinsCost >= 0`)
+@Check(`coins_cost >= 0`)
 @Entity()
 export class Product {
     @PrimaryGeneratedColumn()

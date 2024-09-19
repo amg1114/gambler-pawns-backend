@@ -13,9 +13,9 @@ import { GameMode } from "./gameMode.entity";
 import { GameWithArcadeModifiers } from "./gameWithArcadeModifiers.entity";
 
 @Entity("game")
-@Check(`whitesPlayerTime >= 0 AND blacksPlayerTime >= 0`)
+@Check(`whites_player_time >= 0 AND blacks_player_time >= 0`)
 @Check(
-    `eloWhitesBeforeGame >= 0 AND eloWhitesAfterGame >= 0 AND eloWhitesAfterGame >= 0 AND eloBlacksAfterGame >= 0`,
+    `elo_whites_before_game >= 0 AND elo_whites_after_game >= 0 AND elo_whites_after_game >= 0 AND elo_blacks_after_game >= 0`,
 )
 export class Game {
     @PrimaryGeneratedColumn()

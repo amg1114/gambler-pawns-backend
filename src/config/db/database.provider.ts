@@ -8,19 +8,23 @@ ConfigModule.forRoot({
 });
 const configService = new ConfigService();
 
+const migrationConfig = {
+    migrationsTableName: "migrations_typeorm",
+    migrations: ["dist/migrations/*{.ts,.js}"],
+    cli: {
+        migrationsDir: "src/migrations",
+    },
+    migrationsRun: true,
+};
+
 const prodPoolOptions = {
     url: configService.getOrThrow("POSTGRES_URL"),
-    synchronize: false,
     extra: {
         ssl: true,
     },
-    cli: {
-        migrationsDir: "src/config/db/migrations",
-    },
-    migrations: [__dirname + "/migrations/*{.ts,.js}"],
-    migrationsTableName: "migrations_typeorm",
-    migrationsRun: true,
+    synchronize: false,
     logging: false,
+    ...migrationConfig,
 };
 
 const devPoolOptions = {
@@ -30,10 +34,10 @@ const devPoolOptions = {
     username: configService.getOrThrow("LOCALDB_USER"),
     password: configService.getOrThrow("LOCALDB_PASSWORD"),
     logging: true,
-    syncronize: true,
+    synchronize: true,
+    ...migrationConfig,
 };
 
-// TODO: change !
 const poolOptions =
     configService.getOrThrow<string>("NODE_ENV").trim() === "dev"
         ? devPoolOptions

@@ -20,10 +20,11 @@ import { ClubPost } from "src/club/entities/clubPost.entity";
 import { ClubPostComment } from "src/club/entities/clubPostComment.entity";
 
 @Entity()
-// TODO: review how this check constraint work when transpile to sql as snakeCase naming
-// convention is set in the db config
-@Check(`eloRapid >= 0 AND eloBlitz >= 0 AND eloBullet >= 0 AND eloArcade >= 0`)
-@Check(`currentCoins >= 0 AND acumulatedAllTimeCoins >= 0`)
+// NOTE: when using @Check constraint, you must use sanke case
+@Check(
+    `elo_rapid >= 0 AND elo_blitz >= 0 AND elo_bullet >= 0 AND elo_arcade >= 0`,
+)
+@Check(`current_coins >= 0 AND acumulated_all_time_coins >= 0`)
 export class User {
     @PrimaryGeneratedColumn()
     userId: number;
