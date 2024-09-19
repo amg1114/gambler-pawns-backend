@@ -1,7 +1,6 @@
 import {
     Injectable,
     UnauthorizedException,
-    Inject,
     ConflictException,
     InternalServerErrorException,
 } from "@nestjs/common";
@@ -19,21 +18,27 @@ import {
 import { randomInt } from "crypto";
 import { MailerService } from "@nestjs-modules/mailer";
 import { ConfigService } from "@nestjs/config";
+import { UserService } from "src/user/user.service";
+import { UserAvatarImg } from "src/user/entities/userAvatar.entity";
 
 @Injectable()
 export class AuthService {
     constructor(
         @InjectRepository(User) private userRepository: Repository<User>,
+        @InjectRepository(UserAvatarImg)
+        private userAvatarImgRepository: Repository<UserAvatarImg>,
         private readonly jwtService: JwtService,
         private readonly mailerService: MailerService,
         private readonly configService: ConfigService,
+        private userService: UserService,
     ) {}
 
     async signUp({ nickname, email, password, countryCode }: SignUpDto) {
         // 1. validate user does not exist
-        const user = await this.userRepository.findOne({
-            where: [{ email: email }, { nickname: nickname }],
-        });
+        const user = await this.userService.findOneByEmailOrNickname(
+            email,
+            nickname,
+        );
         if (user) {
             throw new ConflictException(
                 "Nickname or email is already registered",
@@ -43,21 +48,24 @@ export class AuthService {
         // 2. hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        // get random avatar for new user
+        const avatar = await this.userAvatarImgRepository.findOne({
+            where: { userAvatarImgId: randomInt(1, 26) }, // Cambia el campo de búsqueda por el correcto
+        });
         // 3. insert user in database
-        // 3. crear nuevo usuario
         const newUser = this.userRepository.create({
             nickname,
             email,
             password: hashedPassword,
             countryCode,
-            about: "",
-            fkUserAvatarImgId: randomInt(1, 26), // valor aleatorio
+            aboutText: "",
+            userAvatarImg: avatar,
             eloRapid: 1500,
             eloBlitz: 1500,
             eloBullet: 1500,
             eloArcade: 1500,
-            currentCoins: 0,
-            acumulatedAlltimeCoins: 0,
+            currentCoins: 100,
+            acumulatedAllTimeCoins: 100,
         });
         await this.userRepository.save(newUser);
 
@@ -67,9 +75,9 @@ export class AuthService {
 
     async login({ nickname, email, password }: LoginDto) {
         // 1. validar que el usuario existe por email o nickname
-        const user = await this.userRepository.findOne({
-            where: nickname ? { nickname: nickname } : { email: email },
-        });
+        const user = nickname
+            ? await this.userService.findOneByNickname(nickname)
+            : await this.userService.findOneByEmail(email);
 
         if (!user) {
             throw new UnauthorizedException("Invalid credentials");
@@ -125,10 +133,7 @@ export class AuthService {
         } catch (error) {
             throw new UnauthorizedException("Invalid token");
         }
-
-        const user = await this.userRepository.findOne({
-            where: { email: email },
-        });
+        const user = await this.userService.findOneByEmail(email);
 
         if (!user) {
             throw new UnauthorizedException("Invalid credentials");

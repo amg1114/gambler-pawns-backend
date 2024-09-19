@@ -160,7 +160,7 @@ export class WebsocketGateway
     ) {
         const game = this.chessService.findGameByPlayerId(payload.playerId);
         if (game) {
-            game.endGame("draw");
+            game.endGame("Draw");
             const player1Socket = this.chessService.getSocketIdByPlayerId(
                 game.whitesPlayer.playerId,
             );

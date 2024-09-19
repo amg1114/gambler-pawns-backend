@@ -1,5 +1,11 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
-import { User } from "../../user/entities/user.entity";
+import {
+    Column,
+    Entity,
+    ManyToOne,
+    PrimaryGeneratedColumn,
+    Relation,
+} from "typeorm";
+import { User } from "src/user/entities/user.entity";
 import { Puzzle } from "./puzzle.entity";
 
 @Entity()
@@ -11,10 +17,9 @@ export class UserSolvedPuzzle {
         onDelete: "CASCADE",
         onUpdate: "CASCADE",
         nullable: false,
-        // triggers the delete when the entity was removed from the order.details.
         orphanedRowAction: "delete",
     })
-    user: User;
+    user: Relation<Promise<User>>;
 
     @ManyToOne(() => Puzzle, (puzzle) => puzzle.puzzleId, {
         onDelete: "CASCADE",
@@ -22,7 +27,7 @@ export class UserSolvedPuzzle {
         nullable: false,
         orphanedRowAction: "delete",
     })
-    puzzle: Puzzle;
+    puzzle: Relation<Promise<Puzzle>>;
 
     @Column({ type: "timestamptz", default: () => "NOW()" })
     solvedTimestamp: Date;

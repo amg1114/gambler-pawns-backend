@@ -4,6 +4,7 @@ import {
     Index,
     ManyToOne,
     PrimaryGeneratedColumn,
+    Relation,
 } from "typeorm";
 import { User } from "../../user/entities/user.entity";
 import { Product } from "./product.entity";
@@ -20,7 +21,7 @@ export class UserBoughtProduct {
         nullable: false,
         orphanedRowAction: "delete",
     })
-    user: User;
+    user: Relation<User>;
 
     @ManyToOne(() => Product, (product) => product.productId, {
         onDelete: "CASCADE",
@@ -30,7 +31,7 @@ export class UserBoughtProduct {
         // assuming when dont have a lot products
         eager: true,
     })
-    product: Product;
+    product: Relation<Product>;
 
     @Column({ type: "timestamptz", default: () => "NOW()" })
     purchaseTimestamp: Date;

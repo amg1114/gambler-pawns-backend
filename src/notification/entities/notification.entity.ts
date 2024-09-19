@@ -4,6 +4,7 @@ import {
     Column,
     ManyToOne,
     Index,
+    Relation,
 } from "typeorm";
 import { User } from "../../user/entities/user.entity";
 import { NotificationType } from "./notificationType.entity";
@@ -20,7 +21,7 @@ export class Notification {
         onUpdate: "CASCADE",
         orphanedRowAction: "delete",
     })
-    userWhoSend: User;
+    userWhoSend: Relation<Promise<User>>;
 
     @ManyToOne(() => User, (userWhoReceive) => userWhoReceive.userId, {
         onDelete: "CASCADE",
@@ -29,7 +30,7 @@ export class Notification {
         orphanedRowAction: "delete",
     })
     @Index("idx_notifications_user_id")
-    userWhoReceive: User;
+    userWhoReceive: Relation<Promise<User>>;
 
     @ManyToOne(
         () => NotificationType,
@@ -42,7 +43,7 @@ export class Notification {
             orphanedRowAction: "delete",
         },
     )
-    notificationType: NotificationType;
+    notificationType: Relation<NotificationType>;
 
     @Column()
     title: string;

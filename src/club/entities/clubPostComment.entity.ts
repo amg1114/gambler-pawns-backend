@@ -4,6 +4,7 @@ import {
     Column,
     ManyToOne,
     Index,
+    Relation,
 } from "typeorm";
 import { User } from "./../../user/entities/user.entity";
 import { ClubPost } from "./clubPost.entity";
@@ -19,7 +20,7 @@ export class ClubPostComment {
         nullable: false,
         orphanedRowAction: "delete",
     })
-    user: User;
+    user: Relation<User>;
 
     @ManyToOne(() => ClubPost, (clubPost) => clubPost.postId, {
         onDelete: "CASCADE",
@@ -28,7 +29,7 @@ export class ClubPostComment {
         orphanedRowAction: "delete",
     })
     @Index("idx_comments_post_id")
-    post: ClubPost;
+    post: Relation<ClubPost>;
 
     @Column({ type: "text" })
     content: string;

@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
+import {
+    Entity,
+    PrimaryGeneratedColumn,
+    Column,
+    OneToMany,
+    Relation,
+} from "typeorm";
 import { UserInClub } from "./userInClub.entity";
 import { ClubPost } from "./clubPost.entity";
 
@@ -22,10 +28,10 @@ export class Club {
 
     // -- many to many relations oneToMany Side
     @OneToMany(() => UserInClub, (clubMember) => clubMember.club)
-    members: UserInClub[];
+    members: Relation<UserInClub[]>;
 
     @OneToMany(() => ClubPost, (clubPost) => clubPost.club)
-    posts: ClubPost[];
+    posts: Relation<ClubPost[]>;
 
     /*
     NOTE: Esto no se planteo pero es una idea interesante

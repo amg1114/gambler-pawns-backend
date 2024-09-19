@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
+import {
+    Entity,
+    PrimaryGeneratedColumn,
+    Column,
+    OneToMany,
+    Relation,
+} from "typeorm";
 import { UserSolvedPuzzle } from "./userSolvedPuzzle.entity";
 
 // data: https://database.lichess.org/#puzzles
@@ -24,5 +30,5 @@ export class Puzzle {
         () => UserSolvedPuzzle,
         (userSolvedPuzzle) => userSolvedPuzzle.puzzle,
     )
-    userSolvedPuzzles: UserSolvedPuzzle[];
+    userSolvedPuzzles: Relation<Promise<UserSolvedPuzzle[]>>;
 }

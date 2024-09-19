@@ -6,15 +6,16 @@ import {
     Check,
     OneToMany,
     Index,
+    Relation,
 } from "typeorm";
 import { User } from "../../user/entities/user.entity";
 import { GameMode } from "./gameMode.entity";
 import { GameWithArcadeModifiers } from "./gameWithArcadeModifiers.entity";
 
 @Entity("game")
-@Check(`whites_player_time >= 0 AND blacks_player_time >= 0`)
+@Check(`whitesPlayerTime >= 0 AND blacksPlayerTime >= 0`)
 @Check(
-    `elo_whites_before_game >= 0 AND elo_blacks_before_game >= 0 AND elo_whites_after_game >= 0 AND elo_blacks_after_game >= 0`,
+    `eloWhitesBeforeGame >= 0 AND eloWhitesAfterGame >= 0 AND eloWhitesAfterGame >= 0 AND eloBlacksAfterGame >= 0`,
 )
 export class Game {
     @PrimaryGeneratedColumn()
@@ -28,11 +29,11 @@ export class Game {
 
     @ManyToOne(() => User, { nullable: true, onUpdate: "CASCADE" })
     @Index("idx_game_whites_player_ids")
-    whitesPlayer: User | null;
+    whitesPlayer: Relation<User | null>;
 
     @ManyToOne(() => User, { nullable: true, onUpdate: "CASCADE" })
     @Index("idx_game_blacks_player_ids")
-    blacksPlayer: User | null;
+    blacksPlayer: Relation<User | null>;
 
     @Column({ type: "enum", enum: ["White", "Black", "Draw"], nullable: true })
     winner: GameWinner | null;
@@ -56,7 +57,7 @@ export class Game {
     eloBlacksAfterGame: number | null;
 
     @ManyToOne(() => GameMode, { eager: true, onUpdate: "CASCADE" })
-    gameMode: GameMode;
+    gameMode: Relation<GameMode>;
 
     @Column({
         type: "enum",
@@ -83,7 +84,7 @@ export class Game {
         () => GameWithArcadeModifiers,
         (gameWithArcadeModifiers) => gameWithArcadeModifiers.game,
     )
-    gameWithArcadeModifiers: GameWithArcadeModifiers[];
+    gameWithArcadeModifiers: Relation<GameWithArcadeModifiers[]>;
 }
 
 export type GameWinner = "White" | "Black" | "Draw";

@@ -8,6 +8,7 @@ import {
     ManyToMany,
     JoinTable,
     Index,
+    Relation,
 } from "typeorm";
 import { UserAvatarImg } from "./userAvatar.entity";
 import { UserSolvedPuzzle } from "src/puzzle/entities/userSolvedPuzzle.entity";
@@ -27,8 +28,8 @@ export class User {
     @PrimaryGeneratedColumn()
     userId: number;
 
-    @Index("idx_nickname")
     @Column({ type: "varchar", length: 255, unique: true })
+    @Index("idx_nickname")
     nickname: string;
 
     @Index("idx_email")
@@ -52,7 +53,7 @@ export class User {
     @ManyToOne(() => UserAvatarImg, (userAvatarImg) => userAvatarImg.fileName, {
         eager: true,
     })
-    userAvatarImg: UserAvatarImg;
+    userAvatarImg: Relation<UserAvatarImg>;
 
     @Column({ type: "int" })
     @Index("idx_elo_rapid")
@@ -94,47 +95,47 @@ export class User {
     })
     @JoinTable()
     @Index("idx_friends")
-    friends: User[];
+    friends: Relation<User[]>;
 
     @OneToMany(() => UserSolvedPuzzle, (puzzlesSolved) => puzzlesSolved.user)
-    puzzlesSolved: UserSolvedPuzzle[];
+    puzzlesSolved: Relation<Promise<UserSolvedPuzzle[]>>;
 
     @OneToMany(
         () => UserBoughtProduct,
         (userBoughtProducts) => userBoughtProducts.user,
     )
-    userBoughtProducts: UserBoughtProduct[];
+    userBoughtProducts: Relation<UserBoughtProduct[]>;
 
     @OneToMany(() => Game, (gamesAsBlack) => gamesAsBlack.whitesPlayer)
-    gamesAsWhite: Game[];
+    gamesAsWhite: Relation<Game[]>;
 
     @OneToMany(() => Game, (gamesAsBlack) => gamesAsBlack.blacksPlayer)
-    gamesAsBlack: Game[];
+    gamesAsBlack: Relation<Game[]>;
 
     @OneToMany(
         () => Notification,
         (notificationsSent) => notificationsSent.userWhoSend,
     )
-    notificationsSent: Notification[];
+    notificationsSent: Relation<Promise<Notification[]>>;
 
     @OneToMany(
         () => Notification,
         (notificationsReceived) => notificationsReceived.userWhoReceive,
     )
-    notificationsReceived: Notification[];
+    notificationsReceived: Relation<Promise<Notification[]>>;
 
     @OneToMany(() => UserInClub, (clubs) => clubs.user)
-    clubs: UserInClub[];
+    clubs: Relation<UserInClub[]>;
 
     @OneToMany(() => ClubPost, (posts) => posts.user)
-    posts: ClubPost[];
+    posts: Relation<ClubPost[]>;
 
     @ManyToMany(() => ClubPost, (clubPost) => clubPost.likes)
-    likes: ClubPost[];
+    likes: Relation<ClubPost[]>;
 
     @OneToMany(
         () => ClubPostComment,
         (clubPostComments) => clubPostComments.user,
     )
-    clubPostComments: ClubPostComment[];
+    clubPostComments: Relation<ClubPostComment[]>;
 }

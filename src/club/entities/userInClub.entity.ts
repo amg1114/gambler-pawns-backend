@@ -4,6 +4,7 @@ import {
     Index,
     ManyToOne,
     PrimaryGeneratedColumn,
+    Relation,
 } from "typeorm";
 import { User } from "./../../user/entities/user.entity";
 import { Club } from "./club.entity";
@@ -22,7 +23,7 @@ export class UserInClub {
         orphanedRowAction: "delete",
     })
     @Index("idx_users_clubs_user_id")
-    user: User;
+    user: Relation<User>;
 
     @ManyToOne(() => Club, (club) => club.clubId, {
         onDelete: "CASCADE",
@@ -31,7 +32,7 @@ export class UserInClub {
         orphanedRowAction: "delete",
     })
     @Index("idx_members_club_id")
-    club: Club;
+    club: Relation<Club>;
 
     @Column({ type: "timestamptz", default: () => "NOW()" })
     joinTimestamp: Date;

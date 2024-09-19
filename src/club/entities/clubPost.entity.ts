@@ -7,6 +7,7 @@ import {
     JoinTable,
     ManyToMany,
     Index,
+    Relation,
 } from "typeorm";
 import { User } from "../../user/entities/user.entity";
 import { Club } from "./club.entity";
@@ -22,7 +23,7 @@ export class ClubPost {
         nullable: false,
         orphanedRowAction: "delete",
     })
-    user: User;
+    user: Relation<User>;
 
     @ManyToOne(() => Club, {
         onDelete: "CASCADE",
@@ -32,7 +33,7 @@ export class ClubPost {
     })
     @JoinColumn()
     @Index("idx_club_posts_club_id")
-    club: Club;
+    club: Relation<Club>;
 
     @Column({ type: "text", nullable: true })
     content: string;
@@ -56,5 +57,5 @@ export class ClubPost {
     })
     @JoinTable()
     @Index("idx_club_posts_likes")
-    likes: User[];
+    likes: Relation<User[]>;
 }

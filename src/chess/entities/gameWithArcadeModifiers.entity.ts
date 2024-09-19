@@ -1,4 +1,4 @@
-import { Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Entity, ManyToOne, PrimaryGeneratedColumn, Relation } from "typeorm";
 import { Game } from "./game.entity";
 import { ArcadeModifiers } from "./arcadeModifier.entity";
 
@@ -13,7 +13,7 @@ export class GameWithArcadeModifiers {
         nullable: false,
         orphanedRowAction: "delete",
     })
-    game: Game;
+    game: Relation<Game>;
 
     @ManyToOne(
         () => ArcadeModifiers,
@@ -26,5 +26,5 @@ export class GameWithArcadeModifiers {
             orphanedRowAction: "delete",
         },
     )
-    arcadeModifier: ArcadeModifiers;
+    arcadeModifier: Relation<ArcadeModifiers>;
 }

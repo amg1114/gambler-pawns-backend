@@ -4,6 +4,7 @@ import { AuthService } from "./auth.service";
 import { AuthController } from "./auth.controller";
 import { ConfigService } from "@nestjs/config";
 import { MailerModule } from "@nestjs-modules/mailer";
+import { UserService } from "src/user/user.service";
 
 @Module({
     imports: [
@@ -27,7 +28,7 @@ import { MailerModule } from "@nestjs-modules/mailer";
             }),
         }),
     ],
-    providers: [AuthService],
+    providers: [AuthService, UserService],
     controllers: [AuthController],
     exports: [],
 })

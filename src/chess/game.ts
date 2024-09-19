@@ -1,10 +1,12 @@
 import { Chess } from "chess.js";
 import { WsException } from "@nestjs/websockets";
+
+// db entities
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { Game as GameEntity } from "./entities/game.entity";
-import { User } from "../user/entities/user.entity";
+import { Game as GameEntity, GameWinner } from "./entities/game.entity";
 import { GameMode } from "./entities/gameMode.entity";
+import { User } from "../user/entities/user.entity";
 
 // TODO: logica timers
 // TODO: logica apuestas
@@ -84,12 +86,12 @@ export class Game {
         }
 
         // TODO: revisar en general todas las consultas
-        /*player.assignDataToNonGuestUser(
+        player.assignDataToNonGuestUser(
             user.nickname,
-            user.about,
+            user.aboutText,
             user.eloArcade, // TODO: cambiar esto dependiendo del modo
-            user.avatarImgId.toString(),
-        );*/
+            user.userAvatarImg.fileName,
+        );
     }
 
     async makeMove(playerId: string, move: { from: string; to: string }) {
@@ -130,7 +132,7 @@ export class Game {
         }
     }
 
-    async endGame(winner: "White" | "Black" | "Draw") {
+    async endGame(winner: GameWinner) {
         const eloWhitesAfterGame = this.calculateNewElo(
             this.whitesPlayer.eloRating,
             this.blacksPlayer.eloRating,
@@ -143,7 +145,7 @@ export class Game {
         );
 
         try {
-            // TODO: revisar los tipos de datos que debo hacer update
+            // update game in db
             await this.gameRepository.update(
                 { gameId: +this.gameId },
                 {
@@ -151,6 +153,7 @@ export class Game {
                     winner: winner,
                     eloWhitesAfterGame: eloWhitesAfterGame,
                     eloBlacksAfterGame: eloBlacksAfterGame,
+                    // TODO: implement Game result type
                 },
             );
         } catch (e) {

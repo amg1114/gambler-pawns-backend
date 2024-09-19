@@ -4,6 +4,7 @@ import {
     Column,
     OneToMany,
     Check,
+    Relation,
 } from "typeorm";
 import { UserBoughtProduct } from "./userBoughtProduct.entity";
 
@@ -35,7 +36,7 @@ export class Product {
         () => UserBoughtProduct,
         (userBoughtProduct) => userBoughtProduct.product,
     )
-    userBroughtProducts: UserBoughtProduct[];
+    userBroughtProducts: Relation<UserBoughtProduct[]>;
 }
 
 export interface ProductContent {
