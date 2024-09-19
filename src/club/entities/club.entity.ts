@@ -1,11 +1,6 @@
-import {
-    Entity,
-    PrimaryGeneratedColumn,
-    Column,
-    ManyToOne,
-    JoinColumn,
-} from "typeorm";
-import { User } from "./../../user/entities/user.entity";
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
+import { UserInClub } from "./userInClub.entity";
+import { ClubPost } from "./clubPost.entity";
 
 @Entity("clubs")
 export class Club {
@@ -18,10 +13,24 @@ export class Club {
     @Column({ type: "varchar", length: 255 })
     description: string;
 
-    @Column({ type: "timestamptz" })
+    // file name or id of image in firebase or other external service
+    @Column({ type: "varchar", length: 255 })
+    imgFileName: string;
+
+    @Column({ type: "timestamptz", default: () => "NOW()" })
     creationTimestamp: Date;
+
+    // -- many to many relations oneToMany Side
+    @OneToMany(() => UserInClub, (clubMember) => clubMember.club)
+    members: UserInClub[];
+
+    @OneToMany(() => ClubPost, (clubPost) => clubPost.club)
+    posts: ClubPost[];
+
+    /*
+    NOTE: Esto no se planteo pero es una idea interesante
 
     @ManyToOne(() => User)
     @JoinColumn({ name: "fk_club_creator_id" })
-    creator: User;
+    creator: User;*/
 }

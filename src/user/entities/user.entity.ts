@@ -3,10 +3,21 @@ import {
     PrimaryGeneratedColumn,
     Column,
     ManyToOne,
-    JoinColumn,
     Check,
+    OneToMany,
+    ManyToMany,
+    JoinTable,
+    Index,
+    In,
 } from "typeorm";
 import { UserAvatarImg } from "./userAvatar.entity";
+import { UserSolvedPuzzle } from "src/puzzle/entities/userSolvedPuzzle.entity";
+import { UserBoughtProduct } from "src/store/entities/userBoughtProduct.entity";
+import { Game } from "src/chess/entities/game.entity";
+import { Notification } from "src/notification/entities/notification.entity";
+import { UserInClub } from "src/club/entities/userInClub.entity";
+import { ClubPost } from "src/club/entities/clubPost.entity";
+import { ClubPostComment } from "src/club/entities/clubPostComment.entity";
 
 @Entity()
 // TODO: review how this check constraint work when transpile to sql as snakeCase naming
@@ -17,9 +28,11 @@ export class User {
     @PrimaryGeneratedColumn()
     userId: number;
 
+    @Index("idx_nickname")
     @Column({ type: "varchar", length: 255, unique: true })
     nickname: string;
 
+    @Index("idx_email")
     @Column({ type: "varchar", length: 255, unique: true })
     email: string;
 
@@ -35,25 +48,27 @@ export class User {
     @Column({ type: "text" })
     aboutText: string;
 
-    // TODO: review how bidirectional relationship works in typeorm
-    @ManyToOne(
-        () => UserAvatarImg,
-        (fkUserAvatarImg) => fkUserAvatarImg.fileName,
-        { eager: true },
-    )
-    @JoinColumn()
-    fkUserAvatarImg: UserAvatarImg;
+    // NOTE: according to documentation I can omit @JoinColumn() in @ManyToOne
+    //  https://orkhan.gitbook.io/typeorm/docs/many-to-one-one-to-many-relations
+    @ManyToOne(() => UserAvatarImg, (userAvatarImg) => userAvatarImg.fileName, {
+        eager: true,
+    })
+    userAvatarImg: UserAvatarImg;
 
     @Column({ type: "int" })
+    @Index("idx_elo_rapid")
     eloRapid: number;
 
     @Column({ type: "int" })
+    @Index("idx_elo_blitz")
     eloBlitz: number;
 
     @Column({ type: "int" })
+    @Index("idx_elo_bullet")
     eloBullet: number;
 
     @Column({ type: "int" })
+    @Index("idx_elo_arcade")
     eloArcade: number;
 
     @Column({ type: "int" })
@@ -62,6 +77,7 @@ export class User {
     @Column({ type: "int" })
     acumulatedAllTimeCoins: number;
 
+    // TODO: implement trigger for data integrity
     @Column({ type: "int", default: 0 })
     nPuzzlesSolved: number;
 
@@ -70,4 +86,56 @@ export class User {
 
     @Column({ type: "boolean", default: false })
     isDeleted: boolean;
+
+    // --- For Many to many relations with custom properties ---
+    // https://orkhan.gitbook.io/typeorm/docs/many-to-many-relations#many-to-many-relations-with-custom-properties
+    @ManyToMany(() => User, {
+        onDelete: "CASCADE",
+        onUpdate: "CASCADE",
+    })
+    @JoinTable()
+    @Index("idx_friends")
+    friends: User[];
+
+    @OneToMany(() => UserSolvedPuzzle, (puzzlesSolved) => puzzlesSolved.user)
+    puzzlesSolved: UserSolvedPuzzle[];
+
+    @OneToMany(
+        () => UserBoughtProduct,
+        (userBoughtProducts) => userBoughtProducts.user,
+    )
+    userBoughtProducts: UserBoughtProduct[];
+
+    @OneToMany(() => Game, (gamesAsBlack) => gamesAsBlack.whitesPlayer)
+    gamesAsWhite: Game[];
+
+    @OneToMany(() => Game, (gamesAsBlack) => gamesAsBlack.blacksPlayer)
+    gamesAsBlack: Game[];
+
+    @OneToMany(
+        () => Notification,
+        (notificationsSent) => notificationsSent.userWhoSend,
+    )
+    notificationsSent: Notification[];
+
+    @OneToMany(
+        () => Notification,
+        (notificationsReceived) => notificationsReceived.userWhoReceive,
+    )
+    notificationsReceived: Notification[];
+
+    @OneToMany(() => UserInClub, (clubs) => clubs.user)
+    clubs: UserInClub[];
+
+    @OneToMany(() => ClubPost, (posts) => posts.user)
+    posts: ClubPost[];
+
+    @ManyToMany(() => ClubPost, (clubPost) => clubPost.likes)
+    likes: ClubPost[];
+
+    @OneToMany(
+        () => ClubPostComment,
+        (clubPostComments) => clubPostComments.user,
+    )
+    clubPostComments: ClubPostComment[];
 }

@@ -8,3 +8,5 @@ export class ArcadeModifiers {
     @Column({ type: "varchar", length: 255 })
     modifierName: string;
 }
+
+// TODO: duda, aqui necesitamos una relacion bidireaccional?  @OneToMany

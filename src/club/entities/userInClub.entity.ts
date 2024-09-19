@@ -1,26 +1,41 @@
-import { Column, Entity, PrimaryColumn, ManyToOne, JoinColumn } from "typeorm";
+import {
+    Column,
+    Entity,
+    Index,
+    ManyToOne,
+    PrimaryGeneratedColumn,
+} from "typeorm";
 import { User } from "./../../user/entities/user.entity";
 import { Club } from "./club.entity";
 
+export type ClubRole = "ADMIN" | "MEMBER";
+
 @Entity()
 export class UserInClub {
-    @PrimaryColumn()
-    fkUserId: number;
+    @PrimaryGeneratedColumn()
+    userInClubId: number;
 
-    @PrimaryColumn()
-    fkClubId: number;
-
-    @ManyToOne(() => User)
-    @JoinColumn({ name: "fk_user_id" })
+    @ManyToOne(() => User, (user) => user.userId, {
+        onDelete: "CASCADE",
+        onUpdate: "CASCADE",
+        nullable: false,
+        orphanedRowAction: "delete",
+    })
+    @Index("idx_users_clubs_user_id")
     user: User;
 
-    @ManyToOne(() => Club)
-    @JoinColumn({ name: "fk_club_id" })
+    @ManyToOne(() => Club, (club) => club.clubId, {
+        onDelete: "CASCADE",
+        onUpdate: "CASCADE",
+        nullable: false,
+        orphanedRowAction: "delete",
+    })
+    @Index("idx_members_club_id")
     club: Club;
 
-    @Column({ type: "timestamptz" })
+    @Column({ type: "timestamptz", default: () => "NOW()" })
     joinTimestamp: Date;
 
-    @Column({ type: "boolean", default: false })
-    isAdmin: boolean;
+    @Column({ type: "enum", enum: ["ADMIN", "MEMBER"], default: "MEMBER" })
+    role: ClubRole;
 }

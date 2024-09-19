@@ -3,11 +3,13 @@ import {
     PrimaryGeneratedColumn,
     Column,
     ManyToOne,
-    JoinColumn,
     Check,
+    OneToMany,
+    Index,
 } from "typeorm";
 import { User } from "../../user/entities/user.entity";
 import { GameMode } from "./gameMode.entity";
+import { GameWithArcadeModifiers } from "./gameWithArcadeModifiers.entity";
 
 @Entity("game")
 @Check(`whites_player_time >= 0 AND blacks_player_time >= 0`)
@@ -24,37 +26,36 @@ export class Game {
     @Column({ type: "text" })
     pgn: string;
 
-    @ManyToOne(() => User)
-    @JoinColumn()
-    whitesPlayer: User;
+    @ManyToOne(() => User, { nullable: true, onUpdate: "CASCADE" })
+    @Index("idx_game_whites_player_ids")
+    whitesPlayer: User | null;
 
-    @ManyToOne(() => User)
-    @JoinColumn({ name: "fk_blacks_player_id" })
-    blacksPlayer: User;
+    @ManyToOne(() => User, { nullable: true, onUpdate: "CASCADE" })
+    @Index("idx_game_blacks_player_ids")
+    blacksPlayer: User | null;
 
     @Column({ type: "enum", enum: ["White", "Black", "Draw"], nullable: true })
-    winner: "White" | "Black" | "Draw";
+    winner: GameWinner | null;
 
-    @Column({ type: "int" })
-    whitesPlayerTime: number;
+    @Column({ type: "int", nullable: true })
+    whitesPlayerTime: number | null;
 
-    @Column({ type: "int" })
-    blacksPlayerTime: number;
+    @Column({ type: "int", nullable: true })
+    blacksPlayerTime: number | null;
 
-    @Column({ type: "int" })
-    eloWhitesBeforeGame: number;
+    @Column({ type: "int", nullable: true })
+    eloWhitesBeforeGame: number | null;
 
-    @Column({ type: "int" })
-    eloBlacksBeforeGame: number;
+    @Column({ type: "int", nullable: true })
+    eloWhitesAfterGame: number | null;
 
-    @Column({ type: "int" })
-    eloWhitesAfterGame: number;
+    @Column({ type: "int", nullable: true })
+    eloBlacksBeforeGame: number | null;
 
-    @Column({ type: "int" })
-    eloBlacksAfterGame: number;
+    @Column({ type: "int", nullable: true })
+    eloBlacksAfterGame: number | null;
 
-    @ManyToOne(() => GameMode)
-    @JoinColumn()
+    @ManyToOne(() => GameMode, { eager: true, onUpdate: "CASCADE" })
     gameMode: GameMode;
 
     @Column({
@@ -70,11 +71,28 @@ export class Game {
         ],
         nullable: true,
     })
-    resultType: string;
+    resultType: GameResultType | null;
 
     @Column({
         type: "enum",
         enum: ["Link Shared", "Friend Req", "Random Pairing"],
     })
-    typePairing: string;
+    typePairing: GameTypePairing;
+
+    @OneToMany(
+        () => GameWithArcadeModifiers,
+        (gameWithArcadeModifiers) => gameWithArcadeModifiers.game,
+    )
+    gameWithArcadeModifiers: GameWithArcadeModifiers[];
 }
+
+export type GameWinner = "White" | "Black" | "Draw";
+export type GameResultType =
+    | "On Time"
+    | "Draw offer"
+    | "Abandon"
+    | "Resign"
+    | "Stalemate"
+    | "N Moves Rule"
+    | "Check Mate";
+export type GameTypePairing = "Link Shared" | "Friend Req" | "Random Pairing";

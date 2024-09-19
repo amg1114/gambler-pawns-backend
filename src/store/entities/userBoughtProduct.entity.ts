@@ -1,23 +1,37 @@
-import { Column, Entity, PrimaryColumn, ManyToOne, JoinColumn } from "typeorm";
+import {
+    Column,
+    Entity,
+    Index,
+    ManyToOne,
+    PrimaryGeneratedColumn,
+} from "typeorm";
 import { User } from "../../user/entities/user.entity";
 import { Product } from "./product.entity";
 
+@Index("idx_user_bought_products_user_id", ["user, product"])
 @Entity()
 export class UserBoughtProduct {
-    @PrimaryColumn()
-    fkUserId: number;
+    @PrimaryGeneratedColumn()
+    userBoughtProductId: number;
 
-    @PrimaryColumn()
-    fkProductId: number;
-
-    @ManyToOne(() => User)
-    @JoinColumn({ name: "fk_user_id" })
+    @ManyToOne(() => User, (user) => user.userId, {
+        onDelete: "CASCADE",
+        onUpdate: "CASCADE",
+        nullable: false,
+        orphanedRowAction: "delete",
+    })
     user: User;
 
-    @ManyToOne(() => Product)
-    @JoinColumn({ name: "fk_product_id" })
+    @ManyToOne(() => Product, (product) => product.productId, {
+        onDelete: "CASCADE",
+        onUpdate: "CASCADE",
+        nullable: false,
+        orphanedRowAction: "delete",
+        // assuming when dont have a lot products
+        eager: true,
+    })
     product: Product;
 
-    @Column({ type: "timestamptz" })
+    @Column({ type: "timestamptz", default: () => "NOW()" })
     purchaseTimestamp: Date;
 }

@@ -3,7 +3,7 @@ import {
     PrimaryGeneratedColumn,
     Column,
     ManyToOne,
-    JoinColumn,
+    Index,
 } from "typeorm";
 import { User } from "./../../user/entities/user.entity";
 import { ClubPost } from "./clubPost.entity";
@@ -13,17 +13,26 @@ export class ClubPostComment {
     @PrimaryGeneratedColumn()
     commentId: number;
 
-    @ManyToOne(() => User)
-    @JoinColumn({ name: "fk_user_id" })
+    @ManyToOne(() => User, (user) => user.userId, {
+        onDelete: "CASCADE",
+        onUpdate: "CASCADE",
+        nullable: false,
+        orphanedRowAction: "delete",
+    })
     user: User;
 
-    @ManyToOne(() => ClubPost)
-    @JoinColumn({ name: "fk_post_id" })
+    @ManyToOne(() => ClubPost, (clubPost) => clubPost.postId, {
+        onDelete: "CASCADE",
+        onUpdate: "CASCADE",
+        nullable: false,
+        orphanedRowAction: "delete",
+    })
+    @Index("idx_comments_post_id")
     post: ClubPost;
 
     @Column({ type: "text" })
     content: string;
 
-    @Column({ type: "timestamptz" })
+    @Column({ type: "timestamptz", default: () => "NOW()" })
     commentTimestamp: Date;
 }

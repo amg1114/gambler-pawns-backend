@@ -7,4 +7,6 @@ export class GameMode {
 
     @Column({ type: "varchar", length: 255 })
     mode: string;
+
+    // TODO: duda, aqui necesitamos una relacion bidireaccional?  @OneToMany
 }

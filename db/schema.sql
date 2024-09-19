@@ -176,7 +176,7 @@ CREATE TABLE IF NOT EXISTS club (
 );
 -- NOTE: profile pics are stored in firebase, where profile_pic is the id of the image
 
-CREATE TYPE enum_users_members_of_club_role AS ENUM('Public', 'Private');
+CREATE TYPE enum_users_members_of_club_role AS ENUM('Member', 'Admin');
 
 CREATE TABLE IF NOT EXISTS users_members_of_club (
   fk_club_id INT,
