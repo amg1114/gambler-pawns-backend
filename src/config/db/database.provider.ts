@@ -14,7 +14,6 @@ const migrationConfig = {
     cli: {
         migrationsDir: "src/migrations",
     },
-    migrationsRun: true,
 };
 
 const prodPoolOptions = {
@@ -36,6 +35,7 @@ const devPoolOptions = {
     logging: true,
     synchronize: true,
     ...migrationConfig,
+    migrationsRun: true,
 };
 
 const poolOptions =
