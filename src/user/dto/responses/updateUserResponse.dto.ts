@@ -6,5 +6,5 @@ import { UpdateResult } from "typeorm";
 export class UpdateUserResponse extends BaseResponse {
     @IsObject()
     @ApiProperty({ example: { raw: [], affected: 1, generatedMaps: [] } })
-    data: any
+    data: any;
 }
