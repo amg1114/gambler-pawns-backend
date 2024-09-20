@@ -94,9 +94,11 @@ export class AuthService {
     }
 
     private generateToken(user: User) {
-        delete user.password;
         return {
-            access_token: this.jwtService.sign(user),
+            access_token: this.jwtService.sign({
+                sub: user.userId,
+                ...user,
+            }),
         };
     }
 

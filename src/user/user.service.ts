@@ -1,7 +1,8 @@
-import { Injectable } from "@nestjs/common";
+import { HttpException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { User } from "./entities/user.entity";
-import { Repository } from "typeorm";
+import { Repository, UpdateResult } from "typeorm";
+import { UpdateUserDto } from "./dto/updateUser.dto";
 
 @Injectable()
 export class UserService {
@@ -25,5 +26,22 @@ export class UserService {
 
     async findOneByNickname(nickname: string): Promise<User | null> {
         return this.userRepository.findOne({ where: { nickname: nickname } });
+    }
+
+    async updateUser(
+        id: number,
+        newData: UpdateUserDto,
+    ): Promise<UpdateResult> {
+        try {
+            const result = await this.userRepository.update(id, newData);
+            if (result.affected === 0) {
+                throw new NotFoundException(`User with ID ${id} not found`);
+            }
+
+            return result;
+        } catch (e) {
+            console.log(e);
+            throw new HttpException("Internal Server error", 500);
+        }
     }
 }
