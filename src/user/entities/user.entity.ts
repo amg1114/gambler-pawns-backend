@@ -18,6 +18,7 @@ import { Notification } from "src/notification/entities/notification.entity";
 import { UserInClub } from "src/club/entities/userInClub.entity";
 import { ClubPost } from "src/club/entities/clubPost.entity";
 import { ClubPostComment } from "src/club/entities/clubPostComment.entity";
+import { Exclude } from "class-transformer";
 
 @Entity()
 // NOTE: when using @Check constraint, you must use sanke case
@@ -38,6 +39,7 @@ export class User {
     email: string;
 
     @Column({ type: "varchar", length: 255 })
+    @Exclude()
     password: string;
 
     @Column({ type: "date", nullable: true })
