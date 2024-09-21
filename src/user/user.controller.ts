@@ -40,7 +40,7 @@ export class UserController {
     updateAvatar(
         @Param("id") id: number,
         @Body("filename") filename: string,
-    ): Promise<UpdateResult> {
+    ): Promise<User> {
         return this.userService.updateUserAvatar(id, filename);
     }
 }
