@@ -8,48 +8,34 @@ ConfigModule.forRoot({
 });
 const configService = new ConfigService();
 
-const migrationConfig = {
-    migrationsTableName: "migrations_typeorm",
-    migrations: ["dist/migrations/*{.ts,.js}"],
-    cli: {
-        migrationsDir: "src/migrations",
-    },
+const DEV_POOL = {
+    host: configService.getOrThrow("LOCALDB_HOST"),
+    port: +configService.getOrThrow("LOCALDB_PORT"),
+    username: configService.getOrThrow("LOCALDB_USER"),
+    password: configService.getOrThrow("LOCALDB_PASSWORD"),
+    database: configService.getOrThrow("LOCALDB_NAME"),
+    logging: true,
+    synchronize: true,
 };
 
-const prodPoolOptions = {
+const PROD_POOL = {
     url: configService.getOrThrow("POSTGRES_URL"),
+    logging: false,
+    synchronize: false,
     extra: {
         ssl: true,
     },
-    synchronize: false,
-    logging: false,
-    ...migrationConfig,
 };
 
-const devPoolOptions = {
-    host: configService.getOrThrow("LOCALDB_HOST"),
-    port: configService.getOrThrow("LOCALDB_PORT"),
-    database: configService.getOrThrow("LOCALDB_NAME"),
-    username: configService.getOrThrow("LOCALDB_USER"),
-    password: configService.getOrThrow("LOCALDB_PASSWORD"),
-    logging: true,
-    synchronize: true,
-    ...migrationConfig,
-    migrationsRun: true,
-};
-
-const poolOptions =
-    configService.getOrThrow<string>("NODE_ENV").trim() === "dev"
-        ? devPoolOptions
-        : prodPoolOptions;
+const POOL = process.env.NODE_ENV === "production" ? PROD_POOL : DEV_POOL;
 
 export const DataSourceConfig: DataSourceOptions = {
     type: "postgres",
-    // connection options depending NODE_ENV
-    ...poolOptions,
-    // in generated sql code table names will be snake_case
+    ...POOL,
+    migrationsRun: false,
+    entities: [__dirname + "/../../**/*.entity{.ts,.js}"],
+    migrations: [__dirname + "/../../migrations/*{.ts,.js}"],
     namingStrategy: new SnakeNamingStrategy(),
-    entities: [__dirname + "/../**/**/*.entity{.ts,.js}"],
 };
 
 export const AppDataSource: DataSource = new DataSource(DataSourceConfig);
