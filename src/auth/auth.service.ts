@@ -105,7 +105,7 @@ export class AuthService {
     async forgotPassword({ email }: forgotPasswordDto) {
         const token = this.jwtService.sign(
             { email: email },
-            { expiresIn: "30s" },
+            { expiresIn: "10m" },
         );
 
         //TODO: write a better email html+css template
