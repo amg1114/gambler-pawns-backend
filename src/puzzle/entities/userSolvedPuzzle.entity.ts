@@ -5,7 +5,7 @@ import {
     PrimaryGeneratedColumn,
     Relation,
 } from "typeorm";
-import { User } from "src/user/entities/user.entity";
+import { User } from "../../user/entities/user.entity";
 import { Puzzle } from "./puzzle.entity";
 
 @Entity()
