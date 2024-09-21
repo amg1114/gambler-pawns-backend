@@ -26,6 +26,6 @@ export class UserController {
         @Param("id") id: number,
         @Body() userFields: UpdateUserDto,
     ): Promise<UpdateResult> {
-        return this.userService.updateUser(id, userFields);
+        return this.userService.updateUserById(id, userFields);
     }
 }
