@@ -33,7 +33,7 @@ export class UserService {
         return this.userRepository.findOne({ where: { nickname: nickname } });
     }
 
-    async updateUser(
+    async updateUserById(
         id: number,
         newData: UpdateUserDto,
     ): Promise<UpdateResult> {
