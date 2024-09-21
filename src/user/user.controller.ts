@@ -28,4 +28,11 @@ export class UserController {
     ): Promise<UpdateResult> {
         return this.userService.updateUser(id, userFields);
     }
+
+    @Get(":id/friends")
+    @ApiOperation({ summary: "Get user friends" })
+    @ApiResponse({ status: 200, description: "Friends fetched successfully" })
+    async getUserFriends(@Param("id") id: number) {
+        return this.userService.findUserFriends(id);
+    }
 }
