@@ -1,4 +1,9 @@
-import { HttpException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+    ConflictException,
+    HttpException,
+    Injectable,
+    NotFoundException,
+} from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { User } from "./entities/user.entity";
 import { Repository, UpdateResult } from "typeorm";
@@ -33,6 +38,18 @@ export class UserService {
         newData: UpdateUserDto,
     ): Promise<UpdateResult> {
         try {
+            if (newData.email || newData.nickname) {
+                const user = await this.findOneByEmailOrNickname(
+                    newData.email,
+                    newData.nickname,
+                );
+                if (user) {
+                    throw new ConflictException(
+                        "Email or nickname already in use",
+                    );
+                }
+            }
+
             const result = await this.userRepository.update(id, newData);
             if (result.affected === 0) {
                 throw new NotFoundException(`User with ID ${id} not found`);
@@ -40,7 +57,9 @@ export class UserService {
 
             return result;
         } catch (e) {
-            console.log(e);
+            if (e instanceof HttpException) {
+                throw e;
+            }
             throw new HttpException("Internal Server error", 500);
         }
     }
