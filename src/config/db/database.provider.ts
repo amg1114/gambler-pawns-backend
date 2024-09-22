@@ -8,48 +8,40 @@ ConfigModule.forRoot({
 });
 const configService = new ConfigService();
 
-const migrationConfig = {
-    migrationsTableName: "migrations_typeorm",
-    migrations: ["dist/migrations/*{.ts,.js}"],
-    cli: {
-        migrationsDir: "src/migrations",
-    },
-};
-
-const prodPoolOptions = {
-    url: configService.getOrThrow("POSTGRES_URL"),
-    extra: {
-        ssl: true,
-    },
-    synchronize: false,
-    logging: false,
-    ...migrationConfig,
-};
-
-const devPoolOptions = {
-    host: configService.getOrThrow("LOCALDB_HOST"),
-    port: configService.getOrThrow("LOCALDB_PORT"),
-    database: configService.getOrThrow("LOCALDB_NAME"),
-    username: configService.getOrThrow("LOCALDB_USER"),
-    password: configService.getOrThrow("LOCALDB_PASSWORD"),
-    logging: true,
-    synchronize: true,
-    ...migrationConfig,
-    migrationsRun: true,
-};
-
-const poolOptions =
-    configService.getOrThrow<string>("NODE_ENV").trim() === "dev"
-        ? devPoolOptions
-        : prodPoolOptions;
+function getPoolConfig() {
+    if (process.env.NODE_ENV === "dev") {
+        return {
+            host: configService.getOrThrow("LOCALDB_HOST"),
+            port: +configService.getOrThrow("LOCALDB_PORT"),
+            username: configService.getOrThrow("LOCALDB_USER"),
+            password: configService.getOrThrow("LOCALDB_PASSWORD"),
+            database: configService.getOrThrow("LOCALDB_NAME"),
+            logging: true,
+            synchronize: true,
+        };
+    } else {
+        return {
+            host: configService.getOrThrow("DBHOST_HOST"),
+            port: +configService.getOrThrow("DBHOST_PORT"),
+            username: configService.getOrThrow("DBHOST_USER"),
+            password: configService.getOrThrow("DBHOST_PASSWORD"),
+            database: configService.getOrThrow("DBHOST_NAME"),
+            logging: false,
+            synchronize: false,
+            extra: {
+                ssl: true,
+            },
+        };
+    }
+}
 
 export const DataSourceConfig: DataSourceOptions = {
     type: "postgres",
-    // connection options depending NODE_ENV
-    ...poolOptions,
-    // in generated sql code table names will be snake_case
+    ...getPoolConfig(),
+    migrationsRun: true,
+    entities: [__dirname + "/../../**/*.entity{.ts,.js}"],
+    migrations: [__dirname + "/../../migrations/*{.ts,.js}"],
     namingStrategy: new SnakeNamingStrategy(),
-    entities: [__dirname + "/../**/**/*.entity{.ts,.js}"],
 };
 
 export const AppDataSource: DataSource = new DataSource(DataSourceConfig);

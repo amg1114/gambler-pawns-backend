@@ -11,13 +11,13 @@ import {
     Relation,
 } from "typeorm";
 import { UserAvatarImg } from "./userAvatar.entity";
-import { UserSolvedPuzzle } from "src/puzzle/entities/userSolvedPuzzle.entity";
-import { UserBoughtProduct } from "src/store/entities/userBoughtProduct.entity";
-import { Game } from "src/chess/entities/game.entity";
-import { Notification } from "src/notification/entities/notification.entity";
-import { UserInClub } from "src/club/entities/userInClub.entity";
-import { ClubPost } from "src/club/entities/clubPost.entity";
-import { ClubPostComment } from "src/club/entities/clubPostComment.entity";
+import { UserSolvedPuzzle } from "../../puzzle/entities/userSolvedPuzzle.entity";
+import { UserBoughtProduct } from "../../store/entities/userBoughtProduct.entity";
+import { Game } from "../../chess/entities/game.entity";
+import { Notification } from "../../notification/entities/notification.entity";
+import { UserInClub } from "../../club/entities/userInClub.entity";
+import { ClubPost } from "../../club/entities/clubPost.entity";
+import { ClubPostComment } from "../../club/entities/clubPostComment.entity";
 import { Exclude } from "class-transformer";
 
 @Entity()
