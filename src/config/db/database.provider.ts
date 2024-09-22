@@ -9,7 +9,7 @@ ConfigModule.forRoot({
 const configService = new ConfigService();
 
 function getPoolConfig() {
-    if (process.env.NODE_ENV === "dev") {
+    if (process.env.NODE_ENV.trim() === "dev") {
         return {
             host: configService.getOrThrow("LOCALDB_HOST"),
             port: +configService.getOrThrow("LOCALDB_PORT"),
