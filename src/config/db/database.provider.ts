@@ -28,9 +28,6 @@ function getPoolConfig() {
             database: configService.getOrThrow("DBHOST_NAME"),
             logging: false,
             synchronize: false,
-            extra: {
-                ssl: true,
-            },
         };
     }
 }
