@@ -8,31 +8,37 @@ ConfigModule.forRoot({
 });
 const configService = new ConfigService();
 
-const DEV_POOL = {
-    host: configService.getOrThrow("LOCALDB_HOST"),
-    port: +configService.getOrThrow("LOCALDB_PORT"),
-    username: configService.getOrThrow("LOCALDB_USER"),
-    password: configService.getOrThrow("LOCALDB_PASSWORD"),
-    database: configService.getOrThrow("LOCALDB_NAME"),
-    logging: true,
-    synchronize: true,
-};
-
-const PROD_POOL = {
-    url: configService.getOrThrow("POSTGRES_URL"),
-    logging: false,
-    synchronize: false,
-    extra: {
-        ssl: true,
-    },
-};
-
-const POOL = process.env.NODE_ENV === "production" ? PROD_POOL : DEV_POOL;
+function getPoolConfig() {
+    if (process.env.NODE_ENV === "dev") {
+        return {
+            host: configService.getOrThrow("LOCALDB_HOST"),
+            port: +configService.getOrThrow("LOCALDB_PORT"),
+            username: configService.getOrThrow("LOCALDB_USER"),
+            password: configService.getOrThrow("LOCALDB_PASSWORD"),
+            database: configService.getOrThrow("LOCALDB_NAME"),
+            logging: true,
+            synchronize: true,
+        };
+    } else {
+        return {
+            host: configService.getOrThrow("DBHOST_HOST"),
+            port: +configService.getOrThrow("DBHOST_PORT"),
+            username: configService.getOrThrow("DBHOST_USER"),
+            password: configService.getOrThrow("DBHOST_PASSWORD"),
+            database: configService.getOrThrow("DBHOST_NAME"),
+            logging: false,
+            synchronize: false,
+            extra: {
+                ssl: true,
+            },
+        };
+    }
+}
 
 export const DataSourceConfig: DataSourceOptions = {
     type: "postgres",
-    ...POOL,
-    migrationsRun: false,
+    ...getPoolConfig(),
+    migrationsRun: true,
     entities: [__dirname + "/../../**/*.entity{.ts,.js}"],
     migrations: [__dirname + "/../../migrations/*{.ts,.js}"],
     namingStrategy: new SnakeNamingStrategy(),
