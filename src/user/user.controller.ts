@@ -43,4 +43,11 @@ export class UserController {
     ): Promise<User> {
         return this.userService.updateUserAvatar(id, filename);
     }
+
+    @Get(":id/friends")
+    @ApiOperation({ summary: "Get user friends" })
+    @ApiResponse({ status: 200, description: "Friends fetched successfully" })
+    async getUserFriends(@Param("id") id: number) {
+        return this.userService.findUserFriends(id);
+    }
 }
