@@ -5,6 +5,7 @@
     "author": "",
     "private": true,
     "license": "UNLICENSED",
+    "type": "commonjs",
     "scripts": {
         "build": "nest build",
         "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -19,11 +20,11 @@
         "test:cov": "jest --coverage",
         "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
         "test:e2e": "jest --config ./test/jest-e2e.json",
-        "typeorm": "export NODE_ENV=dev && ts-node ./node_modules/typeorm/cli",
-        "typeorm:run-migrations": "npm run typeorm migration:run -- -d src/config/db/database.provider.ts",
-        "typeorm:generate-migration": "npm run typeorm -- -d ./src/config/db/database.provider.ts migration:generate /src/migrations/$npm_config_name",
-        "typeorm:create-migration": "npm run typeorm -- migration:create src/migrations/$npm_config_name",
-        "typeorm:revert-migration": "npm run typeorm -- -d ./src/config/db/database.provider.ts migration:revert"
+        "orm:init": "typeorm-ts-node-commonjs -d ./src/config/db/database.provider.ts",
+        "m:gen": "export NODE_ENV=prod && npm run orm:init migration:generate",
+        "m:create": "export NODE_ENV=dev && npx typeorm-ts-node-esm migration:create",
+        "m:run": "export NODE_ENV=dev && npm run orm:init migration:run",
+        "m:revert": "export NODE_ENV=dev && npm run orm:init migration:revert"
     },
     "dependencies": {
         "@nestjs-modules/mailer": "^2.0.2",
@@ -50,6 +51,7 @@
         "reflect-metadata": "^0.2.0",
         "rxjs": "^7.8.1",
         "socket.io": "^4.7.5",
+        "sqids": "^0.3.0",
         "typeorm": "^0.3.20",
         "typeorm-naming-strategies": "^4.1.0"
     },

@@ -26,7 +26,22 @@ export class UserController {
         @Param("id") id: number,
         @Body() userFields: UpdateUserDto,
     ): Promise<UpdateResult> {
-        return this.userService.updateUser(id, userFields);
+        return this.userService.updateUserById(id, userFields);
+    }
+
+    @Patch(":id/avatar")
+    @ApiOperation({ summary: "Update user avatar" })
+    @ApiResponse({
+        status: 200,
+        description: "User avatar updated successfully",
+    })
+    @ApiResponse({ status: 404, description: "User not found" })
+    @ApiResponse({ status: 404, description: "Avatar not found" })
+    updateAvatar(
+        @Param("id") id: number,
+        @Body("filename") filename: string,
+    ): Promise<User> {
+        return this.userService.updateUserAvatar(id, filename);
     }
 
     @Get(":id/friends")

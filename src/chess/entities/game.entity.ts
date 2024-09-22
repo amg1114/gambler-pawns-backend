@@ -21,8 +21,8 @@ export class Game {
     @PrimaryGeneratedColumn()
     gameId: number;
 
-    @Column({ type: "timestamptz" })
-    gameTimestamp: Date;
+    @Column({ type: "timestamptz", nullable: true })
+    gameTimestamp: Date | null;
 
     @Column({ type: "text" })
     pgn: string;
@@ -77,8 +77,9 @@ export class Game {
     @Column({
         type: "enum",
         enum: ["Link Shared", "Friend Req", "Random Pairing"],
+        nullable: true,
     })
-    typePairing: GameTypePairing;
+    typePairing: GameTypePairing | null;
 
     @OneToMany(
         () => GameWithArcadeModifiers,

@@ -20,7 +20,8 @@ export class GameChessManagerService {
     constructor(
         @InjectRepository(GameEntity)
         private gameEntityRepository: Repository<GameEntity>,
-        @InjectRepository(User) private userRepository: Repository<User>,
+        @InjectRepository(User)
+        private userRepository: Repository<User>,
         @InjectRepository(GameMode)
         private gameModeRepository: Repository<GameMode>,
     ) {}
