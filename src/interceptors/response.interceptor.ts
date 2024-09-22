@@ -30,20 +30,31 @@ export class FormatAPIResponseInterceptor implements NestInterceptor {
         const response = ctx.getResponse();
         const request = ctx.getRequest();
 
+        const exceptionResponse = exception.getResponse();
+        let messages = [];
+
+        // handle messages from class-validator
+        if (
+            typeof exceptionResponse === "object" &&
+            "message" in exceptionResponse &&
+            Array.isArray(exceptionResponse.message)
+        ) {
+            messages = (exceptionResponse as any).message;
+        } else {
+            messages = [exception.message];
+        }
+
         const status =
             exception instanceof HttpException
                 ? exception.getStatus()
                 : HttpStatus.INTERNAL_SERVER_ERROR;
 
-        delete exception.getStatus;
-
-        console.log(exception);
         response.status(status).json({
             status: false,
             statusCode: status,
             path: request.url,
             data: {
-                message: exception.message,
+                message: messages || ["Internal server error"],
                 error: exception.name,
             },
             timestamp: new Date().toISOString(),
