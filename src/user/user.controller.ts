@@ -15,7 +15,7 @@ export class UserController {
     @ApiOperation({ summary: "Get user data by nickname" })
     @ApiResponse({ status: 200, description: "User data found successfully" })
     getUsers(@Param("nickname") nickname: string): Promise<User | null> {
-        return this.userService.findOneByNickname(nickname);
+        return this.userService.getUserInfo(nickname);
     }
 
     @Patch(":id")
