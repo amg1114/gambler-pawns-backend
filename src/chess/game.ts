@@ -113,7 +113,6 @@ export class Game {
         // try to make move
         try {
             const moveResult = this.board.move(move);
-            console.log(this.board);
 
             // check if game is over
             if (this.board.isGameOver()) {

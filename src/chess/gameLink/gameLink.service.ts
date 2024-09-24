@@ -45,6 +45,11 @@ export class GameLinkService {
         return { encodedGameId: this.sqids.encode([savedGameEntity.gameId]) };
     }
 
+    // This function is only resposible for generating a game link
+    async genGameLinkByGameId(gameId: number) {
+        return this.sqids.encode([gameId]);
+    }
+
     async getGameId(encodedId: string) {
         //TODO: encodedId should be deconstructed from the (eventual) corresponding Dto
         //Not sure if this method will actually be used as is in the future
