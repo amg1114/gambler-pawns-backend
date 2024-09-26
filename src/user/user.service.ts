@@ -33,7 +33,19 @@ export class UserService {
     }
 
     async findOneByNickname(nickname: string): Promise<User | null> {
-        return this.userRepository.findOne({ where: { nickname: nickname } });
+        return this.userRepository.findOne({
+            where: { nickname: nickname },
+        });
+    }
+
+    async getUserInfo(nickname: string) {
+        const user = await this.findOneByNickname(nickname);
+
+        if (!user) {
+            throw new NotFoundException("User not found");
+        }
+
+        return user;
     }
 
     async updateUserById(
@@ -95,5 +107,23 @@ export class UserService {
             }
             throw new HttpException("Internal Server error", 500);
         }
+    }
+    async findUserFriends(userId: number) {
+        const user = await this.userRepository.findOne({
+            where: { userId },
+            relations: ["friends"],
+        });
+
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        const totalFriends = user.friends.length; // Obtener el total de amigos
+        const friendsList = user.friends.slice(0, 5); // Obtener los primeros 5 amigos
+
+        return {
+            totalFriends,
+            friendsList,
+        };
     }
 }
