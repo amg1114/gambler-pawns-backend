@@ -7,8 +7,8 @@ import { User } from "../user/entities/user.entity";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { GameWithArcadeModifiers } from "./entities/gameWithArcadeModifiers.entity";
 import { ArcadeModifiers } from "./entities/arcadeModifier.entity";
-import { ChessController } from "./gameLink/gameLink.controller";
-import { GameLinkService } from "./gameLink/gameLink.service";
+import { ChessController } from "./game/game.controller";
+import { GameService } from "./game/game.service";
 
 @Module({
     imports: [
@@ -21,7 +21,7 @@ import { GameLinkService } from "./gameLink/gameLink.service";
             ArcadeModifiers,
         ]),
     ],
-    providers: [WebsocketGateway, GameChessManagerService, GameLinkService],
+    providers: [WebsocketGateway, GameChessManagerService, GameService],
     controllers: [ChessController],
 })
 export class GatewayModule {}
