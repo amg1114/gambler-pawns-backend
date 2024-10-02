@@ -6,7 +6,7 @@ import { Repository } from "typeorm";
 import { Game as GameEntity } from "./entities/game.entity";
 import { GameMode } from "./entities/gameMode.entity";
 import { User } from "../user/entities/user.entity";
-import { GameService } from "./game/game.service";
+import { GameLinkService } from "./gameLink/gameLink.service";
 
 @Injectable()
 export class GameChessManagerService {
@@ -25,7 +25,7 @@ export class GameChessManagerService {
         private userRepository: Repository<User>,
         @InjectRepository(GameMode)
         private gameModeRepository: Repository<GameMode>,
-        private gameService: GameService,
+        private gameLinkService: GameLinkService,
     ) {}
 
     async addToPool(player: Player, mode: "rapid" | "blitz" | "bullet") {
@@ -57,7 +57,7 @@ export class GameChessManagerService {
             );
             // TODO: mirar como se refactoriza mejor esto
             await newGame.createGameInDB(player1.playerId, player2.playerId);
-            const gameId = await this.gameService.genGameLinkByGameId(
+            const gameId = await this.gameLinkService.genGameLinkByGameId(
                 +newGame.gameId,
             );
             newGame.gameId = gameId;
