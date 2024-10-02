@@ -1,6 +1,6 @@
-import { Body, Controller, HttpCode, Post } from "@nestjs/common";
-import { CreateGameLinkDto } from "./dto/gameLink.dto";
-import { GameLinkService } from "./gameLink.service";
+import { Body, Controller, Get, HttpCode, Param, Post } from "@nestjs/common";
+import { CreateGameLinkDto, GetGameByGameLinkDto } from "./dto/game.dto";
+import { GameService } from "./game.service";
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import {
     CreateGameLinkResponse201Dto,
@@ -8,10 +8,10 @@ import {
     CreateGameLinkResponse404Dto,
 } from "./responses/createGameLinkResponses.dto";
 
-@Controller("game-link")
-@ApiTags("game-link")
+@Controller("game")
+@ApiTags("game")
 export class ChessController {
-    constructor(private gameLinkService: GameLinkService) {}
+    constructor(private gameService: GameService) {}
 
     @Post("create")
     @HttpCode(201)
@@ -32,6 +32,14 @@ export class ChessController {
         type: CreateGameLinkResponse404Dto,
     })
     createGameLink(@Body() body: CreateGameLinkDto) {
-        return this.gameLinkService.createGameLink(body);
+        return this.gameService.createGameLink(body);
+    }
+
+    //TODO: Add the response DTOs after the DB is refactored
+    @Get("rewatch/:id")
+    @HttpCode(200)
+    @ApiOperation({ summary: "Returns the game info by the game link" })
+    getGameLinkByGameId(@Param("id") param: GetGameByGameLinkDto) {
+        return this.gameService.getGameByGameLink(param);
     }
 }
