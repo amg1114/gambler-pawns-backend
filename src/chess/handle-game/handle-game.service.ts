@@ -1,13 +1,12 @@
 import { Injectable } from "@nestjs/common";
-import { Game } from "../entities/game";
+import { ChessService } from "../chess.service";
 
 @Injectable()
 export class HandleGameService {
-    private activeGames: Map<string, Game> = new Map(); // playerId -> game
-    private playerSocketMap: Map<string, string> = new Map(); // playerId -> socketId
+    constructor(private chessService: ChessService) {}
 
     async handleMove(playerId: string, move: { from: string; to: string }) {
-        const game = this.findGameByPlayerId(playerId);
+        const game = this.chessService.findGameByPlayerId(playerId);
 
         if (game) {
             return await game.makeMove(playerId, move);
@@ -17,7 +16,7 @@ export class HandleGameService {
     }
 
     handleResign(playerId: string) {
-        const game = this.findGameByPlayerId(playerId);
+        const game = this.chessService.findGameByPlayerId(playerId);
 
         if (!game) {
             return { error: "Juego no encontrado" };
@@ -27,13 +26,5 @@ export class HandleGameService {
             game.whitesPlayer.playerId === playerId ? "Black" : "White";
         game.endGame(winner); // Finaliza el juego actualizando el ELO y el estado
         return { game, winner };
-    }
-
-    findGameByPlayerId(playerId: string): Game | undefined {
-        return this.activeGames.get(playerId);
-    }
-
-    getSocketIdByPlayerId(playerId: string): string | undefined {
-        return this.playerSocketMap.get(playerId);
     }
 }

@@ -11,6 +11,7 @@ import { Player } from "../entities/interfaces/player";
 
 // TODO: refactor as game.model.ts GameModel
 import { Game } from "../entities/game";
+import { ChessService } from "../chess.service";
 
 @Injectable()
 export class RandomPairingService {
@@ -19,6 +20,7 @@ export class RandomPairingService {
     private bulletPool: Player[] = [];
 
     constructor(
+        private chessService: ChessService,
         @InjectRepository(GameEntity)
         private gameEntityRepository: Repository<GameEntity>,
         @InjectRepository(User)
@@ -56,13 +58,13 @@ export class RandomPairingService {
             );
             // TODO: mirar como se refactoriza mejor esto
             await newGame.createGameInDB(player1.playerId, player2.playerId);
-            const gameId = await this.gameLinkService.genGameLinkByGameId(
+            const gameId = await this.chessService.genGameLinkByGameId(
                 +newGame.gameId,
             );
             newGame.gameId = gameId;
             // save game in memory (HashMap)
-            this.activeGames.set(player1.playerId, newGame);
-            this.activeGames.set(player2.playerId, newGame);
+            this.chessService.setActiveGame(player1.playerId, newGame);
+            this.chessService.setActiveGame(player2.playerId, newGame);
             return {
                 gameId: gameId,
                 player1Socket: player1.socketId,

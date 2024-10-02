@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
-import { WebsocketGateway } from "./websocket.gateway";
-import { GameChessManagerService } from "./chess.service";
+import { ChessGateway } from "./chess.gateway";
+import { ChessService } from "./chess.service";
 import { Game as GameEntity } from "./entities/db/game.entity";
 import { GameMode } from "./entities/db/gameMode.entity";
 import { User } from "../user/entities/user.entity";
@@ -24,6 +24,6 @@ import { RandomPairingModule } from "./random-pairing/random-pairing.module";
         HandleGameModule,
         RandomPairingModule,
     ],
-    providers: [WebsocketGateway, GameChessManagerService, HandleGameGateway],
+    providers: [ChessGateway, ChessService, HandleGameGateway],
 })
-export class GatewayModule {}
+export class ChessModule {}

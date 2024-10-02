@@ -1,14 +1,31 @@
 import { Game } from "./entities/game";
-import { Player } from "./entities/interfaces/player";
 import { Injectable } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import { Game as GameEntity } from "./entities/db/game.entity";
-import { GameMode } from "./entities/db/gameMode.entity";
-import { User } from "../user/entities/user.entity";
-import { GameService } from "./game/game.service";
 
 @Injectable()
-export class GameChessManagerService {
-    
+export class ChessService {
+    // TODO: jsDocs comments
+    private activeGames: Map<string, Game> = new Map(); // playerId -> game
+    private playerSocketMap: Map<string, string> = new Map(); // playerId -> socketId
+    sqids: any;
+
+    findGameByPlayerId(playerId: string): Game | undefined {
+        return this.activeGames.get(playerId);
+    }
+
+    getSocketIdByPlayerId(playerId: string): string | undefined {
+        return this.playerSocketMap.get(playerId);
+    }
+
+    setActiveGame(playerId: string, game: Game) {
+        this.activeGames.set(playerId, game);
+    }
+
+    registerPlayerSocket(playerId: string, socketId: string) {
+        this.playerSocketMap.set(playerId, socketId);
+    }
+
+    // game link
+    async genGameLinkByGameId(gameId: number) {
+        return this.sqids.encode([gameId]);
+    }
 }
