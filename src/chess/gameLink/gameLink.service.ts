@@ -3,7 +3,7 @@ import {
     NotAcceptableException,
     NotFoundException,
 } from "@nestjs/common";
-import { CreateGameLinkDto, GetGameByGameLinkDto } from "./dto/game.dto";
+import { CreateGameLinkDto } from "./dto/gameLink.dto";
 import { InjectRepository } from "@nestjs/typeorm";
 import { GameMode } from "../entities/gameMode.entity";
 import { Repository } from "typeorm";
@@ -12,7 +12,7 @@ import { ConfigService } from "@nestjs/config";
 import { Game } from "../entities/game.entity";
 
 @Injectable()
-export class GameService {
+export class GameLinkService {
     constructor(
         @InjectRepository(GameMode)
         private gameModeRepository: Repository<GameMode>,
@@ -50,7 +50,9 @@ export class GameService {
         return this.sqids.encode([gameId]);
     }
 
-    async getGameByGameLink({ encodedId }: GetGameByGameLinkDto) {
+    async getGameId(encodedId: string) {
+        //TODO: encodedId should be deconstructed from the (eventual) corresponding Dto
+        //Not sure if this method will actually be used as is in the future
         const decodedId = this.sqids.decode(encodedId);
         const reEncodedId = this.sqids.encode([decodedId[0]]);
 
@@ -62,6 +64,6 @@ export class GameService {
         });
 
         if (!game) throw new NotFoundException("Game not found");
-        return game;
+        return { gameId: game.gameId };
     }
 }
