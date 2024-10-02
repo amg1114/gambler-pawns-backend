@@ -8,7 +8,7 @@ import {
     Index,
     Relation,
 } from "typeorm";
-import { User } from "../../user/entities/user.entity";
+import { User } from "../../../user/entities/user.entity";
 import { GameMode } from "./gameMode.entity";
 import { GameWithArcadeModifiers } from "./gameWithArcadeModifiers.entity";
 

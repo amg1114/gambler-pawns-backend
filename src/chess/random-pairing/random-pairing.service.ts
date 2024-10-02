@@ -1,15 +1,19 @@
-import { Game } from "./entities/game";
-import { Player } from "./entities/interfaces/player";
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { Game as GameEntity } from "./entities/db/game.entity";
-import { GameMode } from "./entities/db/gameMode.entity";
-import { User } from "../user/entities/user.entity";
-import { GameLinkService } from "./gameLink/gameLink.service";
+// entities
+import { User } from "src/user/entities/user.entity";
+import { Game as GameEntity } from "../entities/db/game.entity";
+import { GameMode } from "../entities/db/gameMode.entity";
+
+// interfaces and types
+import { Player } from "../entities/interfaces/player";
+
+// TODO: refactor as game.model.ts GameModel
+import { Game } from "../entities/game";
 
 @Injectable()
-export class GameChessManagerService {
+export class RandomPairingService {
     private rapidPool: Player[] = [];
     private blitzPool: Player[] = [];
     private bulletPool: Player[] = [];
@@ -21,7 +25,6 @@ export class GameChessManagerService {
         private userRepository: Repository<User>,
         @InjectRepository(GameMode)
         private gameModeRepository: Repository<GameMode>,
-        private gameLinkService: GameLinkService,
     ) {}
 
     async addToPool(player: Player, mode: "rapid" | "blitz" | "bullet") {
@@ -71,9 +74,5 @@ export class GameChessManagerService {
     }
     getPoolByMode(mode: "rapid" | "blitz" | "bullet") {
         return this[`${mode}Pool`];
-    }
-
-    registerPlayerSocket(playerId: string, socketId: string) {
-        this.playerSocketMap.set(playerId, socketId);
     }
 }

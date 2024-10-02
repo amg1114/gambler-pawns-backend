@@ -5,11 +5,11 @@ import {
 } from "@nestjs/common";
 import { CreateGameLinkDto } from "./dto/gameLink.dto";
 import { InjectRepository } from "@nestjs/typeorm";
-import { GameMode } from "../entities/gameMode.entity";
+import { GameMode } from "../entities/db/gameMode.entity";
 import { Repository } from "typeorm";
 import Sqids from "sqids";
 import { ConfigService } from "@nestjs/config";
-import { Game } from "../entities/game.entity";
+import { Game } from "../entities/db/game.entity";
 
 @Injectable()
 export class GameLinkService {

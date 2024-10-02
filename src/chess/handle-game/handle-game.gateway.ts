@@ -6,11 +6,14 @@ import {
     WebSocketGateway,
     WebSocketServer,
 } from "@nestjs/websockets";
-import { ParseJsonPipe } from "src/websocketsUtils";
-import { AcceptDrawDTO, MakeMoveDTO, OfferDrawDTO } from "./dto";
 import { Server, Socket } from "socket.io";
 import { CORS } from "src/config/constants";
 import { HandleGameService } from "./handle-game.service";
+import { ParseJsonPipe } from "src/websocketsUtils";
+// dtos
+import { AcceptDrawDTO } from "./dto/acceptDraw.dto";
+import { MakeMoveDTO } from "./dto/makeMove.dto";
+import { OfferDrawDTO } from "./dto/offerDraw.dto";
 
 @WebSocketGateway({
     cors: CORS,
