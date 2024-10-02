@@ -39,6 +39,5 @@ import { ClubModule } from "./club/club.module";
         StoreModule,
         ClubModule,
     ],
-    providers: [],
 })
 export class AppModule {}

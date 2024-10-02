@@ -9,6 +9,9 @@ import { GameWithArcadeModifiers } from "./entities/gameWithArcadeModifiers.enti
 import { ArcadeModifiers } from "./entities/arcadeModifier.entity";
 import { ChessController } from "./gameLink/gameLink.controller";
 import { GameLinkService } from "./gameLink/gameLink.service";
+import { HandleGameGateway } from './handle-game/handle-game.gateway';
+import { HandleGameModule } from './handle-game/handle-game.module';
+import { RandomPairingModule } from './random-pairing/random-pairing.module';
 
 @Module({
     imports: [
@@ -20,8 +23,10 @@ import { GameLinkService } from "./gameLink/gameLink.service";
             GameWithArcadeModifiers,
             ArcadeModifiers,
         ]),
+        HandleGameModule,
+        RandomPairingModule,
     ],
-    providers: [WebsocketGateway, GameChessManagerService, GameLinkService],
+    providers: [WebsocketGateway, GameChessManagerService, GameLinkService, HandleGameGateway],
     controllers: [ChessController],
 })
 export class GatewayModule {}

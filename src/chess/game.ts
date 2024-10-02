@@ -8,6 +8,7 @@ import { Game as GameEntity, GameWinner } from "./entities/game.entity";
 import { GameMode } from "./entities/gameMode.entity";
 import { User } from "../user/entities/user.entity";
 
+type gameMode = "rapid" | "blitz" | "bullet";
 // TODO: logica timers
 // TODO: logica apuestas
 export class Game {

@@ -13,10 +13,6 @@ export class GameChessManagerService {
     private rapidPool: Player[] = [];
     private blitzPool: Player[] = [];
     private bulletPool: Player[] = [];
-    private activeGames: Map<string, Game> = new Map(); // Mapa de partidas activas
-
-    // Almacenamos la relación entre jugadores y sockets
-    private playerSocketMap: Map<string, string> = new Map(); // playerId -> socketId
 
     constructor(
         @InjectRepository(GameEntity)
@@ -74,42 +70,11 @@ export class GameChessManagerService {
         }
     }
 
-    async handleMove(playerId: string, move: { from: string; to: string }) {
-        const game = this.findGameByPlayerId(playerId);
-
-        if (game) {
-            return await game.makeMove(playerId, move);
-        }
-        // TODO: aquí iria una WsException ?
-        return { error: "Juego no encontrado" };
-    }
-
-    handleResign(playerId: string) {
-        const game = this.findGameByPlayerId(playerId);
-
-        if (!game) {
-            return { error: "Juego no encontrado" };
-        }
-
-        const winner =
-            game.whitesPlayer.playerId === playerId ? "Black" : "White";
-        game.endGame(winner); // Finaliza el juego actualizando el ELO y el estado
-        return { game, winner };
-    }
-
     registerPlayerSocket(playerId: string, socketId: string) {
         this.playerSocketMap.set(playerId, socketId);
     }
 
-    getSocketIdByPlayerId(playerId: string): string | undefined {
-        return this.playerSocketMap.get(playerId);
-    }
-
     getPoolByMode(mode: "rapid" | "blitz" | "bullet") {
         return this[`${mode}Pool`];
-    }
-
-    findGameByPlayerId(playerId: string): Game | undefined {
-        return this.activeGames.get(playerId);
     }
 }
