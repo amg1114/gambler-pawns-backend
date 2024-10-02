@@ -1,4 +1,4 @@
-import { ValidationPipe } from "@nestjs/common";
+import { UseFilters, ValidationPipe } from "@nestjs/common";
 import {
     ConnectedSocket,
     MessageBody,
@@ -9,12 +9,13 @@ import {
 import { Server, Socket } from "socket.io";
 import { CORS } from "src/config/constants";
 import { HandleGameService } from "./handle-game.service";
-import { ParseJsonPipe } from "src/websocketsUtils";
+import { CustomWsFilterException, ParseJsonPipe } from "src/websocketsUtils";
 // dtos
 import { AcceptDrawDTO } from "./dto/acceptDraw.dto";
 import { MakeMoveDTO } from "./dto/makeMove.dto";
 import { OfferDrawDTO } from "./dto/offerDraw.dto";
 
+@UseFilters(CustomWsFilterException)
 @WebSocketGateway({
     cors: CORS,
 })
