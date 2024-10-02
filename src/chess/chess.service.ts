@@ -6,7 +6,7 @@ import { Repository } from "typeorm";
 import { Game as GameEntity } from "./entities/db/game.entity";
 import { GameMode } from "./entities/db/gameMode.entity";
 import { User } from "../user/entities/user.entity";
-import { GameLinkService } from "./gameLink/gameLink.service";
+import { GameService } from "./game/game.service";
 
 @Injectable()
 export class GameChessManagerService {
