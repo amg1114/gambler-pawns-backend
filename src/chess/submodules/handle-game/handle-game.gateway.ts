@@ -29,11 +29,6 @@ export class HandleGameGateway {
         private readonly activeGamesService: ActiveGamesService,
     ) {}
 
-    @SubscribeMessage("message")
-    handleMessage(client: any, payload: any): string {
-        return "Hello world!";
-    }
-
     @SubscribeMessage("game:makeMove")
     async handleMakeMove(
         @MessageBody(
