@@ -5,14 +5,14 @@ import {
 } from "@nestjs/common";
 import { CreateGameLinkDto, GetGameByGameLinkDto } from "./dto/game.dto";
 import { InjectRepository } from "@nestjs/typeorm";
-import { GameMode } from "../entities/gameMode.entity";
+import { GameMode } from "../../entities/db/gameMode.entity";
 import { Repository } from "typeorm";
 import Sqids from "sqids";
 import { ConfigService } from "@nestjs/config";
-import { Game } from "../entities/game.entity";
+import { Game } from "../../entities/db/game.entity";
 
 @Injectable()
-export class GameService {
+export class GameLinkService {
     constructor(
         @InjectRepository(GameMode)
         private gameModeRepository: Repository<GameMode>,
@@ -42,17 +42,16 @@ export class GameService {
 
         const savedGameEntity = await this.gameEntityRepository.save(newGame);
 
-        return { encodedGameId: this.sqids.encode([savedGameEntity.gameId]) };
-    }
-
-    // This function is only resposible for generating a game link
-    async genGameLinkByGameId(gameId: number) {
-        return this.sqids.encode([gameId]);
+        return {
+            encodedGameId: this.genGameLinkEncodeByGameId(
+                savedGameEntity.gameId,
+            ),
+        };
     }
 
     async getGameByGameLink({ encodedId }: GetGameByGameLinkDto) {
-        const decodedId = this.sqids.decode(encodedId);
-        const reEncodedId = this.sqids.encode([decodedId[0]]);
+        const decodedId = this.decodeGameLink(encodedId);
+        const reEncodedId = this.genGameLinkEncodeByGameId(decodedId[0]);
 
         if (reEncodedId !== encodedId)
             throw new NotAcceptableException("Invalid ID");
@@ -63,5 +62,14 @@ export class GameService {
 
         if (!game) throw new NotFoundException("Game not found");
         return game;
+    }
+
+    // generic functions
+    genGameLinkEncodeByGameId(gameId: number) {
+        return this.sqids.encode([gameId]);
+    }
+
+    decodeGameLink(encodedId: string) {
+        return this.sqids.decode(encodedId);
     }
 }

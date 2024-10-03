@@ -9,7 +9,7 @@ import { join } from "path";
 
 // Feature modules
 import { AuthModule } from "./auth/auth.module";
-import { GatewayModule } from "./chess/websocket.module";
+import { ChessModule } from "./chess/chess.module";
 import { AssetsModule } from "./assets/assets.module";
 import { UserModule } from "./user/user.module";
 import { NotificationsModule } from "./notification/notifications.module";
@@ -31,7 +31,7 @@ import { ClubModule } from "./club/club.module";
             rootPath: join(__dirname, "..", "public"),
         }),
         AuthModule,
-        GatewayModule,
+        ChessModule,
         AssetsModule,
         UserModule,
         NotificationsModule,
@@ -39,6 +39,5 @@ import { ClubModule } from "./club/club.module";
         StoreModule,
         ClubModule,
     ],
-    providers: [],
 })
 export class AppModule {}

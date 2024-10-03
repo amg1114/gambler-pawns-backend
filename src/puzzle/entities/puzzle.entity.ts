@@ -13,6 +13,10 @@ export class Puzzle {
     @PrimaryGeneratedColumn()
     puzzleId: number;
 
+    // TODO: Not working due to migrations
+    //@Column({ type: "varchar", length: 5, unique: true })
+    //lichessId: string;
+
     @Column({ type: "text" })
     fen: string;
 
@@ -20,7 +24,7 @@ export class Puzzle {
     @Column({ type: "varchar", length: 255 })
     solution: string;
 
-    @Column({ type: "int" })
+    @Column({ type: "smallint" })
     rating: number;
 
     @Column({ type: "smallint" })
