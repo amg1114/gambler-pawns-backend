@@ -4,15 +4,13 @@ import { WsException } from "@nestjs/websockets";
 // db entities
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { Game as GameEntity, GameWinner } from "./db/game.entity";
-import { GameMode } from "./db/gameMode.entity";
+import { Game as GameEntity, GameWinner, GameModeType } from "./db/game.entity";
 import { User } from "../../user/entities/user.entity";
 
-type gameMode = "rapid" | "blitz" | "bullet";
 // TODO: logica timers
 // TODO: logica apuestas
 export class Game {
-    public mode: "rapid" | "blitz" | "bullet";
+    public mode: GameModeType;
     public gameId: string; //game id in db
     public whitesPlayer: GamePlayer;
     public blacksPlayer: GamePlayer;
@@ -21,13 +19,11 @@ export class Game {
     private drawOffer: string | null = null; // id del jugador que ha hecho la oferta
 
     constructor(
-        mode: "rapid" | "blitz" | "bullet",
+        mode: GameModeType,
         @InjectRepository(GameEntity)
         private readonly gameRepository: Repository<GameEntity>,
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
-        @InjectRepository(GameMode)
-        private readonly gameModeRepository: Repository<GameMode>,
     ) {
         this.mode = mode;
         this.board = new Chess();
@@ -39,12 +35,6 @@ export class Game {
 
         await this.verifyNonGuestPlayer(this.whitesPlayer);
         await this.verifyNonGuestPlayer(this.blacksPlayer);
-
-        // TODO: refactorizar los modos de juego aceptados a lo largo
-        // del lifecycle de la partida
-        const gameMode = await this.gameModeRepository.findOneBy({
-            mode: this.mode,
-        });
 
         // NOTE: be careful with <player>.isGuest before insert
         const newGame = this.gameRepository.create({
@@ -62,7 +52,7 @@ export class Game {
                   }),
             eloWhitesBeforeGame: +this.whitesPlayer.eloRating,
             eloBlacksBeforeGame: +this.blacksPlayer.eloRating,
-            gameMode: gameMode,
+            gameMode: this.mode,
             typePairing: "Random Pairing", // TODO: cambiar esto con la información adecuada
         });
 

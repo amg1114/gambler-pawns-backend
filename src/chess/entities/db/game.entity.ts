@@ -9,9 +9,24 @@ import {
     Relation,
 } from "typeorm";
 import { User } from "../../../user/entities/user.entity";
-import { GameMode } from "./gameMode.entity";
 import { GameWithArcadeModifiers } from "./gameWithArcadeModifiers.entity";
 
+// reusable types / enums
+export type GameWinner = "White" | "Black" | "Draw";
+export type GameResultType =
+    | "On Time"
+    | "Draw offer"
+    | "Abandon"
+    | "Resign"
+    | "Stalemate"
+    | "N Moves Rule"
+    | "Check Mate";
+export type GameTypePairing = "Link Shared" | "Friend Req" | "Random Pairing";
+
+export type GameModeType = "rapid" | "blitz" | "bullet" | "arcade";
+export const gameModeEnum = ["rapid", "blitz", "bullet", "arcade"];
+
+// db entity
 @Entity("game")
 @Check(`whites_player_time >= 0 AND blacks_player_time >= 0`)
 @Check(
@@ -56,8 +71,10 @@ export class Game {
     @Column({ type: "int", nullable: true })
     eloBlacksAfterGame: number | null;
 
-    @ManyToOne(() => GameMode, { eager: true, onUpdate: "CASCADE" })
-    gameMode: Relation<GameMode>;
+    // TODO: tuve que dejar el nullable en true pq la migracion me daba error
+    // revisar porque
+    @Column({ type: "enum", enum: gameModeEnum, nullable: true })
+    gameMode: GameModeType;
 
     @Column({
         type: "enum",
@@ -87,14 +104,3 @@ export class Game {
     )
     gameWithArcadeModifiers: Relation<GameWithArcadeModifiers[]>;
 }
-
-export type GameWinner = "White" | "Black" | "Draw";
-export type GameResultType =
-    | "On Time"
-    | "Draw offer"
-    | "Abandon"
-    | "Resign"
-    | "Stalemate"
-    | "N Moves Rule"
-    | "Check Mate";
-export type GameTypePairing = "Link Shared" | "Friend Req" | "Random Pairing";
