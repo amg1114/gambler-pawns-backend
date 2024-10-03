@@ -126,4 +126,19 @@ export class UserService {
             friendsList,
         };
     }
+    async increaseStreak(userId: number) {
+        const user = await this.userRepository.findOne({
+            where: { userId },
+            select: ["streakDays"],
+        });
+
+        return this.userRepository.update(userId, {
+            streakDays: user.streakDays + 1,
+        });
+    }
+    async resetStreak(userId: number) {
+        return this.userRepository.update(userId, {
+            streakDays: 0,
+        });
+    }
 }

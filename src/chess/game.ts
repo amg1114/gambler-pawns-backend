@@ -145,6 +145,7 @@ export class Game {
 
         try {
             // update game in db
+
             await this.gameRepository.update(
                 { gameId: +this.gameId },
                 {
