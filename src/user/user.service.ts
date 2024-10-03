@@ -126,18 +126,4 @@ export class UserService {
             friendsList,
         };
     }
-    async increaseMoney(userId: number) {
-        const user = await this.userRepository.findOne({
-            where: { userId },
-            select: ["currentCoins", "acumulatedAllTimeCoins"],
-        });
-
-        const newCoins = user.currentCoins + 100;
-        const newAllTimeCoins = user.acumulatedAllTimeCoins + 100;
-
-        return this.userRepository.update(userId, {
-            currentCoins: newCoins,
-            acumulatedAllTimeCoins: newAllTimeCoins,
-        });
-    }
 }
