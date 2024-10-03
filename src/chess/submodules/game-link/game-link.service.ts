@@ -5,7 +5,6 @@ import {
 } from "@nestjs/common";
 import { CreateGameLinkDto, GetGameByGameLinkDto } from "./dto/game.dto";
 import { InjectRepository } from "@nestjs/typeorm";
-import { GameMode } from "../../entities/db/gameMode.entity";
 import { Repository } from "typeorm";
 import Sqids from "sqids";
 import { ConfigService } from "@nestjs/config";
@@ -14,8 +13,6 @@ import { Game } from "../../entities/db/game.entity";
 @Injectable()
 export class GameLinkService {
     constructor(
-        @InjectRepository(GameMode)
-        private gameModeRepository: Repository<GameMode>,
         @InjectRepository(Game)
         private gameEntityRepository: Repository<Game>,
         private readonly configService: ConfigService,
@@ -27,16 +24,8 @@ export class GameLinkService {
     });
 
     async createGameLink({ gameMode }: CreateGameLinkDto) {
-        // Check if gameMode is in the database
-        const isGameModeValid = await this.gameModeRepository.findOne({
-            where: { mode: gameMode },
-        });
-
-        if (!isGameModeValid)
-            throw new NotFoundException("Game mode not found");
-
         const newGame = this.gameEntityRepository.create({
-            gameMode: isGameModeValid,
+            gameMode: gameMode,
             pgn: "",
         });
 

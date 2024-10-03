@@ -53,30 +53,3 @@ export class CreateGameLinkResponse400Dto {
     @ApiProperty({ example: "2024-09-15T00:33:02.738Z" })
     timestamp: string;
 }
-
-export class CreateGameLinkResponse404Dto {
-    @IsBoolean()
-    @ApiProperty({ example: false })
-    status: boolean;
-
-    @IsNumber()
-    @ApiProperty({ example: 404 })
-    statusCode: number;
-
-    @IsString()
-    @ApiProperty({ example: "/api/v1/game-link/create" })
-    path: string;
-
-    @IsObject()
-    @ApiProperty({
-        example: {
-            message: ["Game mode not found"],
-            error: "NotFoundException",
-        },
-    })
-    data: { message: string[]; error: string };
-
-    @IsString()
-    @ApiProperty({ example: "2024-09-15T00:33:02.738Z" })
-    timestamp: string;
-}

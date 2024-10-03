@@ -5,7 +5,6 @@ import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import {
     CreateGameLinkResponse201Dto,
     CreateGameLinkResponse400Dto,
-    CreateGameLinkResponse404Dto,
 } from "./responses/createGameLinkResponses.dto";
 
 @Controller("game")
@@ -25,11 +24,6 @@ export class GameLinkController {
         status: 400,
         description: "Validation error",
         type: CreateGameLinkResponse400Dto,
-    })
-    @ApiResponse({
-        status: 404,
-        description: "Wrong gameMode",
-        type: CreateGameLinkResponse404Dto,
     })
     createGameLink(@Body() body: CreateGameLinkDto) {
         return this.gameService.createGameLink(body);

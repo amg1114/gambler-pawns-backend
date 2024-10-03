@@ -13,7 +13,6 @@ export class Puzzle {
     @PrimaryGeneratedColumn()
     puzzleId: number;
 
-    // TODO: Not working due to migrations
     @Column({ type: "varchar", length: 5, unique: true })
     lichessId: string;
 
