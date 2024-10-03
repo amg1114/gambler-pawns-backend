@@ -126,19 +126,4 @@ export class UserService {
             friendsList,
         };
     }
-    async increaseStreak(userId: number) {
-        await this.userRepository
-            .createQueryBuilder()
-            .update(User)
-            .set({
-                streakDays: () => "streak_days + 1",
-            })
-            .where("userId = :userId", { userId })
-            .execute();
-    }
-    async resetStreak(userId: number) {
-        return this.userRepository.update(userId, {
-            streakDays: 0,
-        });
-    }
 }
