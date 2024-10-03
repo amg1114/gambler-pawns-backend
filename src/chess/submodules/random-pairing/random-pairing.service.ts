@@ -1,31 +1,34 @@
-import { Game } from "./game";
-import { Player } from "./entities/player";
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { Game as GameEntity } from "./entities/game.entity";
-import { GameMode } from "./entities/gameMode.entity";
-import { User } from "../user/entities/user.entity";
-import { GameService } from "./game/game.service";
+import { ActiveGamesService } from "../active-games/active-games.service";
+import { GameLinkService } from "../game-link/game-link.service";
+// entities
+import { User } from "src/user/entities/user.entity";
+import { Game as GameEntity } from "../../entities/db/game.entity";
+import { GameMode } from "../../entities/db/gameMode.entity";
+
+// interfaces and types
+import { Player } from "../../entities/interfaces/player";
+
+// models
+import { Game } from "../../entities/game";
 
 @Injectable()
-export class GameChessManagerService {
+export class RandomPairingService {
     private rapidPool: Player[] = [];
     private blitzPool: Player[] = [];
     private bulletPool: Player[] = [];
-    private activeGames: Map<string, Game> = new Map(); // Mapa de partidas activas
-
-    // Almacenamos la relación entre jugadores y sockets
-    private playerSocketMap: Map<string, string> = new Map(); // playerId -> socketId
 
     constructor(
+        private gameLinkService: GameLinkService,
+        private chessService: ActiveGamesService,
         @InjectRepository(GameEntity)
         private gameEntityRepository: Repository<GameEntity>,
         @InjectRepository(User)
         private userRepository: Repository<User>,
         @InjectRepository(GameMode)
         private gameModeRepository: Repository<GameMode>,
-        private gameService: GameService,
     ) {}
 
     async addToPool(player: Player, mode: "rapid" | "blitz" | "bullet") {
@@ -57,13 +60,13 @@ export class GameChessManagerService {
             );
             // TODO: mirar como se refactoriza mejor esto
             await newGame.createGameInDB(player1.playerId, player2.playerId);
-            const gameId = await this.gameService.genGameLinkByGameId(
+            const gameId = this.gameLinkService.genGameLinkEncodeByGameId(
                 +newGame.gameId,
             );
             newGame.gameId = gameId;
             // save game in memory (HashMap)
-            this.activeGames.set(player1.playerId, newGame);
-            this.activeGames.set(player2.playerId, newGame);
+            this.chessService.setActiveGame(player1.playerId, newGame);
+            this.chessService.setActiveGame(player2.playerId, newGame);
             return {
                 gameId: gameId,
                 player1Socket: player1.socketId,
@@ -73,43 +76,7 @@ export class GameChessManagerService {
             };
         }
     }
-
-    async handleMove(playerId: string, move: { from: string; to: string }) {
-        const game = this.findGameByPlayerId(playerId);
-
-        if (game) {
-            return await game.makeMove(playerId, move);
-        }
-        // TODO: aquí iria una WsException ?
-        return { error: "Juego no encontrado" };
-    }
-
-    handleResign(playerId: string) {
-        const game = this.findGameByPlayerId(playerId);
-
-        if (!game) {
-            return { error: "Juego no encontrado" };
-        }
-
-        const winner =
-            game.whitesPlayer.playerId === playerId ? "Black" : "White";
-        game.endGame(winner); // Finaliza el juego actualizando el ELO y el estado
-        return { game, winner };
-    }
-
-    registerPlayerSocket(playerId: string, socketId: string) {
-        this.playerSocketMap.set(playerId, socketId);
-    }
-
-    getSocketIdByPlayerId(playerId: string): string | undefined {
-        return this.playerSocketMap.get(playerId);
-    }
-
     getPoolByMode(mode: "rapid" | "blitz" | "bullet") {
         return this[`${mode}Pool`];
-    }
-
-    findGameByPlayerId(playerId: string): Game | undefined {
-        return this.activeGames.get(playerId);
     }
 }

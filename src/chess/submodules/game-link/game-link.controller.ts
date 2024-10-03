@@ -1,6 +1,6 @@
 import { Body, Controller, Get, HttpCode, Param, Post } from "@nestjs/common";
 import { CreateGameLinkDto, GetGameByGameLinkDto } from "./dto/game.dto";
-import { GameService } from "./game.service";
+import { GameLinkService } from "./game-link.service";
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import {
     CreateGameLinkResponse201Dto,
@@ -10,8 +10,8 @@ import {
 
 @Controller("game")
 @ApiTags("game")
-export class ChessController {
-    constructor(private gameService: GameService) {}
+export class GameLinkController {
+    constructor(private gameService: GameLinkService) {}
 
     @Post("create")
     @HttpCode(201)
