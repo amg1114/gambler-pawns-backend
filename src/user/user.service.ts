@@ -127,14 +127,14 @@ export class UserService {
         };
     }
     async increaseStreak(userId: number) {
-        const user = await this.userRepository.findOne({
-            where: { userId },
-            select: ["streakDays"],
-        });
-
-        return this.userRepository.update(userId, {
-            streakDays: user.streakDays + 1,
-        });
+        await this.userRepository
+            .createQueryBuilder()
+            .update(User)
+            .set({
+                streakDays: () => "streak_days + 1",
+            })
+            .where("userId = :userId", { userId })
+            .execute();
     }
     async resetStreak(userId: number) {
         return this.userRepository.update(userId, {
