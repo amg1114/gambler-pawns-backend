@@ -1,4 +1,4 @@
-import { IsString } from "class-validator";
+import { IsString, MinLength } from "class-validator";
 
 export class CreateGameLinkDto {
     @IsString()
@@ -7,5 +7,6 @@ export class CreateGameLinkDto {
 
 export class GetGameByGameLinkDto {
     @IsString()
+    @MinLength(4)
     encodedId: string;
 }

@@ -7,6 +7,12 @@ import {
     CreateGameLinkResponse400Dto,
     CreateGameLinkResponse404Dto,
 } from "./responses/createGameLinkResponses.dto";
+import {
+    RewatchGameResponse200Dto,
+    RewatchGameResponse400Dto,
+    RewatchGameResponse404Dto,
+    RewatchGameResponse406Dto,
+} from "./responses/rewatchGameResponses.dto";
 
 @Controller("game")
 @ApiTags("game")
@@ -35,11 +41,30 @@ export class GameLinkController {
         return this.gameService.createGameLink(body);
     }
 
-    //TODO: Add the response DTOs after the DB is refactored
-    @Get("rewatch/:id")
+    @Get("rewatch/:encodedId")
     @HttpCode(200)
     @ApiOperation({ summary: "Returns the game info by the game link" })
-    getGameLinkByGameId(@Param("id") param: GetGameByGameLinkDto) {
+    @ApiResponse({
+        status: 200,
+        description: "Game found and information retrieved",
+        type: RewatchGameResponse200Dto,
+    })
+    @ApiResponse({
+        status: 400,
+        description: "Validation error",
+        type: RewatchGameResponse400Dto,
+    })
+    @ApiResponse({
+        status: 406,
+        description: "Invalid ID",
+        type: RewatchGameResponse406Dto,
+    })
+    @ApiResponse({
+        status: 404,
+        description: "Game not found",
+        type: RewatchGameResponse404Dto,
+    })
+    getGameLinkByGameId(@Param() param: GetGameByGameLinkDto) {
         return this.gameService.getGameByGameLink(param);
     }
 }
