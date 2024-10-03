@@ -1,17 +1,18 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
+import { ActiveGamesService } from "../active-games/active-games.service";
+import { GameLinkService } from "../game-link/game-link.service";
 // entities
 import { User } from "src/user/entities/user.entity";
-import { Game as GameEntity } from "../entities/db/game.entity";
-import { GameMode } from "../entities/db/gameMode.entity";
+import { Game as GameEntity } from "../../entities/db/game.entity";
+import { GameMode } from "../../entities/db/gameMode.entity";
 
 // interfaces and types
-import { Player } from "../entities/interfaces/player";
+import { Player } from "../../entities/interfaces/player";
 
-// TODO: refactor as game.model.ts GameModel
-import { Game } from "../entities/game";
-import { ChessService } from "../chess.service";
+// models
+import { Game } from "../../entities/game";
 
 @Injectable()
 export class RandomPairingService {
@@ -20,7 +21,8 @@ export class RandomPairingService {
     private bulletPool: Player[] = [];
 
     constructor(
-        private chessService: ChessService,
+        private gameLinkService: GameLinkService,
+        private chessService: ActiveGamesService,
         @InjectRepository(GameEntity)
         private gameEntityRepository: Repository<GameEntity>,
         @InjectRepository(User)
@@ -58,7 +60,7 @@ export class RandomPairingService {
             );
             // TODO: mirar como se refactoriza mejor esto
             await newGame.createGameInDB(player1.playerId, player2.playerId);
-            const gameId = await this.chessService.genGameLinkByGameId(
+            const gameId = this.gameLinkService.genGameLinkEncodeByGameId(
                 +newGame.gameId,
             );
             newGame.gameId = gameId;

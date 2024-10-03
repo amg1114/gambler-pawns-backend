@@ -14,7 +14,7 @@ import { CustomWsFilterException, ParseJsonPipe } from "src/websocketsUtils";
 import { AcceptDrawDTO } from "./dto/acceptDraw.dto";
 import { MakeMoveDTO } from "./dto/makeMove.dto";
 import { OfferDrawDTO } from "./dto/offerDraw.dto";
-import { ChessService } from "../chess.service";
+import { ActiveGamesService } from "../active-games/active-games.service";
 
 @UseFilters(CustomWsFilterException)
 @WebSocketGateway({
@@ -26,7 +26,7 @@ export class HandleGameGateway {
 
     constructor(
         private readonly hangleGameService: HandleGameService,
-        private readonly chessService: ChessService,
+        private readonly activeGamesService: ActiveGamesService,
     ) {}
 
     @SubscribeMessage("message")
@@ -55,14 +55,18 @@ export class HandleGameGateway {
         if (result.error) {
             socket.emit("moveError", result.error);
         } else if (result.gameOver) {
-            const game = this.chessService.findGameByPlayerId(payload.playerId);
+            const game = this.activeGamesService.findGameByPlayerId(
+                payload.playerId,
+            );
             if (game) {
-                const player1Socket = this.chessService.getSocketIdByPlayerId(
-                    game.whitesPlayer.playerId,
-                );
-                const player2Socket = this.chessService.getSocketIdByPlayerId(
-                    game.blacksPlayer.playerId,
-                );
+                const player1Socket =
+                    this.activeGamesService.getSocketIdByPlayerId(
+                        game.whitesPlayer.playerId,
+                    );
+                const player2Socket =
+                    this.activeGamesService.getSocketIdByPlayerId(
+                        game.blacksPlayer.playerId,
+                    );
 
                 if (player1Socket && player2Socket) {
                     this.server
@@ -74,14 +78,18 @@ export class HandleGameGateway {
                 }
             }
         } else {
-            const game = this.chessService.findGameByPlayerId(payload.playerId);
+            const game = this.activeGamesService.findGameByPlayerId(
+                payload.playerId,
+            );
             if (game) {
-                const player1Socket = this.chessService.getSocketIdByPlayerId(
-                    game.whitesPlayer.playerId,
-                );
-                const player2Socket = this.chessService.getSocketIdByPlayerId(
-                    game.blacksPlayer.playerId,
-                );
+                const player1Socket =
+                    this.activeGamesService.getSocketIdByPlayerId(
+                        game.whitesPlayer.playerId,
+                    );
+                const player2Socket =
+                    this.activeGamesService.getSocketIdByPlayerId(
+                        game.blacksPlayer.playerId,
+                    );
 
                 if (player1Socket && player2Socket) {
                     this.server.to(player1Socket).emit("moveMade", result);
@@ -100,11 +108,14 @@ export class HandleGameGateway {
         payload: OfferDrawDTO,
         //@ConnectedSocket() socket: Socket,
     ) {
-        const game = this.chessService.findGameByPlayerId(payload.playerId);
+        const game = this.activeGamesService.findGameByPlayerId(
+            payload.playerId,
+        );
         if (game) {
-            const opponentSocket = this.chessService.getSocketIdByPlayerId(
-                game.getOpponentId(payload.playerId),
-            );
+            const opponentSocket =
+                this.activeGamesService.getSocketIdByPlayerId(
+                    game.getOpponentId(payload.playerId),
+                );
             if (opponentSocket) {
                 this.server.to(opponentSocket).emit("drawOffered", {
                     playerId: payload.playerId,
@@ -123,13 +134,15 @@ export class HandleGameGateway {
         payload: AcceptDrawDTO,
         //@ConnectedSocket() socket: Socket,
     ) {
-        const game = this.chessService.findGameByPlayerId(payload.playerId);
+        const game = this.activeGamesService.findGameByPlayerId(
+            payload.playerId,
+        );
         if (game) {
             game.endGame("Draw");
-            const player1Socket = this.chessService.getSocketIdByPlayerId(
+            const player1Socket = this.activeGamesService.getSocketIdByPlayerId(
                 game.whitesPlayer.playerId,
             );
-            const player2Socket = this.chessService.getSocketIdByPlayerId(
+            const player2Socket = this.activeGamesService.getSocketIdByPlayerId(
                 game.blacksPlayer.playerId,
             );
             this.server.to(player1Socket).emit("gameOver", { winner: "draw" });
@@ -146,11 +159,14 @@ export class HandleGameGateway {
         payload: AcceptDrawDTO,
         //@ConnectedSocket() socket: Socket,
     ) {
-        const game = this.chessService.findGameByPlayerId(payload.playerId);
+        const game = this.activeGamesService.findGameByPlayerId(
+            payload.playerId,
+        );
         if (game) {
-            const opponentSocket = this.chessService.getSocketIdByPlayerId(
-                game.getOpponentId(payload.playerId),
-            );
+            const opponentSocket =
+                this.activeGamesService.getSocketIdByPlayerId(
+                    game.getOpponentId(payload.playerId),
+                );
             if (opponentSocket) {
                 this.server.to(opponentSocket).emit("drawRejected", {
                     playerId: payload.playerId,
@@ -171,10 +187,10 @@ export class HandleGameGateway {
         const result = this.hangleGameService.handleResign(payload.playerId);
 
         if (result && result.game) {
-            const player1Socket = this.chessService.getSocketIdByPlayerId(
+            const player1Socket = this.activeGamesService.getSocketIdByPlayerId(
                 result.game.whitesPlayer.playerId,
             );
-            const player2Socket = this.chessService.getSocketIdByPlayerId(
+            const player2Socket = this.activeGamesService.getSocketIdByPlayerId(
                 result.game.blacksPlayer.playerId,
             );
 
@@ -206,10 +222,10 @@ export class HandleGameGateway {
             `Player ${playerId} attempting to reconnect to game ${gameId}`,
         );
 
-        const game = this.chessService.findGameByPlayerId(playerId);
+        const game = this.activeGamesService.findGameByPlayerId(playerId);
         if (game && game.gameId === gameId) {
             // Actualizamos el socket del jugador en el mapa de jugadores y sockets
-            this.chessService.registerPlayerSocket(playerId, socket.id);
+            this.activeGamesService.registerPlayerSocket(playerId, socket.id);
             console.log(
                 `Player ${playerId} reconnected with socket ID ${socket.id}`,
             );

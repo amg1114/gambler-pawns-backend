@@ -1,12 +1,12 @@
-import { Game } from "./entities/game";
 import { Injectable } from "@nestjs/common";
+import { Game } from "src/chess/entities/game";
 
 @Injectable()
-export class ChessService {
+export class ActiveGamesService {
     // TODO: jsDocs comments
     private activeGames: Map<string, Game> = new Map(); // playerId -> game
     private playerSocketMap: Map<string, string> = new Map(); // playerId -> socketId
-    sqids: any;
+    //sqids: any;
 
     findGameByPlayerId(playerId: string): Game | undefined {
         return this.activeGames.get(playerId);
@@ -22,10 +22,5 @@ export class ChessService {
 
     registerPlayerSocket(playerId: string, socketId: string) {
         this.playerSocketMap.set(playerId, socketId);
-    }
-
-    // game link
-    async genGameLinkByGameId(gameId: number) {
-        return this.sqids.encode([gameId]);
     }
 }

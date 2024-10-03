@@ -1,4 +1,4 @@
-// this file is responsible for handling websocket connections and messages related to chess game
+// this file is only responsible for handling the connection and disconnection of clients in the namespace /game
 import {
     WebSocketGateway,
     OnGatewayConnection,

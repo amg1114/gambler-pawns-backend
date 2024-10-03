@@ -1,12 +1,12 @@
 import { Injectable } from "@nestjs/common";
-import { ChessService } from "../chess.service";
+import { ActiveGamesService } from "../active-games/active-games.service";
 
 @Injectable()
 export class HandleGameService {
-    constructor(private chessService: ChessService) {}
+    constructor(private readonly activeGamesService: ActiveGamesService) {}
 
     async handleMove(playerId: string, move: { from: string; to: string }) {
-        const game = this.chessService.findGameByPlayerId(playerId);
+        const game = this.activeGamesService.findGameByPlayerId(playerId);
 
         if (game) {
             return await game.makeMove(playerId, move);
@@ -16,7 +16,7 @@ export class HandleGameService {
     }
 
     handleResign(playerId: string) {
-        const game = this.chessService.findGameByPlayerId(playerId);
+        const game = this.activeGamesService.findGameByPlayerId(playerId);
 
         if (!game) {
             return { error: "Juego no encontrado" };

@@ -10,7 +10,7 @@ import { Server, Socket } from "socket.io";
 import { CustomWsFilterException, ParseJsonPipe } from "src/websocketsUtils";
 import { JoinGameDTO } from "./dto/joinGame.dto";
 import { RandomPairingService } from "./random-pairing.service";
-import { ChessService } from "../chess.service";
+import { ActiveGamesService } from "../active-games/active-games.service";
 
 @UseFilters(CustomWsFilterException)
 @WebSocketGateway()
@@ -20,7 +20,7 @@ export class RandomPairingGateway {
 
     constructor(
         private readonly randomPairingService: RandomPairingService,
-        private readonly chessService: ChessService,
+        private readonly activeGamesService: ActiveGamesService,
     ) {}
 
     @SubscribeMessage("game:join")
@@ -36,7 +36,7 @@ export class RandomPairingGateway {
         const { playerId, eloRating, mode } = payload;
 
         // Register player and socket in chess service
-        this.chessService.registerPlayerSocket(playerId, socket.id);
+        this.activeGamesService.registerPlayerSocket(playerId, socket.id);
 
         const pairing = await this.randomPairingService.addToPool(
             { playerId, eloRating, socketId: socket.id },
