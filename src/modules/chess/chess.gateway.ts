@@ -6,9 +6,9 @@ import {
     WebSocketServer,
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
-import { CORS } from "../config/constants";
+import { CORS } from "../../config/constants";
 import { UseFilters } from "@nestjs/common";
-import { CustomWsFilterException } from "../websocketsUtils";
+import { CustomWsFilterException } from "../../common/websockets-utils/websocket.filter";
 
 @UseFilters(CustomWsFilterException)
 @WebSocketGateway({

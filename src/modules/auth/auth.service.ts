@@ -18,8 +18,8 @@ import {
 import { randomInt } from "crypto";
 import { MailerService } from "@nestjs-modules/mailer";
 import { ConfigService } from "@nestjs/config";
-import { UserService } from "src/user/user.service";
-import { UserAvatarImg } from "src/user/entities/userAvatar.entity";
+import { UserService } from "src/modules/user/user.service";
+import { UserAvatarImg } from "src/modules/user/entities/userAvatar.entity";
 
 @Injectable()
 export class AuthService {

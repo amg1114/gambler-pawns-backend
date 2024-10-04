@@ -1,6 +1,6 @@
 import { InjectRepository } from "@nestjs/typeorm";
 import { WsException } from "@nestjs/websockets";
-import { User } from "src/user/entities/user.entity";
+import { User } from "src/modules/user/entities/user.entity";
 import { Repository } from "typeorm";
 import { GameModeType } from "./db/game.entity";
 

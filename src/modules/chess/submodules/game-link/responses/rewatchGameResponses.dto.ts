@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsObject } from "class-validator";
-import { Game } from "src/chess/entities/game";
+import { Game } from "src/modules/chess/entities/game";
 
 export class RewatchGameResponse200Dto {
     @IsObject()

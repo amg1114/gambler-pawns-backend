@@ -7,7 +7,8 @@ import {
     WebSocketServer,
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
-import { CustomWsFilterException, ParseJsonPipe } from "src/websocketsUtils";
+import { CustomWsFilterException } from "src/common/websockets-utils/websocket.filter";
+import { ParseJsonPipe } from "src/common/websockets-utils/websocketParseJson.filter";
 import { JoinGameDTO } from "./dto/joinGame.dto";
 import { RandomPairingService } from "./random-pairing.service";
 import { ActiveGamesService } from "../active-games/active-games.service";

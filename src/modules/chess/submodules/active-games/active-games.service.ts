@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { Game } from "src/chess/entities/game";
+import { Game } from "src/modules/chess/entities/game";
 
 @Injectable()
 export class ActiveGamesService {

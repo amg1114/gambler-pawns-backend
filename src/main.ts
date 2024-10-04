@@ -6,7 +6,7 @@ import { CORS } from "./config/constants";
 import { ClassSerializerInterceptor, ValidationPipe } from "@nestjs/common";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import metadata from "./metadata";
-import { FormatAPIResponseInterceptor } from "./interceptors/response.interceptor";
+import { FormatAPIResponseInterceptor } from "./common/interceptors/response.interceptor";
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
