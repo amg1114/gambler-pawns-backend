@@ -12,6 +12,7 @@ import { GameLinkService } from "./submodules/game-link/game-link.service";
 import { HandleGameService } from "./submodules/handle-game/handle-game.service";
 import { RandomPairingGateway } from "./submodules/random-pairing/random-pairing.gateway";
 import { RandomPairingService } from "./submodules/random-pairing/random-pairing.service";
+import { EloService } from "./submodules/handle-game/elo.service";
 
 @Module({
     imports: [
@@ -31,6 +32,7 @@ import { RandomPairingService } from "./submodules/random-pairing/random-pairing
         HandleGameGateway,
         RandomPairingGateway,
         RandomPairingService,
+        EloService,
     ],
     controllers: [GameLinkController],
 })

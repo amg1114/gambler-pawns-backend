@@ -126,4 +126,32 @@ export class UserService {
             friendsList,
         };
     }
+
+    // Streak
+    // TODO: agregar logica de exepciones en caso de error
+    async increaseStreakBy1(playerId: string) {
+        await this.userRepository
+            .createQueryBuilder()
+            .update(User)
+            .set({
+                streakDays: () => "streak_days + 1",
+            })
+            .where("userId = :userId", {
+                userId: playerId,
+            })
+            .execute();
+    }
+    /*
+     const user = await this.userRepository.findOne(userId);
+    if (user) {
+      user.winningStreak += 1;
+      await this.userRepository.save(user);
+    }
+    */
+
+    async resetStreak(playerId: string) {
+        await this.userRepository.update(playerId, {
+            streakDays: 0,
+        });
+    }
 }

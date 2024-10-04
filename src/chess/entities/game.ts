@@ -5,7 +5,12 @@ import { WsException } from "@nestjs/websockets";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Game as GameEntity, GameWinner, GameModeType } from "./db/game.entity";
-import { User } from "../../user/entities/user.entity";
+
+// services
+import { UserService } from "src/user/user.service";
+import { EloService } from "../submodules/handle-game/elo.service";
+import { User } from "src/user/entities/user.entity";
+import { GamePlayer } from "./player";
 
 // TODO: logica timers
 // TODO: logica apuestas
@@ -24,18 +29,22 @@ export class Game {
         private readonly gameRepository: Repository<GameEntity>,
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
+        private readonly userService: UserService,
+        private readonly eloService: EloService,
     ) {
         this.mode = mode;
         this.board = new Chess();
     }
 
-    async createGameInDB(player1Id: string, player2Id: string) {
+    async createGame(player1Id: string, player2Id: string) {
         this.whitesPlayer = new GamePlayer(player1Id, "Whites", 10000);
         this.blacksPlayer = new GamePlayer(player2Id, "Blacks", 10000);
 
         await this.verifyNonGuestPlayer(this.whitesPlayer);
         await this.verifyNonGuestPlayer(this.blacksPlayer);
+    }
 
+    async createGameInDB(player1Id: string, player2Id: string) {
         // NOTE: be careful with <player>.isGuest before insert
         const newGame = this.gameRepository.create({
             gameTimestamp: new Date(),
@@ -73,7 +82,7 @@ export class Game {
         });
 
         if (!user) {
-            throw new WsException("El id del usuario no existe");
+            throw new WsException("This invalid playerId");
         }
 
         // TODO: revisar en general todas las consultas
@@ -123,49 +132,31 @@ export class Game {
     }
 
     async endGame(winner: GameWinner) {
-        const eloWhitesAfterGame = this.calculateNewElo(
+        // calculate new elo for both players
+        const eloWhitesAfterGame = this.eloService.calculateNewElo(
             this.whitesPlayer.eloRating,
             this.blacksPlayer.eloRating,
             winner === "White" ? 1 : winner === "Black" ? 0 : 0.5,
         );
-        const eloBlacksAfterGame = this.calculateNewElo(
+        const eloBlacksAfterGame = this.eloService.calculateNewElo(
             this.blacksPlayer.eloRating,
             this.whitesPlayer.eloRating,
             winner === "Black" ? 1 : winner === "White" ? 0 : 0.5,
         );
 
         try {
-            // To do: implement streakDays in User entity, update it here and update in different place
+            // update streaks if players are not guests
+            // TODO: how to handle guests?
             if (winner === "Black") {
-                await this.userRepository
-                    .createQueryBuilder()
-                    .update(User)
-                    .set({
-                        streakDays: () => "streak_days + 1",
-                    })
-                    .where("userId = :userId", {
-                        userId: this.blacksPlayer.playerId,
-                    })
-                    .execute();
-
-                await this.userRepository.update(this.whitesPlayer.playerId, {
-                    streakDays: 0,
-                });
+                await this.userService.increaseStreakBy1(
+                    this.blacksPlayer.playerId,
+                );
+                await this.userService.resetStreak(this.whitesPlayer.playerId);
             } else if (winner === "White") {
-                await this.userRepository
-                    .createQueryBuilder()
-                    .update(User)
-                    .set({
-                        streakDays: () => "streak_days + 1",
-                    })
-                    .where("userId = :userId", {
-                        userId: this.whitesPlayer.playerId,
-                    })
-                    .execute();
-
-                await this.userRepository.update(this.blacksPlayer.playerId, {
-                    streakDays: 0,
-                });
+                await this.userService.increaseStreakBy1(
+                    this.whitesPlayer.playerId,
+                );
+                await this.userService.resetStreak(this.blacksPlayer.playerId);
             }
 
             await this.gameRepository.update(
@@ -184,14 +175,8 @@ export class Game {
         }
     }
 
-    calculateNewElo(currentElo: number, opponentElo: number, score: number) {
-        const kFactor = 32; // Ajuste de K, puede variar según el sistema de elo
-        const expectedScore =
-            1 / (1 + Math.pow(10, (opponentElo - currentElo) / 400));
-        return Math.round(currentElo + kFactor * (score - expectedScore));
-    }
-
     // Manage draw offers
+    // TODO: abstraerlas a un servicio
     offerDraw(playerId: string): string | null {
         if (this.drawOffer === null) {
             this.drawOffer = playerId;
@@ -212,42 +197,10 @@ export class Game {
         }
     }
 
+    // abstraerla a un servicio
     getOpponentId(playerId: string): string {
         return playerId === this.whitesPlayer.playerId
             ? this.blacksPlayer.playerId
             : this.whitesPlayer.playerId;
-    }
-}
-
-export class GamePlayer {
-    public playerId: string;
-    public isGuest: boolean;
-    public side: "Whites" | "Blacks";
-    public time: number; // seconds
-    // get this info if player is registered
-    // info for
-    // TODO: get this data in service in order to send it
-    public nickname: string = null;
-    public aboutText: string = null;
-    public eloRating: number = null;
-    public avatarImgPath: string | null = null;
-
-    constructor(playerId: string, side: "Whites" | "Blacks", time: number) {
-        this.playerId = playerId;
-        this.isGuest = this.playerId.includes("GuestPlayer");
-        this.side = side;
-        this.time = time;
-    }
-
-    assignDataToNonGuestUser(
-        nickname: string,
-        aboutText: string,
-        eloRating: number,
-        avatarImgPath: string,
-    ) {
-        this.nickname = nickname;
-        this.aboutText = aboutText;
-        this.eloRating = eloRating;
-        this.avatarImgPath = avatarImgPath;
     }
 }
