@@ -16,9 +16,10 @@ export class GameService {
         return this.gameRepository.save(newGame);
     }
 
-    // async updateGameResult(gameId: string, winner: string): Promise<void> {
-    //     await this.gameRepository.update(gameId, { winner });
-    // }
-
-    // Otras operaciones relacionadas con el juego...
+    async updateGameResult(
+        gameId: string,
+        gameData: Partial<GameEntity>,
+    ): Promise<void> {
+        await this.gameRepository.update(gameId, gameData);
+    }
 }

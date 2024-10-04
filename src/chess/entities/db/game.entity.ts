@@ -12,7 +12,7 @@ import { User } from "../../../user/entities/user.entity";
 import { GameWithArcadeModifiers } from "./gameWithArcadeModifiers.entity";
 
 // reusable types / enums
-export type GameWinner = "White" | "Black" | "Draw";
+export type GameWinner = "w" | "b" | "draw";
 export type GameResultType =
     | "On Time"
     | "Draw offer"

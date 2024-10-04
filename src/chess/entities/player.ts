@@ -1,32 +1,67 @@
+import { InjectRepository } from "@nestjs/typeorm";
+import { WsException } from "@nestjs/websockets";
+import { User } from "src/user/entities/user.entity";
+import { Repository } from "typeorm";
+import { GameModeType } from "./db/game.entity";
+
+export type SideType = "w" | "b";
+
 export class GamePlayer {
     public playerId: string;
     public isGuest: boolean;
-    public side: "Whites" | "Blacks";
+    public side: SideType;
     public time: number; // seconds
-    // get this info if player is registered
-    // info for
-    // TODO: get this data in service in order to send it
-    public nickname: string = null;
-    public aboutText: string = null;
-    public eloRating: number = null;
-    public avatarImgPath: string | null = null;
+    public elo: number;
+    public gameMode: GameModeType;
+    // Only if user is not guest
+    public user: User;
 
-    constructor(playerId: string, side: "Whites" | "Blacks", time: number) {
+    constructor(
+        @InjectRepository(User)
+        private readonly userRepository: Repository<User>,
+    ) {}
+
+    async create(
+        playerId: string,
+        side: SideType,
+        time: number,
+        gameMode: GameModeType,
+    ) {
         this.playerId = playerId;
-        this.isGuest = this.playerId.includes("GuestPlayer");
+        this.isGuest = this.playerId.includes("guest");
         this.side = side;
         this.time = time;
+        this.gameMode = gameMode;
+        this.setElo();
+        return await this.verifyNonGuestPlayer();
     }
 
-    assignDataToNonGuestUser(
-        nickname: string,
-        aboutText: string,
-        eloRating: number,
-        avatarImgPath: string,
-    ) {
-        this.nickname = nickname;
-        this.aboutText = aboutText;
-        this.eloRating = eloRating;
-        this.avatarImgPath = avatarImgPath;
+    private async verifyNonGuestPlayer() {
+        if (this.isGuest) return;
+
+        const user = await this.userRepository.findOneBy({
+            userId: +this.playerId,
+        });
+
+        if (!user) {
+            throw new WsException("This invalid playerId");
+        }
+
+        this.user = user;
+
+        return this;
+    }
+
+    private setElo() {
+        if (this.isGuest) return;
+
+        const eloByMode = {
+            rapid: this.user.eloRapid,
+            blitz: this.user.eloBlitz,
+            bullet: this.user.eloBullet,
+            arcade: this.user.eloArcade,
+        };
+
+        this.elo = eloByMode[this.gameMode];
     }
 }
