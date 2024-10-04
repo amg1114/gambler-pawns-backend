@@ -135,7 +135,39 @@ export class Game {
         );
 
         try {
-            // update game in db
+            // To do: implement streakDays in User entity, update it here and update in different place
+            if (winner === "Black") {
+                await this.userRepository
+                    .createQueryBuilder()
+                    .update(User)
+                    .set({
+                        streakDays: () => "streak_days + 1",
+                    })
+                    .where("userId = :userId", {
+                        userId: this.blacksPlayer.playerId,
+                    })
+                    .execute();
+
+                await this.userRepository.update(this.whitesPlayer.playerId, {
+                    streakDays: 0,
+                });
+            } else if (winner === "White") {
+                await this.userRepository
+                    .createQueryBuilder()
+                    .update(User)
+                    .set({
+                        streakDays: () => "streak_days + 1",
+                    })
+                    .where("userId = :userId", {
+                        userId: this.whitesPlayer.playerId,
+                    })
+                    .execute();
+
+                await this.userRepository.update(this.blacksPlayer.playerId, {
+                    streakDays: 0,
+                });
+            }
+
             await this.gameRepository.update(
                 { gameId: +this.gameId },
                 {
