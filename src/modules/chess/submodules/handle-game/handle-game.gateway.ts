@@ -9,7 +9,9 @@ import {
 import { Server, Socket } from "socket.io";
 import { CORS } from "src/config/constants";
 import { HandleGameService } from "./handle-game.service";
-import { CustomWsFilterException, ParseJsonPipe } from "src/websocketsUtils";
+// ws utils
+import { CustomWsFilterException } from "src/common/websockets-utils/websocket.filter";
+import { ParseJsonPipe } from "src/common/websockets-utils/websocketParseJson.filter";
 // dtos
 import { AcceptDrawDTO } from "./dto/acceptDraw.dto";
 import { MakeMoveDTO } from "./dto/makeMove.dto";

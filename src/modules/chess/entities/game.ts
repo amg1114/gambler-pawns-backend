@@ -7,9 +7,9 @@ import { Repository } from "typeorm";
 import { GameWinner, GameModeType, GameTypePairing } from "./db/game.entity";
 
 // services
-import { UserService } from "src/user/user.service";
+import { UserService } from "src/modules/user/user.service";
 import { EloService } from "../submodules/handle-game/elo.service";
-import { User } from "src/user/entities/user.entity";
+import { User } from "src/modules/user/entities/user.entity";
 import { GamePlayer } from "./player";
 import { GameService } from "../submodules/handle-game/game.service";
 

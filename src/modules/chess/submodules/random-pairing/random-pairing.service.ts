@@ -4,7 +4,7 @@ import { Repository } from "typeorm";
 import { ActiveGamesService } from "../active-games/active-games.service";
 import { GameLinkService } from "../game-link/game-link.service";
 // entities
-import { User } from "src/user/entities/user.entity";
+import { User } from "src/modules/user/entities/user.entity";
 import { GameModeType } from "../../entities/db/game.entity";
 
 // interfaces and types
@@ -12,7 +12,7 @@ import { Player } from "../../entities/interfaces/player";
 
 // models
 import { Game } from "../../entities/game";
-import { UserService } from "src/user/user.service";
+import { UserService } from "src/modules/user/user.service";
 import { EloService } from "../handle-game/elo.service";
 import { GameService } from "../handle-game/game.service";
 
