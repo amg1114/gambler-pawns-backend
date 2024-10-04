@@ -21,16 +21,10 @@ export class GamePlayer {
         private readonly userRepository: Repository<User>,
     ) {}
 
-    async create(
-        playerId: string,
-        side: SideType,
-        time: number,
-        gameMode: GameModeType,
-    ) {
+    async create(playerId: string, side: SideType, gameMode: GameModeType) {
         this.playerId = playerId;
         this.isGuest = this.playerId.includes("guest");
         this.side = side;
-        this.time = time;
         this.gameMode = gameMode;
         this.setElo();
         return await this.verifyNonGuestPlayer();

@@ -1,23 +1,25 @@
 import { Chess } from "chess.js";
 import { WsException } from "@nestjs/websockets";
 
-// db entities
+// entities
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { GameWinner, GameModeType, GameTypePairing } from "./db/game.entity";
+import { User } from "src/modules/user/entities/user.entity";
+import { GamePlayer } from "./player";
 
 // services
 import { UserService } from "src/modules/user/user.service";
 import { EloService } from "../submodules/handle-game/elo.service";
-import { User } from "src/modules/user/entities/user.entity";
-import { GamePlayer } from "./player";
 import { GameService } from "../submodules/handle-game/game.service";
+import { GameLinkService } from "../submodules/game-link/game-link.service";
 
-// TODO: logica timers
 // TODO: logica apuestas
 export class Game {
     public mode: GameModeType;
     public typePairing: GameTypePairing;
+    public initialTime: number;
+    public incrementTime: number;
     public gameId: string; //game id in db
     public whitesPlayer: GamePlayer;
     public blacksPlayer: GamePlayer;
@@ -31,6 +33,7 @@ export class Game {
         private readonly userService: UserService,
         private readonly eloService: EloService,
         private readonly gameService: GameService,
+        private readonly gameLinkService: GameLinkService,
     ) {}
 
     async createGame(
@@ -38,6 +41,8 @@ export class Game {
         player2Id: string,
         mode: GameModeType,
         typePairing: GameTypePairing,
+        initialTime: number,
+        incrementTime: number,
     ) {
         this.mode = mode;
         this.typePairing = typePairing;
@@ -46,26 +51,30 @@ export class Game {
         this.whitesPlayer = await new GamePlayer(this.userRepository).create(
             player1Id,
             "w",
-            10000,
             this.mode,
         );
         this.blacksPlayer = await new GamePlayer(this.userRepository).create(
             player2Id,
             "b",
-            10000,
             this.mode,
         );
 
-        await this.gameService.createGame({
-            gameTimestamp: new Date(),
-            pgn: this.board.pgn(),
-            whitesPlayer: this.whitesPlayer.user,
-            blacksPlayer: this.blacksPlayer.user,
-            eloWhitesBeforeGame: this.whitesPlayer.elo,
-            eloBlacksBeforeGame: this.blacksPlayer.elo,
-            gameMode: this.mode,
-            typePairing: typePairing,
-        });
+        const gameInDB = await this.gameService.createGame(
+            {
+                gameTimestamp: new Date(),
+                pgn: this.board.pgn(),
+                whitesPlayer: this.whitesPlayer.user,
+                blacksPlayer: this.blacksPlayer.user,
+                eloWhitesBeforeGame: this.whitesPlayer.elo,
+                eloBlacksBeforeGame: this.blacksPlayer.elo,
+                gameMode: this.mode,
+                typePairing: typePairing,
+            },
+            initialTime,
+            incrementTime,
+        );
+
+        this.gameId = gameInDB.gameId;
 
         return this;
     }
@@ -118,32 +127,27 @@ export class Game {
             winner === "b" ? 1 : winner === "w" ? 0 : 0.5,
         );
 
-        try {
-            // update streaks if players are not guests
-            // TODO: how to handle guests?
-            if (winner === "b") {
-                await this.userService.increaseStreakBy1(
-                    this.blacksPlayer.playerId,
-                );
-                await this.userService.resetStreak(this.whitesPlayer.playerId);
-            } else if (winner === "w") {
-                await this.userService.increaseStreakBy1(
-                    this.whitesPlayer.playerId,
-                );
-                await this.userService.resetStreak(this.blacksPlayer.playerId);
-            }
-
-            await this.gameService.updateGameResult(this.gameId, {
-                pgn: this.board.pgn(),
-                winner: winner,
-                eloWhitesAfterGame: eloWhitesAfterGame,
-                eloBlacksAfterGame: eloBlacksAfterGame,
-                // TODO: implement Game result type});
-            });
-        } catch (e) {
-            console.log("Error actualizando el juego en la base de datos", e);
-            throw new WsException("Error actualizando el juego");
+        // update streaks if players are not guests
+        // TODO: how to handle guests?
+        if (winner === "b") {
+            await this.userService.increaseStreakBy1(
+                this.blacksPlayer.playerId,
+            );
+            await this.userService.resetStreak(this.whitesPlayer.playerId);
+        } else if (winner === "w") {
+            await this.userService.increaseStreakBy1(
+                this.whitesPlayer.playerId,
+            );
+            await this.userService.resetStreak(this.blacksPlayer.playerId);
         }
+
+        await this.gameService.updateGameResult(this.gameId, {
+            pgn: this.board.pgn(),
+            winner: winner,
+            eloWhitesAfterGame: eloWhitesAfterGame,
+            eloBlacksAfterGame: eloBlacksAfterGame,
+            // TODO: implement Game result type});
+        });
     }
 
     // Manage draw offers

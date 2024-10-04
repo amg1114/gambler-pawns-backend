@@ -59,6 +59,6 @@ export class GameLinkService {
     }
 
     decodeGameLink(encodedId: string) {
-        return this.sqids.decode(encodedId);
+        return this.sqids.decode(encodedId)[0];
     }
 }

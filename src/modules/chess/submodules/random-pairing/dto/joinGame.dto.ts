@@ -15,4 +15,10 @@ export class JoinGameDTO {
     @IsOptional()
     @IsNumber()
     bet?: number;
+
+    @IsNumber()
+    initialTime: number;
+
+    @IsNumber()
+    incrementTime: number;
 }

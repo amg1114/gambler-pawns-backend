@@ -1,10 +1,13 @@
 import { Module } from "@nestjs/common";
-import { ChessGateway } from "./chess.gateway";
-import { Game as GameEntity } from "./entities/db/game.entity";
-import { User } from "../user/entities/user.entity";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { GameWithArcadeModifiers } from "./entities/db/gameWithArcadeModifiers.entity";
+// entities
+import { Game as GameEntity } from "./entities/db/game.entity";
 import { ArcadeModifiers } from "./entities/db/arcadeModifier.entity";
+import { ChessGateway } from "./chess.gateway";
+import { UserAvatarImg } from "src/modules/user/entities/userAvatar.entity";
+import { User } from "../user/entities/user.entity";
+import { GameWithArcadeModifiers } from "./entities/db/gameWithArcadeModifiers.entity";
+// providers
 import { HandleGameGateway } from "./submodules/handle-game/handle-game.gateway";
 import { GameLinkController } from "./submodules/game-link/game-link.controller";
 import { ActiveGamesService } from "./submodules/active-games/active-games.service";
@@ -15,11 +18,10 @@ import { RandomPairingService } from "./submodules/random-pairing/random-pairing
 import { EloService } from "./submodules/handle-game/elo.service";
 import { UserService } from "src/modules/user/user.service";
 import { GameService } from "./submodules/handle-game/game.service";
-import { UserAvatarImg } from "src/modules/user/entities/userAvatar.entity";
+import { TimerService } from "./submodules/handle-game/timer.service";
 
 @Module({
     imports: [
-        // Importamos las entidades necesarias para el servicio
         TypeOrmModule.forFeature([
             GameEntity,
             User,
@@ -39,6 +41,7 @@ import { UserAvatarImg } from "src/modules/user/entities/userAvatar.entity";
         EloService,
         GameService,
         UserService,
+        TimerService,
     ],
     controllers: [GameLinkController],
 })
