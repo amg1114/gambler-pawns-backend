@@ -133,7 +133,7 @@ export class HandleGameGateway {
             payload.playerId,
         );
         if (game) {
-            game.endGame("Draw");
+            game.endGame("draw");
             const player1Socket = this.activeGamesService.getSocketIdByPlayerId(
                 game.whitesPlayer.playerId,
             );

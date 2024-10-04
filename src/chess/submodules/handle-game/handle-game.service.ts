@@ -22,8 +22,7 @@ export class HandleGameService {
             return { error: "Juego no encontrado" };
         }
 
-        const winner =
-            game.whitesPlayer.playerId === playerId ? "Black" : "White";
+        const winner = game.whitesPlayer.playerId === playerId ? "b" : "w";
         game.endGame(winner); // Finaliza el juego actualizando el ELO y el estado
         return { game, winner };
     }

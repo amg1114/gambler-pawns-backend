@@ -12,6 +12,10 @@ import { GameLinkService } from "./submodules/game-link/game-link.service";
 import { HandleGameService } from "./submodules/handle-game/handle-game.service";
 import { RandomPairingGateway } from "./submodules/random-pairing/random-pairing.gateway";
 import { RandomPairingService } from "./submodules/random-pairing/random-pairing.service";
+import { EloService } from "./submodules/handle-game/elo.service";
+import { UserService } from "src/user/user.service";
+import { GameService } from "./submodules/handle-game/game.service";
+import { UserAvatarImg } from "src/user/entities/userAvatar.entity";
 
 @Module({
     imports: [
@@ -19,6 +23,7 @@ import { RandomPairingService } from "./submodules/random-pairing/random-pairing
         TypeOrmModule.forFeature([
             GameEntity,
             User,
+            UserAvatarImg,
             GameWithArcadeModifiers,
             ArcadeModifiers,
         ]),
@@ -31,6 +36,9 @@ import { RandomPairingService } from "./submodules/random-pairing/random-pairing
         HandleGameGateway,
         RandomPairingGateway,
         RandomPairingService,
+        EloService,
+        GameService,
+        UserService,
     ],
     controllers: [GameLinkController],
 })

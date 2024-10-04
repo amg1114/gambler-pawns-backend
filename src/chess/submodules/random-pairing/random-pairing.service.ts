@@ -5,16 +5,16 @@ import { ActiveGamesService } from "../active-games/active-games.service";
 import { GameLinkService } from "../game-link/game-link.service";
 // entities
 import { User } from "src/user/entities/user.entity";
-import {
-    Game as GameEntity,
-    GameModeType,
-} from "../../entities/db/game.entity";
+import { GameModeType } from "../../entities/db/game.entity";
 
 // interfaces and types
 import { Player } from "../../entities/interfaces/player";
 
 // models
 import { Game } from "../../entities/game";
+import { UserService } from "src/user/user.service";
+import { EloService } from "../handle-game/elo.service";
+import { GameService } from "../handle-game/game.service";
 
 @Injectable()
 export class RandomPairingService {
@@ -24,9 +24,10 @@ export class RandomPairingService {
 
     constructor(
         private gameLinkService: GameLinkService,
+        private userService: UserService,
+        private eloService: EloService,
+        private gameService: GameService,
         private chessService: ActiveGamesService,
-        @InjectRepository(GameEntity)
-        private gameEntityRepository: Repository<GameEntity>,
         @InjectRepository(User)
         private userRepository: Repository<User>,
     ) {}
@@ -52,17 +53,22 @@ export class RandomPairingService {
 
         if (player1 && player2) {
             // creating new game and callign createGameInDB in order to insert data in db
-            const newGame = new Game(
-                mode,
-                this.gameEntityRepository,
+            const newGame = await new Game(
                 this.userRepository,
+                this.userService,
+                this.eloService,
+                this.gameService,
+            ).createGame(
+                player1.playerId,
+                player2.playerId,
+                mode,
+                "Random Pairing",
             );
-            // TODO: mirar como se refactoriza mejor esto
-            await newGame.createGameInDB(player1.playerId, player2.playerId);
+            // encript game id
             const gameId = this.gameLinkService.genGameLinkEncodeByGameId(
                 +newGame.gameId,
             );
-            newGame.gameId = gameId;
+
             // save game in memory (HashMap)
             this.chessService.setActiveGame(player1.playerId, newGame);
             this.chessService.setActiveGame(player2.playerId, newGame);
