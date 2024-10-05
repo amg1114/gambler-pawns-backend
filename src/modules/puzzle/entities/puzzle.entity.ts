@@ -7,7 +7,7 @@ import {
 } from "typeorm";
 import { UserSolvedPuzzle } from "./userSolvedPuzzle.entity";
 
-// data: https://database.lichess.org/#puzzles
+//REF: https://database.lichess.org/#puzzles
 @Entity()
 export class Puzzle {
     @PrimaryGeneratedColumn()
