@@ -1,20 +1,15 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsBoolean, IsNumber, IsObject, IsString } from "class-validator";
 
-export class SignUpResponse201Dto {
-    @IsBoolean()
+export class LogInResponse200Dto {
     @ApiProperty({ example: true })
     status: boolean;
 
-    @IsNumber()
-    @ApiProperty({ example: 201 })
+    @ApiProperty({ example: 200 })
     statusCode: number;
 
-    @IsString()
-    @ApiProperty({ example: "/api/v1/auth/signup" })
+    @ApiProperty({ example: "/api/v1/auth/login" })
     path: string;
 
-    @IsObject()
     @ApiProperty({
         example: {
             access_token:
@@ -23,25 +18,20 @@ export class SignUpResponse201Dto {
     })
     data: { access_token: string };
 
-    @IsString()
     @ApiProperty({ example: "2024-09-15T00:33:02.738Z" })
     timestamp: string;
 }
 
-export class SignUpResponse400Dto {
-    @IsBoolean()
+export class LogInResponse400Dto {
     @ApiProperty({ example: false })
     status: boolean;
 
-    @IsNumber()
     @ApiProperty({ example: 400 })
     statusCode: number;
 
-    @IsString()
-    @ApiProperty({ example: "/api/v1/auth/signup" })
+    @ApiProperty({ example: "/api/v1/auth/login" })
     path: string;
 
-    @IsObject()
     @ApiProperty({
         example: {
             message: ["nickname must be longer than or equal to 3 characters"],
@@ -50,34 +40,28 @@ export class SignUpResponse400Dto {
     })
     data: { message: string[]; error: string };
 
-    @IsString()
     @ApiProperty({ example: "2024-09-15T00:30:52.121Z" })
     timestamp: string;
 }
 
-export class SignUpResponse409Dto {
-    @IsBoolean()
+export class LogInResponse401Dto {
     @ApiProperty({ example: false })
     status: boolean;
 
-    @IsNumber()
-    @ApiProperty({ example: 409 })
+    @ApiProperty({ example: 401 })
     statusCode: number;
 
-    @IsString()
-    @ApiProperty({ example: "/api/v1/auth/signup" })
+    @ApiProperty({ example: "/api/v1/auth/login" })
     path: string;
 
-    @IsObject()
     @ApiProperty({
         example: {
-            message: ["Nickname or email is already registered"],
-            error: "ConflictException",
+            message: ["Invalid credentials"],
+            error: "UnauthorizedException",
         },
     })
     data: { message: string[]; error: string };
 
-    @IsString()
-    @ApiProperty({ example: "2024-09-15T00:21:04.340Z" })
+    @ApiProperty({ example: "2024-09-15T00:30:52.121Z" })
     timestamp: string;
 }

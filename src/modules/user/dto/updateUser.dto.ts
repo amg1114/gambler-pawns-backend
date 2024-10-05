@@ -1,4 +1,4 @@
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiPropertyOptional } from "@nestjs/swagger";
 import {
     IsDateString,
     IsISO31661Alpha2,
@@ -9,21 +9,21 @@ import {
 export class UpdateUserDto {
     @IsString()
     @IsOptional()
-    @ApiProperty({ example: "example@example.com" })
+    @ApiPropertyOptional({ example: "example@example.com" })
     email?: string;
 
     @IsString()
     @IsOptional()
-    @ApiProperty({ example: "John Doe" })
+    @ApiPropertyOptional({ example: "John Doe" })
     nickname?: string;
 
     @IsDateString()
     @IsOptional()
-    @ApiProperty({ example: "2021-01-01" })
+    @ApiPropertyOptional({ example: "2021-01-01" })
     dateOfBirth?: Date;
 
     @IsISO31661Alpha2()
     @IsOptional()
-    @ApiProperty({ example: "CO" })
+    @ApiPropertyOptional({ example: "CO" })
     countryCode?: string;
 }

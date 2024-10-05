@@ -11,17 +11,17 @@ import {
     SignUpResponse201Dto,
     SignUpResponse400Dto,
     SignUpResponse409Dto,
-} from "./dto/responses/signUpResponses.dto";
+} from "./responses/signUpResponses.dto";
 import {
     LogInResponse200Dto,
     LogInResponse400Dto,
     LogInResponse401Dto,
-} from "./dto/responses/logInResponses.dto";
+} from "./responses/logInResponses.dto";
 import {
     ForgotPasswordResponse200Dto,
     ForgotPasswordResponse400Dto,
-} from "./dto/responses/forgotPasswordResponses.dto";
-import { ForgotPasswordResponse401Dto } from "./dto/responses/resetPasswordResponses.dto";
+} from "./responses/forgotPasswordResponses.dto";
+import { ForgotPasswordResponse401Dto } from "./responses/resetPasswordResponses.dto";
 
 @Controller("auth")
 @ApiTags("auth")
