@@ -1,4 +1,4 @@
-import { UseFilters, ValidationPipe } from "@nestjs/common";
+import { UseFilters, UsePipes, ValidationPipe } from "@nestjs/common";
 import {
     ConnectedSocket,
     MessageBody,
@@ -13,7 +13,8 @@ import { JoinGameDTO } from "./dto/joinGame.dto";
 import { RandomPairingService } from "./random-pairing.service";
 import { ActiveGamesService } from "../active-games/active-games.service";
 
-@UseFilters(CustomWsFilterException)
+@UseFilters(new CustomWsFilterException())
+@UsePipes(new ParseJsonPipe(), new ValidationPipe({ transform: true }))
 @WebSocketGateway()
 export class RandomPairingGateway {
     @WebSocketServer()
@@ -26,21 +27,26 @@ export class RandomPairingGateway {
 
     @SubscribeMessage("game:join")
     async handleJoinGame(
-        @MessageBody(
-            new ParseJsonPipe(),
-            new ValidationPipe({ transform: true }),
-        )
+        @MessageBody()
         payload: JoinGameDTO,
         @ConnectedSocket() socket: Socket,
     ) {
         console.log("Joining game", payload);
-        const { playerId, eloRating, mode } = payload;
+        const { playerId, eloRating, mode, initialTime, incrementTime } =
+            payload;
 
         // Register player and socket in chess service
         this.activeGamesService.registerPlayerSocket(playerId, socket.id);
 
         const pairing = await this.randomPairingService.addToPool(
-            { playerId, eloRating, socketId: socket.id },
+            {
+                playerId,
+                eloRating,
+                socketId: socket.id,
+                initialTime,
+                incrementTime,
+                joinedAt: Date.now(),
+            },
             mode,
         );
 

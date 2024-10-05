@@ -8,15 +8,13 @@ import {
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
 import { CORS } from "src/config/constants";
-import { HandleGameService } from "./handle-game.service";
 // ws utils
 import { CustomWsFilterException } from "src/common/websockets-utils/websocket.filter";
 import { ParseJsonPipe } from "src/common/websockets-utils/websocketParseJson.filter";
 // dtos
-import { AcceptDrawDTO } from "./dto/acceptDraw.dto";
 import { MakeMoveDTO } from "./dto/makeMove.dto";
-import { OfferDrawDTO } from "./dto/offerDraw.dto";
 import { ActiveGamesService } from "../active-games/active-games.service";
+import { GameService } from "./game.service";
 
 @UseFilters(CustomWsFilterException)
 @WebSocketGateway({
@@ -27,7 +25,7 @@ export class HandleGameGateway {
     server: Server;
 
     constructor(
-        private readonly hangleGameService: HandleGameService,
+        private readonly gameService: GameService,
         private readonly activeGamesService: ActiveGamesService,
     ) {}
 
@@ -41,13 +39,10 @@ export class HandleGameGateway {
         @ConnectedSocket() socket: Socket,
     ) {
         console.log("Making move", payload);
-        const result = await this.hangleGameService.handleMove(
-            payload.playerId,
-            {
-                from: payload.from,
-                to: payload.to,
-            },
-        );
+        const result = await this.gameService.playerMove(payload.playerId, {
+            from: payload.from,
+            to: payload.to,
+        });
 
         if (result.error) {
             socket.emit("moveError", result.error);
@@ -96,82 +91,6 @@ export class HandleGameGateway {
         }
     }
 
-    @SubscribeMessage("game:offerDraw")
-    handleOfferDraw(
-        @MessageBody(
-            new ParseJsonPipe(),
-            new ValidationPipe({ transform: true }),
-        )
-        payload: OfferDrawDTO,
-        //@ConnectedSocket() socket: Socket,
-    ) {
-        const game = this.activeGamesService.findGameByPlayerId(
-            payload.playerId,
-        );
-        if (game) {
-            const opponentSocket =
-                this.activeGamesService.getSocketIdByPlayerId(
-                    game.getOpponentId(payload.playerId),
-                );
-            if (opponentSocket) {
-                this.server.to(opponentSocket).emit("drawOffered", {
-                    playerId: payload.playerId,
-                    gameId: game.gameId,
-                });
-            }
-        }
-    }
-
-    @SubscribeMessage("game:acceptDraw")
-    handleAcceptDraw(
-        @MessageBody(
-            new ParseJsonPipe(),
-            new ValidationPipe({ transform: true }),
-        )
-        payload: AcceptDrawDTO,
-        //@ConnectedSocket() socket: Socket,
-    ) {
-        const game = this.activeGamesService.findGameByPlayerId(
-            payload.playerId,
-        );
-        if (game) {
-            game.endGame("draw");
-            const player1Socket = this.activeGamesService.getSocketIdByPlayerId(
-                game.whitesPlayer.playerId,
-            );
-            const player2Socket = this.activeGamesService.getSocketIdByPlayerId(
-                game.blacksPlayer.playerId,
-            );
-            this.server.to(player1Socket).emit("gameOver", { winner: "draw" });
-            this.server.to(player2Socket).emit("gameOver", { winner: "draw" });
-        }
-    }
-
-    @SubscribeMessage("game:rejectDraw")
-    handleRejectDraw(
-        @MessageBody(
-            new ParseJsonPipe(),
-            new ValidationPipe({ transform: true }),
-        )
-        payload: AcceptDrawDTO,
-        //@ConnectedSocket() socket: Socket,
-    ) {
-        const game = this.activeGamesService.findGameByPlayerId(
-            payload.playerId,
-        );
-        if (game) {
-            const opponentSocket =
-                this.activeGamesService.getSocketIdByPlayerId(
-                    game.getOpponentId(payload.playerId),
-                );
-            if (opponentSocket) {
-                this.server.to(opponentSocket).emit("drawRejected", {
-                    playerId: payload.playerId,
-                });
-            }
-        }
-    }
-
     @SubscribeMessage("game:resign")
     handleResign(
         @MessageBody(
@@ -181,14 +100,14 @@ export class HandleGameGateway {
         payload: { playerId: string },
         //@ConnectedSocket() socket: Socket,
     ) {
-        const result = this.hangleGameService.handleResign(payload.playerId);
+        const result = this.gameService.handleResign(payload.playerId);
 
-        if (result && result.game) {
+        if (result && result.gameInstance) {
             const player1Socket = this.activeGamesService.getSocketIdByPlayerId(
-                result.game.whitesPlayer.playerId,
+                result.gameInstance.whitesPlayer.playerId,
             );
             const player2Socket = this.activeGamesService.getSocketIdByPlayerId(
-                result.game.blacksPlayer.playerId,
+                result.gameInstance.blacksPlayer.playerId,
             );
 
             if (player1Socket && player2Socket) {
@@ -201,43 +120,6 @@ export class HandleGameGateway {
                     reason: "resign",
                 });
             }
-        }
-    }
-
-    // handle recconnection
-    @SubscribeMessage("game:reconnect")
-    handleReconnect(
-        @MessageBody(
-            new ParseJsonPipe(),
-            new ValidationPipe({ transform: true }),
-        ) // TODO: add DTO here
-        payload: { playerId: string; gameId: string },
-        @ConnectedSocket() socket: Socket,
-    ) {
-        const { playerId, gameId } = payload;
-        console.log(
-            `Player ${playerId} attempting to reconnect to game ${gameId}`,
-        );
-
-        const game = this.activeGamesService.findGameByPlayerId(playerId);
-        if (game && game.gameId === gameId) {
-            // Actualizamos el socket del jugador en el mapa de jugadores y sockets
-            this.activeGamesService.registerPlayerSocket(playerId, socket.id);
-            console.log(
-                `Player ${playerId} reconnected with socket ID ${socket.id}`,
-            );
-
-            // Enviamos los datos de la partida al jugador reconectado
-            socket.emit("game:reconnected", {
-                color:
-                    game.whitesPlayer.playerId === playerId ? "white" : "black",
-                board: game.board.fen(),
-                moveHistory: game.board.history(),
-            });
-        } else {
-            socket.emit("error", {
-                message: "No game found or invalid gameId",
-            });
         }
     }
 }
