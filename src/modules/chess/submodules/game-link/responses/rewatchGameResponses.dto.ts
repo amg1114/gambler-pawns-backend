@@ -1,9 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsObject } from "class-validator";
 import { Game } from "src/modules/chess/entities/game";
 
 export class RewatchGameResponse200Dto {
-    @IsObject()
     @ApiProperty({
         //TODO: Improve example with filled data
         example: {
@@ -29,7 +27,6 @@ export class RewatchGameResponse200Dto {
 }
 
 export class RewatchGameResponse400Dto {
-    @IsObject()
     @ApiProperty({
         example: {
             message: ["encodedId must be longer than or equal to 4 characters"],
@@ -40,7 +37,6 @@ export class RewatchGameResponse400Dto {
 }
 
 export class RewatchGameResponse404Dto {
-    @IsObject()
     @ApiProperty({
         example: {
             message: ["Game not found"],
@@ -51,7 +47,6 @@ export class RewatchGameResponse404Dto {
 }
 
 export class RewatchGameResponse406Dto {
-    @IsObject()
     @ApiProperty({
         example: {
             message: ["Invalid ID"],
