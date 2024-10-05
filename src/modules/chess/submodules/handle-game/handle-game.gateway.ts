@@ -122,42 +122,4 @@ export class HandleGameGateway {
             }
         }
     }
-
-    // handle recconnection
-    // TODO: move to reconnect gateway
-    @SubscribeMessage("game:reconnect")
-    handleReconnect(
-        @MessageBody(
-            new ParseJsonPipe(),
-            new ValidationPipe({ transform: true }),
-        ) // TODO: add DTO here
-        payload: { playerId: string; gameId: string },
-        @ConnectedSocket() socket: Socket,
-    ) {
-        const { playerId, gameId } = payload;
-        console.log(
-            `Player ${playerId} attempting to reconnect to game ${gameId}`,
-        );
-
-        const game = this.activeGamesService.findGameByPlayerId(playerId);
-        if (game && game.gameId === gameId) {
-            // Actualizamos el socket del jugador en el mapa de jugadores y sockets
-            this.activeGamesService.registerPlayerSocket(playerId, socket.id);
-            console.log(
-                `Player ${playerId} reconnected with socket ID ${socket.id}`,
-            );
-
-            // Enviamos los datos de la partida al jugador reconectado
-            socket.emit("game:reconnected", {
-                color:
-                    game.whitesPlayer.playerId === playerId ? "white" : "black",
-                board: game.board.fen(),
-                moveHistory: game.board.history(),
-            });
-        } else {
-            socket.emit("error", {
-                message: "No game found or invalid gameId",
-            });
-        }
-    }
 }
