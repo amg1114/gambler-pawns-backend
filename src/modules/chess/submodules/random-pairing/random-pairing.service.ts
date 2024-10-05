@@ -1,7 +1,5 @@
 import { Injectable } from "@nestjs/common";
-// entities
 import { GameModeType } from "../../entities/db/game.entity";
-// services
 import { GameService } from "../handle-game/game.service";
 
 export interface Player {
@@ -10,77 +8,127 @@ export interface Player {
     socketId: string;
     initialTime: number;
     incrementTime: number;
+    joinedAt: number;
 }
+
+type TimeKey = string;
 
 @Injectable()
 export class RandomPairingService {
-    private rapidPool: Player[] = [];
-    private blitzPool: Player[] = [];
-    private bulletPool: Player[] = [];
+    private pools: Record<GameModeType, Map<TimeKey, Player[]>> = {
+        rapid: new Map(),
+        blitz: new Map(),
+        bullet: new Map(),
+        arcade: new Map(),
+    };
+
+    private readonly MAX_WAIT_TIME = 30000; // 30 seconds
+    private readonly INITIAL_ELO_RANGE = 100;
+    private readonly ELO_RANGE_INCREMENT = 50;
 
     constructor(private gameService: GameService) {}
 
     async addToPool(player: Player, mode: GameModeType) {
-        const pool = this.getPoolByMode(mode);
-        pool.push(player);
-        return await this.tryToPairPlayers(mode);
+        const pool = this.pools[mode];
+        const timeKey = this.getTimeKey(player);
+
+        if (!pool.has(timeKey)) {
+            pool.set(timeKey, []);
+        }
+        const timePool = pool.get(timeKey)!;
+
+        player.joinedAt = Date.now();
+        timePool.push(player);
+
+        return this.findMatch(mode, timeKey, player);
     }
 
-    async tryToPairPlayers(mode: GameModeType) {
-        const pool = this.getPoolByMode(mode);
-        // TODO: agregar logica setTimeOut para esperar a que la pool tenga más jugadores +-5s
+    private async findMatch(
+        mode: GameModeType,
+        timeKey: TimeKey,
+        player: Player,
+    ) {
+        const timePool = this.pools[mode].get(timeKey)!;
+        const currentTime = Date.now();
+        let bestMatch: Player | null = null;
+        let bestMatchIndex: number = -1;
+        const eloRange = this.INITIAL_ELO_RANGE;
 
-        // sort array by elo
-        pool.sort((a: Player, b: Player) => a.eloRating - b.eloRating);
+        for (let i = 0; i < timePool.length; i++) {
+            const opponent = timePool[i];
+            if (opponent.playerId === player.playerId) continue;
 
-        // Filtrar jugadores con el mismo initialTime e incrementTime
-        const filteredPool = pool.filter(
-            (player: Player, index: number, self: Player[]) =>
-                self.findIndex(
-                    (p) =>
-                        p.initialTime === player.initialTime &&
-                        p.incrementTime === player.incrementTime,
-                ) === index,
-        );
-
-        if (filteredPool.length < 2) return;
-
-        // pairing first two players in filtered array
-        const player1 = filteredPool.shift();
-        const player2 = filteredPool.shift();
-
-        if (player1 && player2) {
-            // Remove paired players from the original pool
-            this.removePlayerFromPool(pool, player1);
-            this.removePlayerFromPool(pool, player2);
-
-            // Create new game
-            const newGame = await this.gameService.createGame(
-                player1.playerId,
-                player2.playerId,
-                mode,
-                "Random Pairing",
-                player1.initialTime,
-                player1.incrementTime,
+            const waitTime = currentTime - opponent.joinedAt;
+            const eloDifference = Math.abs(
+                player.eloRating - opponent.eloRating,
             );
 
-            return {
-                gameId: newGame.gameId,
-                player1Socket: player1.socketId,
-                player2Socket: player2.socketId,
-                playerWhite: newGame.whitesPlayer,
-                playerBlack: newGame.blacksPlayer,
-            };
+            // Increase Elo range based on wait time
+            const adjustedEloRange =
+                eloRange +
+                Math.floor(waitTime / 5000) * this.ELO_RANGE_INCREMENT;
+
+            if (eloDifference <= adjustedEloRange) {
+                bestMatch = opponent;
+                bestMatchIndex = i;
+                break;
+            }
+
+            // If no match found within Elo range, pick the closest after MAX_WAIT_TIME
+            if (
+                !bestMatch &&
+                waitTime >= this.MAX_WAIT_TIME &&
+                (bestMatchIndex === -1 ||
+                    eloDifference <
+                        Math.abs(player.eloRating - bestMatch.eloRating))
+            ) {
+                bestMatch = opponent;
+                bestMatchIndex = i;
+            }
         }
-    }
-    getPoolByMode(mode: GameModeType) {
-        return this[`${mode}Pool`];
+
+        if (bestMatch) {
+            // Remove matched players from the pool
+            timePool.splice(bestMatchIndex, 1);
+            timePool.splice(
+                timePool.findIndex((p) => p.playerId === player.playerId),
+                1,
+            );
+
+            return this.createGame(mode, player, bestMatch);
+        }
+
+        return null; // No match found
     }
 
-    removePlayerFromPool(pool: Player[], player: Player) {
-        const index = pool.indexOf(player);
-        if (index > -1) {
-            pool.splice(index, 1);
-        }
+    private async createGame(
+        mode: GameModeType,
+        player1: Player,
+        player2: Player,
+    ) {
+        const [initialTime, incrementTime] = this.getTimeKey(player1)
+            .split("-")
+            .map(Number);
+        const newGame = await this.gameService.createGame(
+            player1.playerId,
+            player2.playerId,
+            mode,
+            "Random Pairing",
+            initialTime,
+            incrementTime,
+        );
+
+        return {
+            gameId: newGame.gameId,
+            player1Socket: player1.socketId,
+            player2Socket: player2.socketId,
+            playerWhite: newGame.whitesPlayer,
+            playerBlack: newGame.blacksPlayer,
+            eloDifference: Math.abs(player1.eloRating - player2.eloRating),
+        };
+    }
+
+    private getTimeKey(player: Player): TimeKey {
+        return `${player.initialTime}-${player.incrementTime}`;
     }
 }

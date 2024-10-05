@@ -75,11 +75,11 @@ export class GameService {
         this.activeGamesService.setActiveGame(player1Id, gameInstance);
         this.activeGamesService.setActiveGame(player2Id, gameInstance);
 
-        this.timerService.startTimer(
-            gameEncryptedId,
-            initialTime,
-            incrementTime,
-        );
+        // this.timerService.startTimer(
+        //     gameEncryptedId,
+        //     initialTime,
+        //     incrementTime,
+        // );
 
         return {
             ...newGame,
@@ -114,9 +114,8 @@ export class GameService {
 
     async endGame(winner: GameWinner, gameInstance: Game): Promise<void> {
         // TODO: update players elo in db
-        // TODO: set streaks
         // TODO: stop timers?
-        this.timerService.stopTimer(gameInstance.gameId);
+        //this.timerService.stopTimer(gameInstance.gameId);
 
         // calculate new elo for both players
         const eloWhitesAfterGame = this.eloService.calculateNewElo(
@@ -171,8 +170,7 @@ export class GameService {
 
         const winner =
             gameInstance.whitesPlayer.playerId === playerId ? "b" : "w";
-        this.endGame(winner, gameInstance); // Finaliza el juego actualizando el ELO y el estado
-        // TODO: ¿debería devolver el estado del juego?
+        this.endGame(winner, gameInstance);
         return { gameInstance, winner };
     }
 }

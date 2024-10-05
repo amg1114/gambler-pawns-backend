@@ -19,7 +19,8 @@ export class DrawService {
     acceptDraw(gameId: string): boolean {
         if (this.drawOffers.has(gameId)) {
             this.drawOffers.delete(gameId);
-            this.gameService.endGame(gameId, "draw"); // end game with draw
+            // TODO: fix this
+            //this.gameService.endGame(gameId, "draw"); // end game with draw
             return true;
         }
         return false;

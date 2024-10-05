@@ -13,9 +13,8 @@ import { JoinGameDTO } from "./dto/joinGame.dto";
 import { RandomPairingService } from "./random-pairing.service";
 import { ActiveGamesService } from "../active-games/active-games.service";
 
-// TODO: probar esto
 @UseFilters(new CustomWsFilterException())
-@UsePipes(new ValidationPipe(), new ParseJsonPipe())
+@UsePipes(new ParseJsonPipe(), new ValidationPipe({ transform: true }))
 @WebSocketGateway()
 export class RandomPairingGateway {
     @WebSocketServer()

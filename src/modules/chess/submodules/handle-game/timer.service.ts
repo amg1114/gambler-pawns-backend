@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { WsException } from "@nestjs/websockets";
 
+// TODO: agregar columnas de tiempo para cada jugador en la tabla game
 @Injectable()
 export class TimerService {
     private timers: Map<
