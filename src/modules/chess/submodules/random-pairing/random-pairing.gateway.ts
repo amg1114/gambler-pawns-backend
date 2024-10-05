@@ -45,6 +45,7 @@ export class RandomPairingGateway {
                 socketId: socket.id,
                 initialTime,
                 incrementTime,
+                joinedAt: Date.now(),
             },
             mode,
         );

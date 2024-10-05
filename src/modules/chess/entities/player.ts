@@ -26,23 +26,22 @@ export class GamePlayer {
         this.isGuest = this.playerId.includes("guest");
         this.side = side;
         this.gameMode = gameMode;
-        this.setElo();
         return await this.verifyNonGuestPlayer();
     }
 
     private async verifyNonGuestPlayer() {
         if (this.isGuest) return;
 
-        const user = await this.userRepository.findOneBy({
+        // TODO: hacer una consulta personalizada para no traer todos los datos del usuario
+        // solo traer los necesarios (los que muestra el rival en el figma game page)
+        this.user = await this.userRepository.findOneBy({
             userId: +this.playerId,
         });
 
-        if (!user) {
+        if (!this.user) {
             throw new WsException("This invalid playerId");
         }
-
-        this.user = user;
-
+        this.setElo();
         return this;
     }
 

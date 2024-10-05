@@ -70,6 +70,7 @@ export class GameService {
         const gameEncryptedId = this.gameLinkService.genGameLinkEncodeByGameId(
             newGame.gameId,
         );
+        gameInstance.gameId = gameEncryptedId;
 
         // save game in memory (HashMap)
         this.activeGamesService.setActiveGame(player1Id, gameInstance);

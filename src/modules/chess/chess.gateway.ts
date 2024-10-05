@@ -9,12 +9,13 @@ import {
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
 import { CORS } from "../../config/constants";
-import { UseFilters, ValidationPipe } from "@nestjs/common";
+import { UseFilters, UsePipes, ValidationPipe } from "@nestjs/common";
 import { CustomWsFilterException } from "../../common/websockets-utils/websocket.filter";
 import { ParseJsonPipe } from "src/common/websockets-utils/websocketParseJson.filter";
 import { ActiveGamesService } from "./submodules/active-games/active-games.service";
 
-@UseFilters(CustomWsFilterException)
+@UseFilters(new CustomWsFilterException())
+@UsePipes(new ParseJsonPipe(), new ValidationPipe({ transform: true }))
 @WebSocketGateway({
     cors: CORS,
 })
@@ -38,10 +39,7 @@ export class ChessGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // handle recconnection of clients
     @SubscribeMessage("game:reconnect")
     handleReconnect(
-        @MessageBody(
-            new ParseJsonPipe(),
-            new ValidationPipe({ transform: true }),
-        )
+        @MessageBody()
         payload: { playerId: string; gameId: string },
         @ConnectedSocket() socket: Socket,
     ) {
