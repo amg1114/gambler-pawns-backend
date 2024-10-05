@@ -13,9 +13,7 @@ import { HandleGameService } from "./handle-game.service";
 import { CustomWsFilterException } from "src/common/websockets-utils/websocket.filter";
 import { ParseJsonPipe } from "src/common/websockets-utils/websocketParseJson.filter";
 // dtos
-import { AcceptDrawDTO } from "./dto/acceptDraw.dto";
 import { MakeMoveDTO } from "./dto/makeMove.dto";
-import { OfferDrawDTO } from "./dto/offerDraw.dto";
 import { ActiveGamesService } from "../active-games/active-games.service";
 
 @UseFilters(CustomWsFilterException)
@@ -92,82 +90,6 @@ export class HandleGameGateway {
                     this.server.to(player1Socket).emit("moveMade", result);
                     this.server.to(player2Socket).emit("moveMade", result);
                 }
-            }
-        }
-    }
-
-    @SubscribeMessage("game:offerDraw")
-    handleOfferDraw(
-        @MessageBody(
-            new ParseJsonPipe(),
-            new ValidationPipe({ transform: true }),
-        )
-        payload: OfferDrawDTO,
-        //@ConnectedSocket() socket: Socket,
-    ) {
-        const game = this.activeGamesService.findGameByPlayerId(
-            payload.playerId,
-        );
-        if (game) {
-            const opponentSocket =
-                this.activeGamesService.getSocketIdByPlayerId(
-                    game.getOpponentId(payload.playerId),
-                );
-            if (opponentSocket) {
-                this.server.to(opponentSocket).emit("drawOffered", {
-                    playerId: payload.playerId,
-                    gameId: game.gameId,
-                });
-            }
-        }
-    }
-
-    @SubscribeMessage("game:acceptDraw")
-    handleAcceptDraw(
-        @MessageBody(
-            new ParseJsonPipe(),
-            new ValidationPipe({ transform: true }),
-        )
-        payload: AcceptDrawDTO,
-        //@ConnectedSocket() socket: Socket,
-    ) {
-        const game = this.activeGamesService.findGameByPlayerId(
-            payload.playerId,
-        );
-        if (game) {
-            game.endGame("draw");
-            const player1Socket = this.activeGamesService.getSocketIdByPlayerId(
-                game.whitesPlayer.playerId,
-            );
-            const player2Socket = this.activeGamesService.getSocketIdByPlayerId(
-                game.blacksPlayer.playerId,
-            );
-            this.server.to(player1Socket).emit("gameOver", { winner: "draw" });
-            this.server.to(player2Socket).emit("gameOver", { winner: "draw" });
-        }
-    }
-
-    @SubscribeMessage("game:rejectDraw")
-    handleRejectDraw(
-        @MessageBody(
-            new ParseJsonPipe(),
-            new ValidationPipe({ transform: true }),
-        )
-        payload: AcceptDrawDTO,
-        //@ConnectedSocket() socket: Socket,
-    ) {
-        const game = this.activeGamesService.findGameByPlayerId(
-            payload.playerId,
-        );
-        if (game) {
-            const opponentSocket =
-                this.activeGamesService.getSocketIdByPlayerId(
-                    game.getOpponentId(payload.playerId),
-                );
-            if (opponentSocket) {
-                this.server.to(opponentSocket).emit("drawRejected", {
-                    playerId: payload.playerId,
-                });
             }
         }
     }

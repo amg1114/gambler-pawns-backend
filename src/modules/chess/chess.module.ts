@@ -19,6 +19,8 @@ import { EloService } from "./submodules/handle-game/elo.service";
 import { UserService } from "src/modules/user/user.service";
 import { GameService } from "./submodules/handle-game/game.service";
 import { TimerService } from "./submodules/handle-game/timer.service";
+import { DrawGateway } from "./submodules/handle-game/draw.gateway";
+import { DrawService } from "./submodules/handle-game/draw.service";
 
 @Module({
     imports: [
@@ -42,6 +44,8 @@ import { TimerService } from "./submodules/handle-game/timer.service";
         GameService,
         UserService,
         TimerService,
+        DrawGateway,
+        DrawService,
     ],
     controllers: [GameLinkController],
 })
