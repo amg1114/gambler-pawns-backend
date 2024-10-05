@@ -1,9 +1,8 @@
-import { Chess } from "chess.js";
+import { Repository } from "typeorm";
 import { WsException } from "@nestjs/websockets";
+import { Chess } from "chess.js";
 
 // entities
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
 import { GameModeType, GameTypePairing } from "./db/game.entity";
 import { User } from "src/modules/user/entities/user.entity";
 import { GamePlayer } from "./player";
@@ -14,40 +13,45 @@ export class Game {
     public typePairing: GameTypePairing;
     public initialTime: number;
     public incrementTime: number;
-    public gameId: string; //encryted game id
+    public gameId: string; // encrypted game id
     public whitesPlayer: GamePlayer;
     public blacksPlayer: GamePlayer;
     public board: Chess;
     private moveCount = 0;
 
-    constructor(
-        @InjectRepository(User)
-        private readonly userRepository: Repository<User>,
-    ) {}
+    constructor() {
+        this.board = new Chess();
+    }
 
+    /** method init game */
     async createGame(
         player1Id: string,
         player2Id: string,
         mode: GameModeType,
         typePairing: GameTypePairing,
+        initialTime: number,
+        incrementTime: number,
+        userRepository: Repository<User>,
     ) {
         this.mode = mode;
         this.typePairing = typePairing;
-        this.board = new Chess();
-        // Dejar que la entidad GamePlayer se encargue de asignar los datos
-        this.whitesPlayer = await new GamePlayer(this.userRepository).create(
+        this.initialTime = initialTime;
+        this.incrementTime = incrementTime;
+
+        // Create players and assign sides
+        this.whitesPlayer = await new GamePlayer(userRepository).create(
             player1Id,
             "w",
             this.mode,
         );
-        this.blacksPlayer = await new GamePlayer(this.userRepository).create(
+        this.blacksPlayer = await new GamePlayer(userRepository).create(
             player2Id,
             "b",
             this.mode,
         );
     }
 
-    /** validate and make move */
+    /** Validate and make move */
     makeMove(playerId: string, move: { from: string; to: string }) {
         if (
             (this.moveCount % 2 === 0 &&
@@ -68,66 +72,3 @@ export class Game {
         }
     }
 }
-
-/*
-export class Game {
-    async createGame(
-    ) {
-        const gameInDB = await this.gameService.createGame(
-            {
-                gameTimestamp: new Date(),
-                pgn: this.board.pgn(),
-                whitesPlayer: this.whitesPlayer.user,
-                blacksPlayer: this.blacksPlayer.user,
-                eloWhitesBeforeGame: this.whitesPlayer.elo,
-                eloBlacksBeforeGame: this.blacksPlayer.elo,
-                gameMode: this.mode,
-                typePairing: typePairing,
-            },
-            initialTime,
-            incrementTime,
-        );
-
-        this.gameId = gameInDB.gameId;
-        return this;
-    }
-   
-
-    async endGame(winner: GameWinner) {
-        // calculate new elo for both players
-        const eloWhitesAfterGame = this.eloService.calculateNewElo(
-            this.whitesPlayer.elo,
-            this.blacksPlayer.elo,
-            winner === "w" ? 1 : winner === "b" ? 0 : 0.5,
-        );
-        const eloBlacksAfterGame = this.eloService.calculateNewElo(
-            this.blacksPlayer.elo,
-            this.whitesPlayer.elo,
-            winner === "b" ? 1 : winner === "w" ? 0 : 0.5,
-        );
-
-        // update streaks if players are not guests
-        // TODO: how to handle guests?
-        if (winner === "b") {
-            await this.userService.increaseStreakBy1(
-                this.blacksPlayer.playerId,
-            );
-            await this.userService.resetStreak(this.whitesPlayer.playerId);
-        } else if (winner === "w") {
-            await this.userService.increaseStreakBy1(
-                this.whitesPlayer.playerId,
-            );
-            await this.userService.resetStreak(this.blacksPlayer.playerId);
-        }
-
-        await this.gameService.updateGameResult(this.gameId, {
-            pgn: this.board.pgn(),
-            winner: winner,
-            eloWhitesAfterGame: eloWhitesAfterGame,
-            eloBlacksAfterGame: eloBlacksAfterGame,
-            // TODO: implement Game result type});
-        });
-    }
-}
-
-*/

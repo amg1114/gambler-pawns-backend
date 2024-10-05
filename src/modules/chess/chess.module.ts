@@ -12,7 +12,6 @@ import { HandleGameGateway } from "./submodules/handle-game/handle-game.gateway"
 import { GameLinkController } from "./submodules/game-link/game-link.controller";
 import { ActiveGamesService } from "./submodules/active-games/active-games.service";
 import { GameLinkService } from "./submodules/game-link/game-link.service";
-import { HandleGameService } from "./submodules/handle-game/handle-game.service";
 import { RandomPairingGateway } from "./submodules/random-pairing/random-pairing.gateway";
 import { RandomPairingService } from "./submodules/random-pairing/random-pairing.service";
 import { EloService } from "./submodules/handle-game/elo.service";
@@ -36,7 +35,6 @@ import { DrawService } from "./submodules/handle-game/draw.service";
         ChessGateway,
         ActiveGamesService,
         GameLinkService,
-        HandleGameService,
         HandleGameGateway,
         RandomPairingGateway,
         RandomPairingService,

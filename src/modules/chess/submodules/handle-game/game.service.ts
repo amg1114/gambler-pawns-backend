@@ -1,107 +1,178 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { Game as GameEntity } from "../../entities/db/game.entity";
+
+// entities and types
+import {
+    Game as GameEntity,
+    GameModeType,
+    GameTypePairing,
+} from "../../entities/db/game.entity";
+import { Game } from "../../entities/game";
+import { User } from "src/modules/user/entities/user.entity";
+
+// services
 import { TimerService } from "./timer.service";
 import { GameLinkService } from "../game-link/game-link.service";
 import { EloService } from "./elo.service";
 import { GameWinner } from "../../entities/db/game.entity";
+import { UserService } from "src/modules/user/user.service";
 import { ActiveGamesService } from "../active-games/active-games.service";
 
 @Injectable()
-/** Handle game operations in db */
+/** Handle chess game logic */
 export class GameService {
     constructor(
         @InjectRepository(GameEntity)
         private readonly gameRepository: Repository<GameEntity>,
-        private readonly activeGamesService: ActiveGamesService,
+        @InjectRepository(User)
+        private readonly userRepository: Repository<User>,
         private readonly timerService: TimerService,
         private readonly gameLinkService: GameLinkService,
-        private readonly eloService: EloService, // Incluir EloService
+        private readonly eloService: EloService,
+        private readonly userService: UserService,
+        private readonly activeGamesService: ActiveGamesService,
     ) {}
 
     async createGame(
-        gameData: Partial<GameEntity>,
+        player1Id: string,
+        player2Id: string,
+        mode: GameModeType,
+        typePairing: GameTypePairing,
         initialTime: number,
         incrementTime: number,
     ) {
-        const newGame = await this.gameRepository.save(
-            this.gameRepository.create(gameData),
+        // Create game instance
+        const gameInstance = new Game();
+        await gameInstance.createGame(
+            player1Id,
+            player2Id,
+            mode,
+            typePairing,
+            initialTime,
+            incrementTime,
+            this.userRepository,
         );
 
-        const gameEncriptedId = this.gameLinkService.genGameLinkEncodeByGameId(
+        // Save game in db
+        const newGameEntity = this.gameRepository.create({
+            gameTimestamp: new Date(),
+            pgn: gameInstance.board.pgn(),
+            whitesPlayer: gameInstance.whitesPlayer.user,
+            blacksPlayer: gameInstance.blacksPlayer.user,
+            eloWhitesBeforeGame: gameInstance.whitesPlayer.elo,
+            eloBlacksBeforeGame: gameInstance.blacksPlayer.elo,
+            gameMode: gameInstance.mode,
+            typePairing: gameInstance.typePairing,
+        });
+        const newGame = await this.gameRepository.save(newGameEntity);
+
+        const gameEncryptedId = this.gameLinkService.genGameLinkEncodeByGameId(
             newGame.gameId,
         );
 
-        // start timer for the game
+        // save game in memory (HashMap)
+        this.activeGamesService.setActiveGame(player1Id, gameInstance);
+        this.activeGamesService.setActiveGame(player2Id, gameInstance);
+
         this.timerService.startTimer(
-            gameEncriptedId,
+            gameEncryptedId,
             initialTime,
             incrementTime,
         );
 
         return {
             ...newGame,
-            gameId: gameEncriptedId,
+            gameId: gameEncryptedId,
         };
     }
 
-    async playerMove(
-        gameId: string,
-        playerId: string,
-        move: { from: string; to: string },
-        gameInstance: any, // El juego en memoria
-    ): Promise<{
-        moveResult: any;
-        board: string;
-        gameOver?: boolean;
-        winner?: string;
-    }> {
-        // Realizar el movimiento en el estado del juego
-        const moveResult = gameInstance.makeMove(playerId, move);
+    async playerMove(playerId: string, move: { from: string; to: string }) {
+        const gameInstance =
+            this.activeGamesService.findGameByPlayerId(playerId);
 
-        // Si el juego ha terminado
-        if (moveResult.gameOver) {
-            await this.endGame(gameId, moveResult.winner, gameInstance);
+        if (!gameInstance) {
+            return { error: "Game not found" };
         }
 
-        return moveResult;
+        // make move in game instance
+        const moveResult = gameInstance.makeMove(playerId, move);
+
+        if (gameInstance.board.isGameOver()) {
+            const winner = gameInstance.board.turn() === "w" ? "b" : "w";
+            await this.endGame(winner, gameInstance);
+            return { gameOver: true, winner };
+        }
+
+        // TODO: update timers
+        // const lastPlayer =
+        //     playerId === gameInstance.playerOneId ? "playerOne" : "playerTwo";
+        // this.timerService.changeTurn(game, lastPlayer, game.increment);
+
+        return { moveResult, gameOver: false };
     }
 
-    async endGame(gameId: string, winner: GameWinner): Promise<void> {
-        //const game = await this.activeGamesService(gameId);
+    async endGame(winner: GameWinner, gameInstance: Game): Promise<void> {
+        // TODO: update players elo in db
+        // TODO: set streaks
+        // TODO: stop timers?
+        this.timerService.stopTimer(gameInstance.gameId);
 
+        // calculate new elo for both players
         const eloWhitesAfterGame = this.eloService.calculateNewElo(
-            game.whitesPlayer.elo,
-            game.blacksPlayer.elo,
+            gameInstance.whitesPlayer.elo,
+            gameInstance.blacksPlayer.elo,
             winner === "w" ? 1 : winner === "b" ? 0 : 0.5,
         );
-
         const eloBlacksAfterGame = this.eloService.calculateNewElo(
-            game.blacksPlayer.elo,
-            game.whitesPlayer.elo,
+            gameInstance.blacksPlayer.elo,
+            gameInstance.whitesPlayer.elo,
             winner === "b" ? 1 : winner === "w" ? 0 : 0.5,
         );
 
-        // Actualizar streaks
+        // update streaks if players are not guests
+        // TODO: how to handle guests?
         if (winner === "b") {
             await this.userService.increaseStreakBy1(
-                game.blacksPlayer.playerId,
+                gameInstance.blacksPlayer.playerId,
             );
-            await this.userService.resetStreak(game.whitesPlayer.playerId);
+            await this.userService.resetStreak(
+                gameInstance.whitesPlayer.playerId,
+            );
         } else if (winner === "w") {
             await this.userService.increaseStreakBy1(
-                game.whitesPlayer.playerId,
+                gameInstance.whitesPlayer.playerId,
             );
-            await this.userService.resetStreak(game.blacksPlayer.playerId);
+            await this.userService.resetStreak(
+                gameInstance.blacksPlayer.playerId,
+            );
         }
 
-        // Actualizar el resultado del juego en la base de datos
-        await this.updateGameResult(gameId, {
-            pgn: game.board.pgn(),
-            winner,
-            eloWhitesAfterGame,
-            eloBlacksAfterGame,
-        });
+        // TODO: set result type
+        // update game in db
+        await this.gameRepository.update(
+            this.gameLinkService.decodeGameLink(gameInstance.gameId),
+            {
+                pgn: gameInstance.board.pgn(),
+                winner: winner,
+                eloWhitesAfterGame: eloWhitesAfterGame,
+                eloBlacksAfterGame: eloBlacksAfterGame,
+            },
+        );
+    }
+
+    handleResign(playerId: string) {
+        const gameInstance =
+            this.activeGamesService.findGameByPlayerId(playerId);
+
+        if (!gameInstance) {
+            return { error: "Juego no encontrado" };
+        }
+
+        const winner =
+            gameInstance.whitesPlayer.playerId === playerId ? "b" : "w";
+        this.endGame(winner, gameInstance); // Finaliza el juego actualizando el ELO y el estado
+        // TODO: ¿debería devolver el estado del juego?
+        return { gameInstance, winner };
     }
 }

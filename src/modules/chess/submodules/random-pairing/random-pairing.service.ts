@@ -1,16 +1,7 @@
 import { Injectable } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import { ActiveGamesService } from "../active-games/active-games.service";
-import { GameLinkService } from "../game-link/game-link.service";
 // entities
-import { User } from "src/modules/user/entities/user.entity";
 import { GameModeType } from "../../entities/db/game.entity";
-
-// models
-import { Game } from "../../entities/game";
-import { UserService } from "src/modules/user/user.service";
-import { EloService } from "../handle-game/elo.service";
+// services
 import { GameService } from "../handle-game/game.service";
 
 export interface Player {
@@ -27,15 +18,7 @@ export class RandomPairingService {
     private blitzPool: Player[] = [];
     private bulletPool: Player[] = [];
 
-    constructor(
-        private gameLinkService: GameLinkService,
-        private userService: UserService,
-        private eloService: EloService,
-        private gameService: GameService,
-        private chessService: ActiveGamesService,
-        @InjectRepository(User)
-        private userRepository: Repository<User>,
-    ) {}
+    constructor(private gameService: GameService) {}
 
     async addToPool(player: Player, mode: GameModeType) {
         const pool = this.getPoolByMode(mode);
@@ -71,25 +54,16 @@ export class RandomPairingService {
             this.removePlayerFromPool(pool, player1);
             this.removePlayerFromPool(pool, player2);
 
-            // creating new game and callign createGameInDB in order to insert data in db
-            const newGame = await new Game(
-                this.userRepository,
-                this.userService,
-                this.eloService,
-                this.gameService,
-                this.gameLinkService,
-            ).createGame(
+            // Create new game
+            const newGame = await this.gameService.createGame(
                 player1.playerId,
                 player2.playerId,
                 mode,
                 "Random Pairing",
                 player1.initialTime,
-                player2.incrementTime,
+                player1.incrementTime,
             );
 
-            // save game in memory (HashMap)
-            this.chessService.setActiveGame(player1.playerId, newGame);
-            this.chessService.setActiveGame(player2.playerId, newGame);
             return {
                 gameId: newGame.gameId,
                 player1Socket: player1.socketId,

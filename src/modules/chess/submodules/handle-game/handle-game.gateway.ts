@@ -8,13 +8,13 @@ import {
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
 import { CORS } from "src/config/constants";
-import { HandleGameService } from "./handle-game.service";
 // ws utils
 import { CustomWsFilterException } from "src/common/websockets-utils/websocket.filter";
 import { ParseJsonPipe } from "src/common/websockets-utils/websocketParseJson.filter";
 // dtos
 import { MakeMoveDTO } from "./dto/makeMove.dto";
 import { ActiveGamesService } from "../active-games/active-games.service";
+import { GameService } from "./game.service";
 
 @UseFilters(CustomWsFilterException)
 @WebSocketGateway({
@@ -25,7 +25,7 @@ export class HandleGameGateway {
     server: Server;
 
     constructor(
-        private readonly hangleGameService: HandleGameService,
+        private readonly gameService: GameService,
         private readonly activeGamesService: ActiveGamesService,
     ) {}
 
@@ -39,13 +39,10 @@ export class HandleGameGateway {
         @ConnectedSocket() socket: Socket,
     ) {
         console.log("Making move", payload);
-        const result = await this.hangleGameService.handleMove(
-            payload.playerId,
-            {
-                from: payload.from,
-                to: payload.to,
-            },
-        );
+        const result = await this.gameService.playerMove(payload.playerId, {
+            from: payload.from,
+            to: payload.to,
+        });
 
         if (result.error) {
             socket.emit("moveError", result.error);
@@ -103,14 +100,14 @@ export class HandleGameGateway {
         payload: { playerId: string },
         //@ConnectedSocket() socket: Socket,
     ) {
-        const result = this.hangleGameService.handleResign(payload.playerId);
+        const result = this.gameService.handleResign(payload.playerId);
 
-        if (result && result.game) {
+        if (result && result.gameInstance) {
             const player1Socket = this.activeGamesService.getSocketIdByPlayerId(
-                result.game.whitesPlayer.playerId,
+                result.gameInstance.whitesPlayer.playerId,
             );
             const player2Socket = this.activeGamesService.getSocketIdByPlayerId(
-                result.game.blacksPlayer.playerId,
+                result.gameInstance.blacksPlayer.playerId,
             );
 
             if (player1Socket && player2Socket) {
@@ -127,6 +124,7 @@ export class HandleGameGateway {
     }
 
     // handle recconnection
+    // TODO: move to reconnect gateway
     @SubscribeMessage("game:reconnect")
     handleReconnect(
         @MessageBody(
