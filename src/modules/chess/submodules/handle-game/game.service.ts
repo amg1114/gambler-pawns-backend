@@ -76,11 +76,12 @@ export class GameService {
         this.activeGamesService.setActiveGame(player1Id, gameInstance);
         this.activeGamesService.setActiveGame(player2Id, gameInstance);
 
-        // this.timerService.startTimer(
-        //     gameEncryptedId,
-        //     initialTime,
-        //     incrementTime,
-        // );
+        // start timer for game
+        this.timerService.startTimer(
+            gameEncryptedId,
+            initialTime,
+            incrementTime,
+        );
 
         return {
             ...newGame,
@@ -105,18 +106,25 @@ export class GameService {
             return { gameOver: true, winner };
         }
 
-        // TODO: update timers
-        // const lastPlayer =
-        //     playerId === gameInstance.playerOneId ? "playerOne" : "playerTwo";
-        // this.timerService.changeTurn(game, lastPlayer, game.increment);
+        // update timer
+        const activePlayer =
+            gameInstance.board.turn() === "w" ? "playerOne" : "playerTwo";
+        this.timerService.updateTimer(gameInstance.gameId, activePlayer);
 
-        return { moveResult, gameOver: false };
+        const remainingTime = this.timerService.getRemainingTime(
+            gameInstance.gameId,
+        );
+
+        return {
+            moveResult,
+            gameOver: false,
+            remainingTime,
+        };
     }
 
     async endGame(winner: GameWinner, gameInstance: Game): Promise<void> {
         // TODO: update players elo in db
-        // TODO: stop timers?
-        //this.timerService.stopTimer(gameInstance.gameId);
+        this.timerService.stopTimer(gameInstance.gameId);
 
         // calculate new elo for both players
         const eloWhitesAfterGame = this.eloService.calculateNewElo(

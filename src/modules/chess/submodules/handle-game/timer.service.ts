@@ -1,9 +1,10 @@
-import { Injectable } from "@nestjs/common";
-import { WsException } from "@nestjs/websockets";
-
 // TODO: agregar columnas de tiempo para cada jugador en la tabla game
+import { Injectable } from "@nestjs/common";
+import { Interval } from "@nestjs/schedule";
+
 @Injectable()
 export class TimerService {
+    /**  Map to keep track of timers for each game,  gameId -> data */
     private timers: Map<
         string,
         {
@@ -11,6 +12,7 @@ export class TimerService {
             playerTwoTime: number;
             increment: number;
             activePlayer: "playerOne" | "playerTwo";
+            lastUpdateTime: number;
         }
     > = new Map();
 
@@ -19,123 +21,93 @@ export class TimerService {
             playerOneTime: initialTime,
             playerTwoTime: initialTime,
             increment: increment,
-            activePlayer: "playerOne", // Player one starts
+            activePlayer: "playerOne", // Assuming white starts
+            lastUpdateTime: Date.now(),
         });
     }
 
-    updateTimer(gameId: string, playerId: string, timeSpent: number): void {
-        const timer = this.timers.get(gameId);
+    updateTimer(gameId: string, activePlayer: "playerOne" | "playerTwo"): void {
+        const timerData = this.timers.get(gameId);
+        // TODO: revisar cual sería el manejo correcto de las excepciones
+        if (!timerData) return;
 
-        if (!timer) {
-            throw new WsException(`No timer found for gameId: ${gameId}`);
-        }
+        const now = Date.now();
+        const elapsedTime = now - timerData.lastUpdateTime;
 
-        if (timer.activePlayer === "playerOne") {
-            timer.playerOneTime -= timeSpent;
-            timer.playerOneTime += timer.increment;
-            timer.activePlayer = "playerTwo"; // Change turn to player 2
+        // Decrease time for the player who just moved
+        if (timerData.activePlayer === "playerOne") {
+            timerData.playerOneTime -= elapsedTime;
         } else {
-            timer.playerTwoTime -= timeSpent;
-            timer.playerTwoTime += timer.increment;
-            timer.activePlayer = "playerOne"; // Change turn to player 1
-        }
-        this.timers.set(gameId, timer);
-    }
-
-    getTime(gameId: string): { playerOneTime: number; playerTwoTime: number } {
-        const timer = this.timers.get(gameId);
-
-        if (!timer) {
-            throw new Error(`No timer found for gameId: ${gameId}`);
+            timerData.playerTwoTime -= elapsedTime;
         }
 
-        return {
-            playerOneTime: timer.playerOneTime,
-            playerTwoTime: timer.playerTwoTime,
-        };
+        // Add increment to the player who just moved
+        if (timerData.activePlayer === "playerOne") {
+            timerData.playerOneTime += timerData.increment * 1000;
+        } else {
+            timerData.playerTwoTime += timerData.increment * 1000;
+        }
+
+        // Update active player and last update time
+        timerData.activePlayer = activePlayer;
+        timerData.lastUpdateTime = now;
+
+        this.timers.set(gameId, timerData);
     }
 
-    /** Delete timer from map when game ends */
     stopTimer(gameId: string): void {
         this.timers.delete(gameId);
     }
-}
 
-/*
-import { Injectable } from '@nestjs/common';
-import { GameEntity } from './entities/game.entity'; // Asumiendo que GameEntity incluye un campo para el tiempo restante de cada jugador
+    getRemainingTime(
+        gameId: string,
+    ): { playerOneTime: number; playerTwoTime: number } | null {
+        const timerData = this.timers.get(gameId);
+        if (!timerData) return null;
 
-@Injectable()
-export class TimerService {
-  private timers: Map<string, NodeJS.Timeout> = new Map(); // Map para almacenar los timers por ID de juego
+        const now = Date.now();
+        const elapsedTime = now - timerData.lastUpdateTime;
 
-  // Inicializa el reloj del juego con tiempo e incremento
-  startTimer(game: GameEntity, initialTime: number, increment: number): void {
-    game.playerOneTime = initialTime;
-    game.playerTwoTime = initialTime;
+        let playerOneTime = timerData.playerOneTime;
+        let playerTwoTime = timerData.playerTwoTime;
 
-    // Comenzamos el temporizador para cada jugador (esto depende de quién inicia primero)
-    this.runTimer(game, 'playerOne');
-  }
+        if (timerData.activePlayer === "playerOne") {
+            playerOneTime -= elapsedTime;
+        } else {
+            playerTwoTime -= elapsedTime;
+        }
 
-  // Método para manejar el tiempo
-  runTimer(game: GameEntity, currentPlayer: 'playerOne' | 'playerTwo'): void {
-    const timerId = setInterval(() => {
-      if (currentPlayer === 'playerOne') {
-        game.playerOneTime--;
-      } else {
-        game.playerTwoTime--;
-      }
-
-      // Si el tiempo se agota
-      if (game.playerOneTime <= 0 || game.playerTwoTime <= 0) {
-        this.endGameDueToTimeout(game);
-        this.clearTimer(game.id);
-      }
-
-      // Aquí puedes emitir actualizaciones sobre el tiempo restante vía WebSockets
-      // ej: this.gateway.emitTimeUpdate(game.id, game.playerOneTime, game.playerTwoTime);
-    }, 1000);
-
-    this.timers.set(game.id, timerId);
-  }
-
-  // Método para cambiar de turno y aplicar incremento
-  changeTurn(game: GameEntity, lastPlayer: 'playerOne' | 'playerTwo', increment: number): void {
-    // Pausa el temporizador actual
-    this.clearTimer(game.id);
-
-    // Aplica el incremento al jugador que acaba de mover
-    if (lastPlayer === 'playerOne') {
-      game.playerOneTime += increment;
-    } else {
-      game.playerTwoTime += increment;
+        return {
+            playerOneTime: Math.max(0, playerOneTime),
+            playerTwoTime: Math.max(0, playerTwoTime),
+        };
     }
 
-    // Cambia al otro jugador
-    const nextPlayer = lastPlayer === 'playerOne' ? 'playerTwo' : 'playerOne';
-    this.runTimer(game, nextPlayer);
-  }
+    @Interval(1000) // Run every second
+    handleTimerUpdates() {
+        for (const [gameId, timerData] of this.timers.entries()) {
+            const remainingTime = this.getRemainingTime(gameId);
+            if (!remainingTime) continue;
 
-  // Método para finalizar el juego por tiempo agotado
-  private endGameDueToTimeout(game: GameEntity): void {
-    game.status = 'timeout';
-    // Lógica adicional para manejar el final del juego
-  }
-
-  // Método para limpiar los temporizadores
-  clearTimer(gameId: string): void {
-    const timerId = this.timers.get(gameId);
-    if (timerId) {
-      clearInterval(timerId);
-      this.timers.delete(gameId);
+            if (
+                remainingTime.playerOneTime <= 0 ||
+                remainingTime.playerTwoTime <= 0
+            ) {
+                // Time's up for one of the players
+                const winner =
+                    remainingTime.playerOneTime <= 0
+                        ? "playerTwo"
+                        : "playerOne";
+                this.handleTimeOut(gameId, winner);
+            }
+        }
     }
-  }
 
-  // Método para detener el temporizador (cuando el juego termina, por ejemplo)
-  stopTimer(gameId: string): void {
-    this.clearTimer(gameId);
-  }
+    private handleTimeOut(gameId: string, winner: "playerOne" | "playerTwo") {
+        // Here you would implement the logic to end the game due to time out
+        console.log(`Game ${gameId} ended. Winner by timeout: ${winner}`);
+        this.stopTimer(gameId);
+        // TODO: debo emitir un evento? o llamar a un metodo? (esto podría generar una dependencia circular?)
+        // You might want to emit an event or call a method in GameService to handle the game end
+    }
 }
-
-*/
