@@ -16,6 +16,7 @@ import { NotificationsModule } from "./modules/notification/notifications.module
 import { PuzzleModule } from "./modules/puzzle/puzzle.module";
 import { StoreModule } from "./modules/store/store.module";
 import { ClubModule } from "./modules/club/club.module";
+import { ScheduleModule } from "@nestjs/schedule";
 
 @Module({
     imports: [
@@ -38,6 +39,7 @@ import { ClubModule } from "./modules/club/club.module";
         PuzzleModule,
         StoreModule,
         ClubModule,
+        ScheduleModule.forRoot(),
     ],
 })
 export class AppModule {}

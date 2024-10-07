@@ -4,9 +4,10 @@ import { Game } from "src/modules/chess/entities/game";
 @Injectable()
 export class ActiveGamesService {
     // TODO: jsDocs comments
+    // TODO: validar que no exista un juego activo para un playerId, antes de asignar un nuevo juego
+    // en tal caso lanzar una excepción
     private activeGames: Map<string, Game> = new Map(); // playerId -> game
     private playerSocketMap: Map<string, string> = new Map(); // playerId -> socketId
-    //sqids: any;
 
     findGameByPlayerId(playerId: string): Game | undefined {
         return this.activeGames.get(playerId);
