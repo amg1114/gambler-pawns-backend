@@ -24,4 +24,10 @@ export class ActiveGamesService {
     registerPlayerSocket(playerId: string, socketId: string) {
         this.playerSocketMap.set(playerId, socketId);
     }
+
+    findGameByGameId(gameId: string): Game | undefined {
+        for (const game of this.activeGames.values()) {
+            if (game.gameId === gameId) return game;
+        }
+    }
 }

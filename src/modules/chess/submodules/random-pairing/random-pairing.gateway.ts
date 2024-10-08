@@ -38,6 +38,8 @@ export class RandomPairingGateway {
         // Register player and socket in chess service
         this.activeGamesService.registerPlayerSocket(playerId, socket.id);
 
+        // TODO: aquí debería crear la instancia de jugador (la cual de una vez hace las validaciones)
+
         const pairing = await this.randomPairingService.addToPool(
             {
                 playerId,
@@ -52,6 +54,17 @@ export class RandomPairingGateway {
 
         if (pairing) {
             const { player1Socket, player2Socket, ...rest } = pairing;
+
+            // join current paired player's socket to the game room
+            socket.join(pairing.gameId);
+
+            const opponentSocket = this.server.sockets.sockets.get(
+                socket.id === player1Socket ? player2Socket : player1Socket,
+            );
+
+            if (opponentSocket) {
+                opponentSocket.join(pairing.gameId);
+            }
 
             // Notify players and send required data
             this.server.to(player1Socket).emit("game:started", {

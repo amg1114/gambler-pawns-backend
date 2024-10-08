@@ -1,7 +1,7 @@
 import { IsEnum, IsString, MinLength } from "class-validator";
 import {
-    GameModeType,
     gameModeEnum,
+    GameModeType,
 } from "src/modules/chess/entities/db/game.entity";
 
 export class CreateGameLinkDto {

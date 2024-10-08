@@ -3,7 +3,7 @@ import {
     NotAcceptableException,
     NotFoundException,
 } from "@nestjs/common";
-import { CreateGameLinkDto, GetGameByGameLinkDto } from "./dto/game.dto";
+import { CreateGameLinkDto, GetGameByGameLinkDto } from "./dto/game-link.dto";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import Sqids from "sqids";

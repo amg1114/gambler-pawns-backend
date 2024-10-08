@@ -18,6 +18,7 @@ import { EloService } from "./elo.service";
 import { GameWinner } from "../../entities/db/game.entity";
 import { UserService } from "src/modules/user/user.service";
 import { ActiveGamesService } from "../active-games/active-games.service";
+import { OnEvent } from "@nestjs/event-emitter";
 
 @Injectable()
 /** Handle chess game logic */
@@ -107,9 +108,10 @@ export class GameService {
         }
 
         // update timer
-        const activePlayer =
-            gameInstance.board.turn() === "w" ? "playerOne" : "playerTwo";
-        this.timerService.updateTimer(gameInstance.gameId, activePlayer);
+        this.timerService.updateTimer(
+            gameInstance.gameId,
+            gameInstance.board.turn(),
+        );
 
         const remainingTime = this.timerService.getRemainingTime(
             gameInstance.gameId,
@@ -120,6 +122,15 @@ export class GameService {
             gameOver: false,
             remainingTime,
         };
+    }
+
+    @OnEvent("timer.timeout")
+    async handleGameTimeout(gameId: string, winner: "w" | "b") {
+        const gameInstance = this.activeGamesService.findGameByGameId(gameId);
+        if (!gameInstance) {
+            return { error: "Game not found" };
+        }
+        this.endGame(winner, gameInstance);
     }
 
     async endGame(winner: GameWinner, gameInstance: Game): Promise<void> {
@@ -174,7 +185,7 @@ export class GameService {
             this.activeGamesService.findGameByPlayerId(playerId);
 
         if (!gameInstance) {
-            return { error: "Juego no encontrado" };
+            return { error: "Game not found" };
         }
 
         const winner =

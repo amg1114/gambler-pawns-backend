@@ -1,4 +1,4 @@
-import { UseFilters, ValidationPipe } from "@nestjs/common";
+import { UseFilters, UsePipes, ValidationPipe } from "@nestjs/common";
 import {
     ConnectedSocket,
     MessageBody,
@@ -16,7 +16,8 @@ import { MakeMoveDTO } from "./dto/makeMove.dto";
 import { ActiveGamesService } from "../active-games/active-games.service";
 import { GameService } from "./game.service";
 
-@UseFilters(CustomWsFilterException)
+@UseFilters(new CustomWsFilterException())
+@UsePipes(new ParseJsonPipe(), new ValidationPipe({ transform: true }))
 @WebSocketGateway({
     cors: CORS,
 })
@@ -31,10 +32,7 @@ export class HandleGameGateway {
 
     @SubscribeMessage("game:makeMove")
     async handleMakeMove(
-        @MessageBody(
-            new ParseJsonPipe(),
-            new ValidationPipe({ transform: true }),
-        )
+        @MessageBody()
         payload: MakeMoveDTO,
         @ConnectedSocket() socket: Socket,
     ) {
@@ -93,13 +91,11 @@ export class HandleGameGateway {
 
     @SubscribeMessage("game:resign")
     handleResign(
-        @MessageBody(
-            new ParseJsonPipe(),
-            new ValidationPipe({ transform: true }),
-        )
+        @MessageBody()
         payload: { playerId: string },
         //@ConnectedSocket() socket: Socket,
     ) {
+        // TODO: validar que el mismo socket que hace la petición este registrado en el juego
         const result = this.gameService.handleResign(payload.playerId);
 
         if (result && result.gameInstance) {
