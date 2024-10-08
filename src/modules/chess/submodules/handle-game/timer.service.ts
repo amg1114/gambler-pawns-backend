@@ -52,10 +52,10 @@ export class TimerService {
         }
 
         // Add increment to the player who just moved
-        if (timerData.activePlayer === "b") {
-            timerData.whitesPlayerTime += timerData.increment * 1000;
+        if (timerData.activePlayer === "w") {
+            timerData.whitesPlayerTime += timerData.increment;
         } else {
-            timerData.blacksPlayerTime += timerData.increment * 1000;
+            timerData.blacksPlayerTime += timerData.increment;
         }
 
         // Update active player and last update time
