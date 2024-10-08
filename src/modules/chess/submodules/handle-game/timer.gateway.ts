@@ -1,5 +1,5 @@
 import { WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
-import { Server, Socket } from "socket.io";
+import { Server } from "socket.io";
 import { CORS } from "src/config/constants";
 import { OnEvent } from "@nestjs/event-emitter";
 import { CustomWsFilterException } from "src/common/websockets-utils/websocket.filter";
@@ -13,7 +13,7 @@ export class TimerGateway {
     @WebSocketServer()
     server: Server;
 
-    // Escucha el evento cuando los jugadores solicitan la actualización de su tiempo
+    // listen event triggered from timer service
     @OnEvent("timer.updated")
     handleTimerUpdate(payload: {
         gameId: string;
@@ -24,5 +24,12 @@ export class TimerGateway {
             playerOneTime: payload.playerOneTime,
             playerTwoTime: payload.playerTwoTime,
         });
+    }
+
+    @OnEvent("timer.timeout")
+    handleTimerTimeout(payload: { gameId: string; winner: string }) {
+        this.server
+            .to(payload.gameId)
+            .emit("timerTimeout", { winner: payload.winner });
     }
 }

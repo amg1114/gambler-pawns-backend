@@ -117,7 +117,6 @@ export class TimerService {
 
     private handleTimeOut(gameId: string, winner: "playerOne" | "playerTwo") {
         console.log(`Game ${gameId} ended. Winner by timeout: ${winner}`);
-        this.stopTimer(gameId);
 
         // TODO: esuchar este evento desde game.service y terminar el juego
         // trigger events in game.service and timer.gateway

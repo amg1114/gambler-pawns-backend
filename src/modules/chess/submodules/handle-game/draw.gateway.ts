@@ -1,4 +1,4 @@
-import { UseFilters, ValidationPipe } from "@nestjs/common";
+import { UseFilters, UsePipes, ValidationPipe } from "@nestjs/common";
 import {
     SubscribeMessage,
     WebSocketGateway,
@@ -19,7 +19,8 @@ import { OfferDrawDTO } from "./dto/offerDraw.dto";
 import { ActiveGamesService } from "../active-games/active-games.service";
 import { DrawService } from "./draw.service";
 
-@UseFilters(CustomWsFilterException)
+@UseFilters(new CustomWsFilterException())
+@UsePipes(new ParseJsonPipe(), new ValidationPipe({ transform: true }))
 @WebSocketGateway({
     cors: CORS,
 })
@@ -34,12 +35,11 @@ export class DrawGateway {
 
     @SubscribeMessage("game:offerDraw")
     handleOfferDraw(
-        @MessageBody(
-            new ParseJsonPipe(),
-            new ValidationPipe({ transform: true }),
-        )
+        @MessageBody()
         payload: OfferDrawDTO,
+        //@ConnectedSocket() socket: Socket,
     ) {
+        // TODO: validar que el socket sea el mismo que el que se registró en el servicio
         const game = this.activeGamesService.findGameByPlayerId(
             payload.playerId,
         );
@@ -67,138 +67,58 @@ export class DrawGateway {
 
     @SubscribeMessage("game:acceptDraw")
     handleAcceptDraw(
-        @MessageBody(
-            new ParseJsonPipe(),
-            new ValidationPipe({ transform: true }),
-        )
+        @MessageBody()
         payload: AcceptDrawDTO,
+        //@ConnectedSocket() socket: Socket,
     ) {
+        // TODO: validar que el socket sea el mismo que el que se registró en el servicio
         const game = this.activeGamesService.findGameByPlayerId(
             payload.playerId,
         );
         if (!game) throw new WsException("Game not found");
 
         const drawAccepted = this.drawService.acceptDraw(game.gameId);
-        if (drawAccepted) {
-            const player1Socket = this.activeGamesService.getSocketIdByPlayerId(
-                game.whitesPlayer.playerId,
-            );
-            const player2Socket = this.activeGamesService.getSocketIdByPlayerId(
-                game.blacksPlayer.playerId,
-            );
 
-            this.server.to(player1Socket).emit("gameOver", { winner: "draw" });
-            this.server.to(player2Socket).emit("gameOver", { winner: "draw" });
-        } else {
+        if (!drawAccepted) {
             throw new WsException("No draw offer to accept");
         }
+
+        const player1Socket = this.activeGamesService.getSocketIdByPlayerId(
+            game.whitesPlayer.playerId,
+        );
+        const player2Socket = this.activeGamesService.getSocketIdByPlayerId(
+            game.blacksPlayer.playerId,
+        );
+
+        this.server.to(player1Socket).emit("gameOver", { winner: "draw" });
+        this.server.to(player2Socket).emit("gameOver", { winner: "draw" });
     }
 
     @SubscribeMessage("game:rejectDraw")
     handleRejectDraw(
-        @MessageBody(
-            new ParseJsonPipe(),
-            new ValidationPipe({ transform: true }),
-        )
+        @MessageBody()
         payload: AcceptDrawDTO,
+        //@ConnectedSocket() socket: Socket,
     ) {
+        // TODO: validar que el socket sea el mismo que el que se registró en el servicio
         const game = this.activeGamesService.findGameByPlayerId(
             payload.playerId,
         );
         if (!game) throw new WsException("Game not found");
 
         const drawRejected = this.drawService.rejectDraw(game.gameId);
-        if (drawRejected) {
-            const opponentSocket =
-                this.activeGamesService.getSocketIdByPlayerId(
-                    this.drawService.getOpponentId(payload.playerId, game),
-                );
-            if (opponentSocket) {
-                this.server
-                    .to(opponentSocket)
-                    .emit("drawRejected", { playerId: payload.playerId });
-            }
-        } else {
+
+        if (!drawRejected) {
             throw new WsException("No draw offer to reject");
+        }
+
+        const opponentSocket = this.activeGamesService.getSocketIdByPlayerId(
+            this.drawService.getOpponentId(payload.playerId, game),
+        );
+        if (opponentSocket) {
+            this.server
+                .to(opponentSocket)
+                .emit("drawRejected", { playerId: payload.playerId });
         }
     }
 }
-
-/*
-    @SubscribeMessage("game:offerDraw")
-    handleOfferDraw(
-        @MessageBody(
-            new ParseJsonPipe(),
-            new ValidationPipe({ transform: true }),
-        )
-        payload: OfferDrawDTO,
-        //@ConnectedSocket() socket: Socket,
-    ) {
-        const game = this.activeGamesService.findGameByPlayerId(
-            payload.playerId,
-        );
-        if (game) {
-            const opponentSocket =
-                this.activeGamesService.getSocketIdByPlayerId(
-                    game.getOpponentId(payload.playerId),
-                );
-            if (opponentSocket) {
-                this.server.to(opponentSocket).emit("drawOffered", {
-                    playerId: payload.playerId,
-                    gameId: game.gameId,
-                });
-            }
-        }
-    }
-
-    @SubscribeMessage("game:acceptDraw")
-    handleAcceptDraw(
-        @MessageBody(
-            new ParseJsonPipe(),
-            new ValidationPipe({ transform: true }),
-        )
-        payload: AcceptDrawDTO,
-        //@ConnectedSocket() socket: Socket,
-    ) {
-        const game = this.activeGamesService.findGameByPlayerId(
-            payload.playerId,
-        );
-        if (game) {
-            game.endGame("draw");
-            const player1Socket = this.activeGamesService.getSocketIdByPlayerId(
-                game.whitesPlayer.playerId,
-            );
-            const player2Socket = this.activeGamesService.getSocketIdByPlayerId(
-                game.blacksPlayer.playerId,
-            );
-            this.server.to(player1Socket).emit("gameOver", { winner: "draw" });
-            this.server.to(player2Socket).emit("gameOver", { winner: "draw" });
-        }
-    }
-
-    @SubscribeMessage("game:rejectDraw")
-    handleRejectDraw(
-        @MessageBody(
-            new ParseJsonPipe(),
-            new ValidationPipe({ transform: true }),
-        )
-        payload: AcceptDrawDTO,
-        //@ConnectedSocket() socket: Socket,
-    ) {
-        const game = this.activeGamesService.findGameByPlayerId(
-            payload.playerId,
-        );
-        if (game) {
-            const opponentSocket =
-                this.activeGamesService.getSocketIdByPlayerId(
-                    game.getOpponentId(payload.playerId),
-                );
-            if (opponentSocket) {
-                this.server.to(opponentSocket).emit("drawRejected", {
-                    playerId: payload.playerId,
-                });
-            }
-        }
-    }
-
-*/

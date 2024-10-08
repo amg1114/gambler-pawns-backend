@@ -18,6 +18,7 @@ import { EloService } from "./elo.service";
 import { GameWinner } from "../../entities/db/game.entity";
 import { UserService } from "src/modules/user/user.service";
 import { ActiveGamesService } from "../active-games/active-games.service";
+import { OnEvent } from "@nestjs/event-emitter";
 
 @Injectable()
 /** Handle chess game logic */
@@ -120,6 +121,15 @@ export class GameService {
             gameOver: false,
             remainingTime,
         };
+    }
+
+    @OnEvent("timer.timeout")
+    async handleGameTimeout(gameId: string, winner: "w" | "b") {
+        // const gameInstance = this.activeGamesService.findGameByGameId(gameId);
+        // if (!gameInstance) {
+        //     return { error: "Game not found" };
+        // }
+        // this.endGame(winner, gameInstance);
     }
 
     async endGame(winner: GameWinner, gameInstance: Game): Promise<void> {

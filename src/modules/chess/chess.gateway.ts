@@ -34,6 +34,8 @@ export class ChessGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
     handleDisconnect(client: Socket) {
         console.log(`Client disconnected: ${client.id}`);
+
+        // TODO: get gameId and leave the room
     }
 
     // handle recconnection of clients
