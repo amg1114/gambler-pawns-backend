@@ -13,8 +13,6 @@ import { JoinGameDTO } from "./dto/joinGame.dto";
 import { RandomPairingService } from "./random-pairing.service";
 import { ActiveGamesService } from "../active-games/active-games.service";
 
-// TODO: refactorizar para que el gateway no llame metodos de servicios
-
 @UseFilters(new CustomWsFilterException())
 @UsePipes(new ParseJsonPipe(), new ValidationPipe({ transform: true }))
 @WebSocketGateway()
@@ -57,8 +55,16 @@ export class RandomPairingGateway {
         if (pairing) {
             const { player1Socket, player2Socket, ...rest } = pairing;
 
-            // join current player's socket to the game room
+            // join current paired player's socket to the game room
             socket.join(pairing.gameId);
+
+            const opponentSocket = this.server.sockets.sockets.get(
+                socket.id === player1Socket ? player2Socket : player1Socket,
+            );
+
+            if (opponentSocket) {
+                opponentSocket.join(pairing.gameId);
+            }
 
             // Notify players and send required data
             this.server.to(player1Socket).emit("game:started", {

@@ -95,6 +95,7 @@ export class HandleGameGateway {
         payload: { playerId: string },
         //@ConnectedSocket() socket: Socket,
     ) {
+        // TODO: validar que el mismo socket que hace la petición este registrado en el juego
         const result = this.gameService.handleResign(payload.playerId);
 
         if (result && result.gameInstance) {

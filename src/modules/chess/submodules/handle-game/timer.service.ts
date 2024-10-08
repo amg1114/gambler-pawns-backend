@@ -4,6 +4,8 @@ import { Injectable } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { Interval } from "@nestjs/schedule";
 
+type activePlayerType = "w" | "b";
+
 @Injectable()
 export class TimerService {
     constructor(private eventEmitter: EventEmitter2) {}
@@ -12,27 +14,27 @@ export class TimerService {
     private timers: Map<
         string,
         {
-            playerOneTime: number;
-            playerTwoTime: number;
+            whitesPlayerTime: number;
+            blacksPlayerTime: number;
             increment: number;
-            activePlayer: "playerOne" | "playerTwo";
+            activePlayer: activePlayerType;
             lastUpdateTime: number;
         }
     > = new Map();
 
     startTimer(gameId: string, initialTime: number, increment: number): void {
         this.timers.set(gameId, {
-            playerOneTime: initialTime,
-            playerTwoTime: initialTime,
+            whitesPlayerTime: initialTime,
+            blacksPlayerTime: initialTime,
             increment: increment,
-            activePlayer: "playerOne", // Assuming white starts
+            activePlayer: "w", // Assuming white starts
             lastUpdateTime: Date.now(),
         });
 
         this.emitTimerUpdate(gameId);
     }
 
-    updateTimer(gameId: string, activePlayer: "playerOne" | "playerTwo"): void {
+    updateTimer(gameId: string, activePlayer: activePlayerType): void {
         const timerData = this.timers.get(gameId);
         // TODO: revisar cual sería el manejo correcto de las excepciones
         if (!timerData) return;
@@ -41,17 +43,17 @@ export class TimerService {
         const elapsedTime = now - timerData.lastUpdateTime;
 
         // Decrease time for the player who just moved
-        if (timerData.activePlayer === "playerOne") {
-            timerData.playerOneTime -= elapsedTime;
+        if (timerData.activePlayer === "w") {
+            timerData.whitesPlayerTime -= elapsedTime;
         } else {
-            timerData.playerTwoTime -= elapsedTime;
+            timerData.blacksPlayerTime -= elapsedTime;
         }
 
         // Add increment to the player who just moved
-        if (timerData.activePlayer === "playerOne") {
-            timerData.playerOneTime += timerData.increment * 1000;
+        if (timerData.activePlayer === "b") {
+            timerData.whitesPlayerTime += timerData.increment * 1000;
         } else {
-            timerData.playerTwoTime += timerData.increment * 1000;
+            timerData.blacksPlayerTime += timerData.increment * 1000;
         }
 
         // Update active player and last update time
@@ -78,10 +80,10 @@ export class TimerService {
         const now = Date.now();
         const elapsedTime = now - timerData.lastUpdateTime;
 
-        let playerOneTime = timerData.playerOneTime;
-        let playerTwoTime = timerData.playerTwoTime;
+        let playerOneTime = timerData.whitesPlayerTime;
+        let playerTwoTime = timerData.blacksPlayerTime;
 
-        if (timerData.activePlayer === "playerOne") {
+        if (timerData.activePlayer === "w") {
             playerOneTime -= elapsedTime;
         } else {
             playerTwoTime -= elapsedTime;
@@ -104,10 +106,7 @@ export class TimerService {
                 remainingTime.playerTwoTime <= 0
             ) {
                 // Time's up for one of the players
-                const winner =
-                    remainingTime.playerOneTime <= 0
-                        ? "playerTwo"
-                        : "playerOne";
+                const winner = remainingTime.playerOneTime <= 0 ? "b" : "w";
                 this.handleTimeOut(gameId, winner);
             } else {
                 this.emitTimerUpdate(gameId);
@@ -115,10 +114,9 @@ export class TimerService {
         }
     }
 
-    private handleTimeOut(gameId: string, winner: "playerOne" | "playerTwo") {
+    private handleTimeOut(gameId: string, winner: activePlayerType): void {
         console.log(`Game ${gameId} ended. Winner by timeout: ${winner}`);
 
-        // TODO: esuchar este evento desde game.service y terminar el juego
         // trigger events in game.service and timer.gateway
         this.eventEmitter.emit("timer.timeout", { gameId, winner });
     }

@@ -108,9 +108,10 @@ export class GameService {
         }
 
         // update timer
-        const activePlayer =
-            gameInstance.board.turn() === "w" ? "playerOne" : "playerTwo";
-        this.timerService.updateTimer(gameInstance.gameId, activePlayer);
+        this.timerService.updateTimer(
+            gameInstance.gameId,
+            gameInstance.board.turn(),
+        );
 
         const remainingTime = this.timerService.getRemainingTime(
             gameInstance.gameId,
@@ -125,11 +126,11 @@ export class GameService {
 
     @OnEvent("timer.timeout")
     async handleGameTimeout(gameId: string, winner: "w" | "b") {
-        // const gameInstance = this.activeGamesService.findGameByGameId(gameId);
-        // if (!gameInstance) {
-        //     return { error: "Game not found" };
-        // }
-        // this.endGame(winner, gameInstance);
+        const gameInstance = this.activeGamesService.findGameByGameId(gameId);
+        if (!gameInstance) {
+            return { error: "Game not found" };
+        }
+        this.endGame(winner, gameInstance);
     }
 
     async endGame(winner: GameWinner, gameInstance: Game): Promise<void> {
