@@ -16,7 +16,7 @@ import { MakeMoveDTO } from "./dto/makeMove.dto";
 import { ActiveGamesService } from "../active-games/active-games.service";
 import { GameService } from "./game.service";
 
-@UseFilters(CustomWsFilterException)
+@UseFilters(new CustomWsFilterException())
 @WebSocketGateway({
     cors: CORS,
 })

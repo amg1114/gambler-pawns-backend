@@ -174,7 +174,7 @@ export class GameService {
             this.activeGamesService.findGameByPlayerId(playerId);
 
         if (!gameInstance) {
-            return { error: "Juego no encontrado" };
+            return { error: "Game not found" };
         }
 
         const winner =

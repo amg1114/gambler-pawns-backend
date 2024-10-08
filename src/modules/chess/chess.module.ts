@@ -20,6 +20,7 @@ import { GameService } from "./submodules/handle-game/game.service";
 import { TimerService } from "./submodules/handle-game/timer.service";
 import { DrawGateway } from "./submodules/handle-game/draw.gateway";
 import { DrawService } from "./submodules/handle-game/draw.service";
+import { TimerGateway } from "./submodules/handle-game/timer.gateway";
 
 @Module({
     imports: [
@@ -44,6 +45,7 @@ import { DrawService } from "./submodules/handle-game/draw.service";
         TimerService,
         DrawGateway,
         DrawService,
+        TimerGateway,
     ],
     controllers: [GameLinkController],
 })

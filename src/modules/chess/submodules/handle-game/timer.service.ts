@@ -1,9 +1,13 @@
 // TODO: agregar columnas de tiempo para cada jugador en la tabla game
+// TODO: investigar si es mejor usar redis
 import { Injectable } from "@nestjs/common";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 import { Interval } from "@nestjs/schedule";
 
 @Injectable()
 export class TimerService {
+    constructor(private eventEmitter: EventEmitter2) {}
+
     /**  Map to keep track of timers for each game,  gameId -> data */
     private timers: Map<
         string,
@@ -24,6 +28,8 @@ export class TimerService {
             activePlayer: "playerOne", // Assuming white starts
             lastUpdateTime: Date.now(),
         });
+
+        this.emitTimerUpdate(gameId);
     }
 
     updateTimer(gameId: string, activePlayer: "playerOne" | "playerTwo"): void {
@@ -53,6 +59,9 @@ export class TimerService {
         timerData.lastUpdateTime = now;
 
         this.timers.set(gameId, timerData);
+
+        // emit event to trigger methos in TimerGateway
+        this.emitTimerUpdate(gameId);
     }
 
     stopTimer(gameId: string): void {
@@ -63,6 +72,7 @@ export class TimerService {
         gameId: string,
     ): { playerOneTime: number; playerTwoTime: number } | null {
         const timerData = this.timers.get(gameId);
+        // TODO: como manejar las excepciones?
         if (!timerData) return null;
 
         const now = Date.now();
@@ -85,7 +95,7 @@ export class TimerService {
 
     @Interval(1000) // Run every second
     handleTimerUpdates() {
-        for (const [gameId, timerData] of this.timers.entries()) {
+        for (const gameId of this.timers.keys()) {
             const remainingTime = this.getRemainingTime(gameId);
             if (!remainingTime) continue;
 
@@ -99,15 +109,30 @@ export class TimerService {
                         ? "playerTwo"
                         : "playerOne";
                 this.handleTimeOut(gameId, winner);
+            } else {
+                this.emitTimerUpdate(gameId);
             }
         }
     }
 
     private handleTimeOut(gameId: string, winner: "playerOne" | "playerTwo") {
-        // Here you would implement the logic to end the game due to time out
         console.log(`Game ${gameId} ended. Winner by timeout: ${winner}`);
         this.stopTimer(gameId);
-        // TODO: debo emitir un evento? o llamar a un metodo? (esto podría generar una dependencia circular?)
-        // You might want to emit an event or call a method in GameService to handle the game end
+
+        // TODO: esuchar este evento desde game.service y terminar el juego
+        // trigger events in game.service and timer.gateway
+        this.eventEmitter.emit("timer.timeout", { gameId, winner });
+    }
+
+    /** Emmit to trigger method in TimerGateway */
+    private emitTimerUpdate(gameId: string): void {
+        const timerData = this.getRemainingTime(gameId);
+        if (timerData) {
+            this.eventEmitter.emit("timer.updated", {
+                gameId,
+                playerOneTime: timerData.playerOneTime,
+                playerTwoTime: timerData.playerTwoTime,
+            });
+        }
     }
 }
