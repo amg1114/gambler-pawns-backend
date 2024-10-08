@@ -135,6 +135,7 @@ export class GameService {
 
     async endGame(winner: GameWinner, gameInstance: Game): Promise<void> {
         // TODO: update players elo in db
+        // TODO: revisar donde se debe para el timer
         this.timerService.stopTimer(gameInstance.gameId);
 
         // calculate new elo for both players

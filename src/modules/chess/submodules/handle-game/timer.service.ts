@@ -24,9 +24,11 @@ export class TimerService {
 
     startTimer(gameId: string, initialTime: number, increment: number): void {
         this.timers.set(gameId, {
-            whitesPlayerTime: initialTime,
-            blacksPlayerTime: initialTime,
-            increment: increment,
+            // player's time to miliseconds to minutes
+            whitesPlayerTime: initialTime * 60 * 1000,
+            blacksPlayerTime: initialTime * 60 * 1000,
+            // increment seconds to miliseconds
+            increment: increment * 1000,
             activePlayer: "w", // Assuming white starts
             lastUpdateTime: Date.now(),
         });
@@ -116,6 +118,7 @@ export class TimerService {
 
     private handleTimeOut(gameId: string, winner: activePlayerType): void {
         console.log(`Game ${gameId} ended. Winner by timeout: ${winner}`);
+        this.stopTimer(gameId);
 
         // trigger events in game.service and timer.gateway
         this.eventEmitter.emit("timer.timeout", { gameId, winner });

@@ -18,9 +18,11 @@ export class JoinGameDTO {
     @IsNumber()
     bet?: number;
 
+    // time in minutes
     @IsNumber()
     initialTime: number;
 
+    // increment in seconds
     @IsNumber()
     incrementTime: number;
 }
