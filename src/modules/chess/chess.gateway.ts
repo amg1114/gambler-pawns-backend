@@ -35,7 +35,13 @@ export class ChessGateway implements OnGatewayConnection, OnGatewayDisconnect {
     handleDisconnect(client: Socket) {
         console.log(`Client disconnected: ${client.id}`);
 
-        // TODO: get gameId and leave the room
+        const playerId = this.activeGamesService.findPlayerIdBySocketId(
+            client.id,
+        );
+
+        if (playerId) {
+            this.activeGamesService.unRegisterPlayerSocket(playerId);
+        }
     }
 
     // handle recconnection of clients
@@ -52,6 +58,7 @@ export class ChessGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         const game = this.activeGamesService.findGameByPlayerId(playerId);
         if (game && game.gameId === gameId) {
+            socket.join(gameId);
             // update players map with new socket id
             this.activeGamesService.registerPlayerSocket(playerId, socket.id);
             console.log(

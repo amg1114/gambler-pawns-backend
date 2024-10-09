@@ -21,13 +21,24 @@ export class ActiveGamesService {
         this.activeGames.set(playerId, game);
     }
 
+    findGameByGameId(gameId: string): Game | undefined {
+        for (const game of this.activeGames.values()) {
+            if (game.gameId === gameId) return game;
+        }
+    }
+
+    // sockets
     registerPlayerSocket(playerId: string, socketId: string) {
         this.playerSocketMap.set(playerId, socketId);
     }
 
-    findGameByGameId(gameId: string): Game | undefined {
-        for (const game of this.activeGames.values()) {
-            if (game.gameId === gameId) return game;
+    unRegisterPlayerSocket(playerId: string) {
+        this.playerSocketMap.delete(playerId);
+    }
+
+    findPlayerIdBySocketId(socketId: string): string | undefined {
+        for (const [playerId, socket] of this.playerSocketMap) {
+            if (socket === socketId) return playerId;
         }
     }
 }
