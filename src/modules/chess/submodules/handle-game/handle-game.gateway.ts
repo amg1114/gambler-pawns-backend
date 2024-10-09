@@ -36,6 +36,8 @@ export class HandleGameGateway {
         payload: MakeMoveDTO,
         @ConnectedSocket() socket: Socket,
     ) {
+        // TODO: validar que el mismo socket registrado sea quien haga la solicitud
+        // TODO: pedir player id y game id para simplificar la logica
         console.log("Making move", payload);
         const result = await this.gameService.playerMove(payload.playerId, {
             from: payload.from,
@@ -49,42 +51,16 @@ export class HandleGameGateway {
                 payload.playerId,
             );
             if (game) {
-                const player1Socket =
-                    this.activeGamesService.getSocketIdByPlayerId(
-                        game.whitesPlayer.playerId,
-                    );
-                const player2Socket =
-                    this.activeGamesService.getSocketIdByPlayerId(
-                        game.blacksPlayer.playerId,
-                    );
-
-                if (player1Socket && player2Socket) {
-                    this.server
-                        .to(player1Socket)
-                        .emit("gameOver", { winner: result.winner });
-                    this.server
-                        .to(player2Socket)
-                        .emit("gameOver", { winner: result.winner });
-                }
+                this.server
+                    .to(game.gameId)
+                    .emit("gameOver", { winner: result.winner });
             }
         } else {
             const game = this.activeGamesService.findGameByPlayerId(
                 payload.playerId,
             );
             if (game) {
-                const player1Socket =
-                    this.activeGamesService.getSocketIdByPlayerId(
-                        game.whitesPlayer.playerId,
-                    );
-                const player2Socket =
-                    this.activeGamesService.getSocketIdByPlayerId(
-                        game.blacksPlayer.playerId,
-                    );
-
-                if (player1Socket && player2Socket) {
-                    this.server.to(player1Socket).emit("moveMade", result);
-                    this.server.to(player2Socket).emit("moveMade", result);
-                }
+                this.server.to(game.gameId).emit("moveMade", result);
             }
         }
     }
@@ -96,26 +72,16 @@ export class HandleGameGateway {
         //@ConnectedSocket() socket: Socket,
     ) {
         // TODO: validar que el mismo socket que hace la petición este registrado en el juego
+        const game = this.activeGamesService.findGameByPlayerId(
+            payload.playerId,
+        );
         const result = this.gameService.handleResign(payload.playerId);
 
-        if (result && result.gameInstance) {
-            const player1Socket = this.activeGamesService.getSocketIdByPlayerId(
-                result.gameInstance.whitesPlayer.playerId,
-            );
-            const player2Socket = this.activeGamesService.getSocketIdByPlayerId(
-                result.gameInstance.blacksPlayer.playerId,
-            );
-
-            if (player1Socket && player2Socket) {
-                this.server.to(player1Socket).emit("gameOver", {
-                    winner: result.winner,
-                    reason: "resign",
-                });
-                this.server.to(player2Socket).emit("gameOver", {
-                    winner: result.winner,
-                    reason: "resign",
-                });
-            }
+        if (game && result && result.gameInstance) {
+            this.server.to(game.gameId).emit("gameOver", {
+                winner: result.winner,
+                reason: "resign",
+            });
         }
     }
 }
