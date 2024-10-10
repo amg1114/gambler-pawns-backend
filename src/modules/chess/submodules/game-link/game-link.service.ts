@@ -40,7 +40,7 @@ export class GameLinkService {
 
     async getGameByGameLink({ encodedId }: GetGameByGameLinkDto) {
         const decodedId = this.decodeGameLink(encodedId);
-        const reEncodedId = this.genGameLinkEncodeByGameId(decodedId[0]);
+        const reEncodedId = this.genGameLinkEncodeByGameId(decodedId);
 
         if (reEncodedId !== encodedId)
             throw new NotAcceptableException("Invalid ID");
