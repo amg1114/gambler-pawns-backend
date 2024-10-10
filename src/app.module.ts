@@ -8,14 +8,16 @@ import { ServeStaticModule } from "@nestjs/serve-static";
 import { join } from "path";
 
 // Feature modules
-import { AuthModule } from "./auth/auth.module";
-import { ChessModule } from "./chess/chess.module";
-import { AssetsModule } from "./assets/assets.module";
-import { UserModule } from "./user/user.module";
-import { NotificationsModule } from "./notification/notifications.module";
-import { PuzzleModule } from "./puzzle/puzzle.module";
-import { StoreModule } from "./store/store.module";
-import { ClubModule } from "./club/club.module";
+import { AuthModule } from "./modules/auth/auth.module";
+import { ChessModule } from "./modules/chess/chess.module";
+import { AssetsModule } from "./modules/assets/assets.module";
+import { UserModule } from "./modules/user/user.module";
+import { NotificationsModule } from "./modules/notification/notifications.module";
+import { PuzzleModule } from "./modules/puzzle/puzzle.module";
+import { StoreModule } from "./modules/store/store.module";
+import { ClubModule } from "./modules/club/club.module";
+import { ScheduleModule } from "@nestjs/schedule";
+import { EventEmitterModule } from "@nestjs/event-emitter";
 
 @Module({
     imports: [
@@ -38,6 +40,8 @@ import { ClubModule } from "./club/club.module";
         PuzzleModule,
         StoreModule,
         ClubModule,
+        ScheduleModule.forRoot(),
+        EventEmitterModule.forRoot(),
     ],
 })
 export class AppModule {}
