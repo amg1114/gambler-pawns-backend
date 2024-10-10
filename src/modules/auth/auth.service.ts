@@ -123,7 +123,7 @@ export class AuthService {
             throw new InternalServerErrorException("Failed to send email");
         });
 
-        // This return must be changed so the response doesnt return the token since it will be only accessible by the user's email
+        // FIXME: This return must be changed so the response doesnt return the token since it will be only accessible by the user's email
         // This is just for debugging/development purposes
         return { token: token };
     }
