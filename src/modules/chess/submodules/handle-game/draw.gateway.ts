@@ -5,8 +5,9 @@ import {
     MessageBody,
     WsException,
     WebSocketServer,
+    ConnectedSocket,
 } from "@nestjs/websockets";
-import { Server } from "socket.io";
+import { Server, Socket } from "socket.io";
 import { CORS } from "src/config/constants";
 
 // ws utils
@@ -37,69 +38,56 @@ export class DrawGateway {
     handleOfferDraw(
         @MessageBody()
         payload: OfferDrawDTO,
-        //@ConnectedSocket() socket: Socket,
+        @ConnectedSocket() socket: Socket,
     ) {
         // TODO: validar que el socket sea el mismo que el que se registró en el servicio
         const game = this.activeGamesService.findGameByPlayerId(
             payload.playerId,
         );
+        console.log(`game:offerDraw ${payload.gameId} ${payload.playerId}`);
         if (!game) throw new WsException("Game not found");
 
         const drawOfferResult = this.drawService.offerDraw(
-            game.gameId,
+            payload.gameId,
             payload.playerId,
         );
         if (drawOfferResult) {
-            const opponentSocket =
-                this.activeGamesService.getSocketIdByPlayerId(
-                    this.drawService.getOpponentId(payload.playerId, game),
-                );
-            if (opponentSocket) {
-                this.server.to(opponentSocket).emit("drawOffered", {
-                    playerId: payload.playerId,
-                    gameId: game.gameId,
-                });
-            }
+            socket.to(payload.gameId).emit("drawOffered", {
+                playerId: payload.playerId,
+                gameId: payload.gameId,
+            });
         } else {
             throw new WsException("Draw offer already exists");
         }
     }
 
     @SubscribeMessage("game:acceptDraw")
-    handleAcceptDraw(
+    async handleAcceptDraw(
         @MessageBody()
         payload: AcceptDrawDTO,
         //@ConnectedSocket() socket: Socket,
     ) {
+        console.log(`game:acceptDraw ${payload.gameId} ${payload.playerId}`);
         // TODO: validar que el socket sea el mismo que el que se registró en el servicio
-        const game = this.activeGamesService.findGameByPlayerId(
+        const drawAccepted = await this.drawService.acceptDraw(
+            payload.gameId,
             payload.playerId,
         );
-        if (!game) throw new WsException("Game not found");
 
-        const drawAccepted = this.drawService.acceptDraw(game.gameId);
-
-        if (!drawAccepted) {
-            throw new WsException("No draw offer to accept");
+        if (drawAccepted) {
+            this.server
+                .to(payload.gameId)
+                .emit("drawAccepted", { playerId: payload.playerId });
         }
-
-        const player1Socket = this.activeGamesService.getSocketIdByPlayerId(
-            game.whitesPlayer.playerId,
-        );
-        const player2Socket = this.activeGamesService.getSocketIdByPlayerId(
-            game.blacksPlayer.playerId,
-        );
-
-        this.server.to(player1Socket).emit("gameOver", { winner: "draw" });
-        this.server.to(player2Socket).emit("gameOver", { winner: "draw" });
     }
 
     @SubscribeMessage("game:rejectDraw")
     handleRejectDraw(
         @MessageBody()
         payload: AcceptDrawDTO,
-        //@ConnectedSocket() socket: Socket,
+        @ConnectedSocket() socket: Socket,
     ) {
+        console.log(`game:rejectDraw ${payload.gameId} ${payload.playerId}`);
         // TODO: validar que el socket sea el mismo que el que se registró en el servicio
         const game = this.activeGamesService.findGameByPlayerId(
             payload.playerId,
@@ -112,13 +100,8 @@ export class DrawGateway {
             throw new WsException("No draw offer to reject");
         }
 
-        const opponentSocket = this.activeGamesService.getSocketIdByPlayerId(
-            this.drawService.getOpponentId(payload.playerId, game),
-        );
-        if (opponentSocket) {
-            this.server
-                .to(opponentSocket)
-                .emit("drawRejected", { playerId: payload.playerId });
-        }
+        socket.to(game.gameId).emit("drawRejected", {
+            playerId: payload.playerId,
+        });
     }
 }
