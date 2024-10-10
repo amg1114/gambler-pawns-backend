@@ -66,7 +66,11 @@ export class Game {
             const moveResult = this.board.move(move);
             if (!moveResult) throw new Error("Invalid Move");
             this.moveCount++;
-            return { moveResult, board: this.board.fen() };
+            return {
+                moveResult,
+                board: this.board.fen(),
+                historyMoves: this.board.history(),
+            };
         } catch (e) {
             throw new WsException("Invalid Move");
         }
