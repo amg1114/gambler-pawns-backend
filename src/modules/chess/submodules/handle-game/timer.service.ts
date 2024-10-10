@@ -109,7 +109,6 @@ export class TimerService {
             ) {
                 // Time's up for one of the players
                 const winner = remainingTime.playerOneTime <= 0 ? "b" : "w";
-                this.stopTimer(gameId);
                 this.eventEmitter.emit("timer.timeout", { gameId, winner });
             } else {
                 this.emitTimerUpdate(gameId);
@@ -123,8 +122,7 @@ export class TimerService {
         if (timerData) {
             this.eventEmitter.emit("timer.updated", {
                 gameId,
-                playerOneTime: timerData.playerOneTime,
-                playerTwoTime: timerData.playerTwoTime,
+                ...timerData,
             });
         }
     }

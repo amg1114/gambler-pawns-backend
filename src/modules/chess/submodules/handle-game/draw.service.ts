@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { GameService } from "./game.service";
 import { ActiveGamesService } from "../active-games/active-games.service";
 import { WsException } from "@nestjs/websockets";
+import { Game } from "../../entities/game";
 
 @Injectable()
 export class DrawService {
@@ -29,7 +30,7 @@ export class DrawService {
         if (this.drawOffers.has(gameId)) {
             this.drawOffers.delete(gameId);
 
-            await this.gameService.endGame("draw", game); // end game with draw
+            await this.gameService.endGame("draw", game, "Draw Offer"); // end game with draw
             return true;
         }
         throw new WsException("No draw offer to accpet exists");
@@ -40,10 +41,10 @@ export class DrawService {
             this.drawOffers.delete(gameId);
             return true;
         }
-        return false;
+        throw new WsException("No draw offer to reject exists");
     }
 
-    getOpponentId(playerId: string, game: any): string {
+    getOpponentId(playerId: string, game: Game): string {
         return playerId === game.whitesPlayer.playerId
             ? game.blacksPlayer.playerId
             : game.whitesPlayer.playerId;

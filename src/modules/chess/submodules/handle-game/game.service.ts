@@ -1,6 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
+import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
+import { WsException } from "@nestjs/websockets";
 
 // entities and types
 import {
@@ -19,7 +21,6 @@ import { EloService } from "./elo.service";
 import { GameWinner } from "../../entities/db/game.entity";
 import { UserService } from "src/modules/user/user.service";
 import { ActiveGamesService } from "../active-games/active-games.service";
-import { OnEvent } from "@nestjs/event-emitter";
 
 @Injectable()
 /** Handle chess game logic */
@@ -34,6 +35,7 @@ export class GameService {
         private readonly eloService: EloService,
         private readonly userService: UserService,
         private readonly activeGamesService: ActiveGamesService,
+        private eventEmitter: EventEmitter2,
     ) {}
 
     async createGame(
@@ -102,50 +104,63 @@ export class GameService {
         // make move in game instance
         const moveResult = gameInstance.makeMove(playerId, move);
 
-        if (gameInstance.board.isGameOver()) {
+        if (gameInstance.board.isCheckmate()) {
             const winner = gameInstance.board.turn() === "w" ? "b" : "w";
-            await this.endGame(winner, gameInstance);
-            return { gameOver: true, winner };
+            await this.endGame(winner, gameInstance, "Check Mate");
         }
-
+        // Check for draw cases
+        else if (gameInstance.board.isInsufficientMaterial()) {
+            await this.endGame("draw", gameInstance, "Insufficient Material");
+        } else if (gameInstance.board.isStalemate()) {
+            await this.endGame("draw", gameInstance, "Stalemate");
+        } else if (gameInstance.board.isThreefoldRepetition()) {
+            await this.endGame("draw", gameInstance, "Threefold Repetition");
+        } else if (gameInstance.board.isDraw()) {
+            await this.endGame("draw", gameInstance, "50 Moves Rule");
+        }
         // update timer
         this.timerService.updateTimer(
             gameInstance.gameId,
             gameInstance.board.turn(),
         );
 
-        const remainingTime = this.timerService.getRemainingTime(
-            gameInstance.gameId,
-        );
-
         return {
             moveResult,
-            gameOver: false,
-            remainingTime,
         };
     }
 
     @OnEvent("timer.timeout")
-    async handleGameTimeout(gameId: string, winner: "w" | "b") {
-        const gameInstance = this.activeGamesService.findGameByGameId(gameId);
+    async handleGameTimeout(payload: { gameId: string; winner: "w" | "b" }) {
+        console.log(`Time up for game ${payload.gameId}`);
+
+        const gameInstance = this.activeGamesService.findGameByGameId(
+            payload.gameId,
+        );
         if (!gameInstance) {
-            return { error: "Game not found" };
+            throw new WsException("Game not found");
         }
-        await this.endGame(winner, gameInstance, "On Time");
+        await this.endGame(payload.winner, gameInstance, "On Time");
     }
 
     async endGame(
         winner: GameWinner,
         gameInstance: Game,
-        resultType: GameResultType = "Check Mate",
+        resultType: GameResultType,
     ): Promise<void> {
         console.log(`Game ${gameInstance.gameId} ended with winner: ${winner}`);
-        // Avoid to call here stopTimer() because it is called in timer.service to avoid repeated event emission
-        if (resultType === "On Time") {
-            this.timerService.stopTimer(gameInstance.gameId);
-        }
-        // TODO: update players elo in db
+        // TODO: eliminar el juego de todos los maps (activeGames, draws, revisar esto)
 
+        // get timer data and stop timer
+        const timeAfterGameEndWhites = this.timerService.getRemainingTime(
+            gameInstance.gameId,
+        ).playerOneTime;
+        const timeAfterGameEndBlacks = this.timerService.getRemainingTime(
+            gameInstance.gameId,
+        ).playerTwoTime;
+
+        this.timerService.stopTimer(gameInstance.gameId);
+
+        // TODO: update players elo in db
         // calculate new elo for both players
         const eloWhitesAfterGame = this.eloService.calculateNewElo(
             gameInstance.whitesPlayer.elo,
@@ -176,30 +191,52 @@ export class GameService {
             );
         }
 
-        // TODO: set result type
-        // update game in db
+        // update game in
         await this.gameRepository.update(
             this.gameLinkService.decodeGameLink(gameInstance.gameId),
             {
                 pgn: gameInstance.board.pgn(),
-                winner: winner,
-                eloWhitesAfterGame: eloWhitesAfterGame,
-                eloBlacksAfterGame: eloBlacksAfterGame,
+                winner,
+                eloWhitesAfterGame,
+                eloBlacksAfterGame,
+                resultType,
+                timeAfterGameEndWhites,
+                timeAfterGameEndBlacks,
             },
         );
+
+        // emit event to notify
+        const eloWhitesAfterGameVariation =
+            gameInstance.whitesPlayer.elo - eloWhitesAfterGame;
+        const eloBlacksAfterGameVariation =
+            gameInstance.blacksPlayer.elo - eloBlacksAfterGame;
+
+        const resultData = {
+            winner,
+            resultType,
+            eloWhitesAfterGameVariation,
+            eloBlacksAfterGameVariation,
+            // TODO: revisar esto (diferente de la apuesta, es es el dinero que le juego da por default al ganar)
+            gameGiftForWin: 10,
+        };
+
+        // emit event to trigger notification to users in handle-game.gateway
+        this.eventEmitter.emit("game.end", {
+            gameId: gameInstance.gameId,
+            resultData,
+        });
     }
 
     handleResign(playerId: string) {
         const gameInstance =
             this.activeGamesService.findGameByPlayerId(playerId);
-
         if (!gameInstance) {
-            return { error: "Game not found" };
+            throw new WsException("Game not found");
         }
 
         const winner =
             gameInstance.whitesPlayer.playerId === playerId ? "b" : "w";
-        this.endGame(winner, gameInstance);
-        return { gameInstance, winner };
+
+        this.endGame(winner, gameInstance, "Resign");
     }
 }

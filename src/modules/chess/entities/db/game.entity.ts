@@ -16,21 +16,30 @@ export type GameWinner = "w" | "b" | "draw";
 export const gameWinnerEnum = ["w", "b", "draw"];
 
 export type GameResultType =
+    | "Check Mate"
     | "On Time"
-    | "Draw offer"
-    | "Abandon"
-    | "Resign"
     | "Stalemate"
-    | "N Moves Rule"
-    | "Check Mate";
+    | "Resign"
+    | "Abandon"
+    // draw cases
+    | "50 Moves Rule"
+    | "Stalesmate"
+    | "Threefold Repetition"
+    | "Insufficient Material"
+    | "Draw Offer";
+
 export const gameResultTypeEnum = [
-    "On Time",
-    "Draw offer",
-    "Abandon",
-    "Resign",
-    "Stalemate",
-    "N Moves Rule",
     "Check Mate",
+    "On Time",
+    "Stalemate",
+    "Resign",
+    "Abandon", // TODO: right now is not used, it was thought to be used when a player leaves the game (disconnects) and certain time passes
+    // draw cases
+    "50 Moves Rule",
+    "Stalesmate",
+    "Threefold Repetition",
+    "Insufficient Material",
+    "Draw Offer",
 ];
 
 export type GameTypePairing = "Link Shared" | "Friend Req" | "Random Pairing";
@@ -89,10 +98,10 @@ export class Game {
     eloBlacksAfterGame: number | null;
 
     // time pending for tboth players at the end of the game
-    @Column({ type: "smallint", nullable: true })
+    @Column({ type: "int", nullable: true })
     timeAfterGameEndWhites: number | null;
 
-    @Column({ type: "smallint", nullable: true })
+    @Column({ type: "int", nullable: true })
     timeAfterGameEndBlacks: number | null;
 
     // TODO: tuve que dejar el nullable en true pq la migracion me daba error
