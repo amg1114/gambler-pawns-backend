@@ -156,11 +156,17 @@ export class GameService {
             await this.userService.increaseStreakBy1(
                 gameInstance.blacksPlayer.playerId,
             );
+            await this.userService.increaseCoins(
+                gameInstance.blacksPlayer.playerId,
+            );
             await this.userService.resetStreak(
                 gameInstance.whitesPlayer.playerId,
             );
         } else if (winner === "w") {
             await this.userService.increaseStreakBy1(
+                gameInstance.whitesPlayer.playerId,
+            );
+            await this.userService.increaseCoins(
                 gameInstance.whitesPlayer.playerId,
             );
             await this.userService.resetStreak(
