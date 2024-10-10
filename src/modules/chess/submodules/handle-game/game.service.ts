@@ -6,6 +6,7 @@ import { Repository } from "typeorm";
 import {
     Game as GameEntity,
     GameModeType,
+    GameResultType,
     GameTypePairing,
 } from "../../entities/db/game.entity";
 import { Game } from "../../entities/game";
@@ -130,13 +131,20 @@ export class GameService {
         if (!gameInstance) {
             return { error: "Game not found" };
         }
-        this.endGame(winner, gameInstance);
+        await this.endGame(winner, gameInstance, "On Time");
     }
 
-    async endGame(winner: GameWinner, gameInstance: Game): Promise<void> {
+    async endGame(
+        winner: GameWinner,
+        gameInstance: Game,
+        resultType: GameResultType = "Check Mate",
+    ): Promise<void> {
+        console.log(`Game ${gameInstance.gameId} ended with winner: ${winner}`);
+        // Avoid to call here stopTimer() because it is called in timer.service to avoid repeated event emission
+        if (resultType === "On Time") {
+            this.timerService.stopTimer(gameInstance.gameId);
+        }
         // TODO: update players elo in db
-        // TODO: revisar donde se debe para el timer
-        this.timerService.stopTimer(gameInstance.gameId);
 
         // calculate new elo for both players
         const eloWhitesAfterGame = this.eloService.calculateNewElo(
