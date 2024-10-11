@@ -5,6 +5,7 @@ import {
     SubscribeMessage,
     WebSocketGateway,
     WebSocketServer,
+    WsException,
 } from "@nestjs/websockets";
 import { OnEvent } from "@nestjs/event-emitter";
 import { Server, Socket } from "socket.io";
@@ -36,25 +37,29 @@ export class HandleGameGateway {
     async handleMakeMove(
         @MessageBody()
         payload: MakeMoveDTO,
-        @ConnectedSocket() socket: Socket,
+        //@ConnectedSocket() socket: Socket,
     ) {
         // TODO: validar que el mismo socket registrado sea quien haga la solicitud
         // TODO: pedir player id y game id para simplificar la logica
-        const result = await this.gameService.playerMove(payload.playerId, {
-            from: payload.from,
-            to: payload.to,
-        });
 
-        if (result.error) {
-            socket.emit("moveError", result.error);
-        } else {
-            const game = this.activeGamesService.findGameByPlayerId(
-                payload.playerId,
-            );
-            if (game) {
-                this.server.to(game.gameId).emit("moveMade", result);
-            }
+        const gameInstance = this.activeGamesService.findGameByPlayerId(
+            payload.playerId,
+        );
+
+        if (!gameInstance) {
+            throw new WsException("Player not found in any game");
         }
+
+        const result = await this.gameService.playerMove(
+            payload.playerId,
+            {
+                from: payload.from,
+                to: payload.to,
+                promotion: payload?.promotion,
+            },
+            gameInstance,
+        );
+        this.server.to(gameInstance.gameId).emit("moveMade", result);
     }
 
     @SubscribeMessage("game:resign")

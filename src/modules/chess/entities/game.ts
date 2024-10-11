@@ -17,7 +17,6 @@ export class Game {
     public whitesPlayer: GamePlayer;
     public blacksPlayer: GamePlayer;
     public board: Chess;
-    private moveCount = 0;
 
     constructor() {
         this.board = new Chess();
@@ -52,20 +51,21 @@ export class Game {
     }
 
     /** Validate and make move */
-    makeMove(playerId: string, move: { from: string; to: string }) {
+    makeMove(
+        playerId: string,
+        move: { from: string; to: string; promotion?: string },
+    ) {
         if (
-            (this.moveCount % 2 === 0 &&
+            (this.board.turn() === "w" &&
                 playerId !== this.whitesPlayer.playerId) ||
-            (this.moveCount % 2 !== 0 &&
+            (this.board.turn() === "b" &&
                 playerId !== this.blacksPlayer.playerId)
         ) {
-            return { error: "Is not your turn" };
+            throw new WsException("Not your turn");
         }
 
         try {
             const moveResult = this.board.move(move);
-            if (!moveResult) throw new Error("Invalid Move");
-            this.moveCount++;
             return {
                 moveResult,
                 board: this.board.fen(),

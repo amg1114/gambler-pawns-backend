@@ -93,14 +93,11 @@ export class GameService {
         };
     }
 
-    async playerMove(playerId: string, move: { from: string; to: string }) {
-        const gameInstance =
-            this.activeGamesService.findGameByPlayerId(playerId);
-
-        if (!gameInstance) {
-            return { error: "Game not found" };
-        }
-
+    async playerMove(
+        playerId: string,
+        move: { from: string; to: string; promotion?: string },
+        gameInstance: Game,
+    ) {
         // make move in game instance
         const moveResult = gameInstance.makeMove(playerId, move);
 
