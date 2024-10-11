@@ -5,8 +5,8 @@ import {
     NotFoundException,
     Param,
 } from "@nestjs/common";
-import { GameHistoryService } from "./game-history.service"; 
-import { Game } from "../../entities/db/game.entity"; 
+import { GameHistoryService } from "./game-history.service";
+import { Game } from "../../entities/db/game.entity";
 
 @Controller("game-history")
 export class GameHistoryController {
