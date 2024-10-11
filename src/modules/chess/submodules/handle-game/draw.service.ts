@@ -1,11 +1,17 @@
 import { Injectable } from "@nestjs/common";
 import { GameService } from "./game.service";
+import { ActiveGamesService } from "../active-games/active-games.service";
+import { WsException } from "@nestjs/websockets";
+import { Game } from "../../entities/game";
 
 @Injectable()
 export class DrawService {
-    private drawOffers: Map<string, string> = new Map(); // key: gameId, value: playerId (draw offer)
+    private drawOffers: Map<string, string> = new Map(); // key: gameId -> playerId (who draw offer)
 
-    constructor(private readonly gameService: GameService) {}
+    constructor(
+        private readonly gameService: GameService,
+        private readonly activeGamesService: ActiveGamesService,
+    ) {}
 
     offerDraw(gameId: string, playerId: string): string | null {
         // check if draw offer already exists
@@ -16,14 +22,18 @@ export class DrawService {
         return null; // draw offer already exists
     }
 
-    acceptDraw(gameId: string): boolean {
+    async acceptDraw(gameId: string, playerId: string): Promise<boolean> {
+        const game = this.activeGamesService.findGameByPlayerId(playerId);
+        // TODO: manejo de excepciones, revisar
+        if (!game) throw new WsException("Game not found");
+
         if (this.drawOffers.has(gameId)) {
             this.drawOffers.delete(gameId);
-            // TODO: fix this
-            //this.gameService.endGame(gameId, "draw"); // end game with draw
+
+            await this.gameService.endGame("draw", game, "Draw Offer"); // end game with draw
             return true;
         }
-        return false;
+        throw new WsException("No draw offer to accpet exists");
     }
 
     rejectDraw(gameId: string): boolean {
@@ -31,10 +41,10 @@ export class DrawService {
             this.drawOffers.delete(gameId);
             return true;
         }
-        return false;
+        throw new WsException("No draw offer to reject exists");
     }
 
-    getOpponentId(playerId: string, game: any): string {
+    getOpponentId(playerId: string, game: Game): string {
         return playerId === game.whitesPlayer.playerId
             ? game.blacksPlayer.playerId
             : game.whitesPlayer.playerId;
