@@ -107,6 +107,7 @@ export class TimerService {
                 remainingTime.playerOneTime <= 0 ||
                 remainingTime.playerTwoTime <= 0
             ) {
+                console.log("active timers", this.timers);
                 // Time's up for one of the players
                 const winner = remainingTime.playerOneTime <= 0 ? "b" : "w";
                 this.eventEmitter.emit("timer.timeout", { gameId, winner });

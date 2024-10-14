@@ -79,6 +79,7 @@ export class UserService {
         }
     }
 
+    //TODO: Fix this because wtf is this shit even doing
     async updateUserAvatar(id: number, fileName: string) {
         try {
             const avatar = await this.userAvatarImgRepository.findOne({
@@ -152,6 +153,13 @@ export class UserService {
     async resetStreak(playerId: string) {
         await this.userRepository.update(playerId, {
             streakDays: 0,
+        });
+    }
+
+    async increaseCoins(playerId: string) {
+        await this.userRepository.update(playerId, {
+            currentCoins: () => "currentCoins + 10",
+            acumulatedAllTimeCoins: () => "acumulatedAllTimeCoins + 10",
         });
     }
 }

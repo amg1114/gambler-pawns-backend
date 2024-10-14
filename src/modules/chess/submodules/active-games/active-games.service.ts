@@ -22,6 +22,7 @@ export class ActiveGamesService {
     }
 
     findGameByGameId(gameId: string): Game | undefined {
+        console.log("activeGames", this.activeGames);
         for (const game of this.activeGames.values()) {
             if (game.gameId === gameId) return game;
         }

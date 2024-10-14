@@ -9,4 +9,7 @@ export class MakeMoveDTO {
 
     @IsString()
     to: string;
+
+    @IsString()
+    promotion?: string;
 }

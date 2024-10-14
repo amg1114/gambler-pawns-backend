@@ -11,13 +11,6 @@ import { UserAvatarImg } from "src/modules/user/entities/userAvatar.entity";
 
 @Module({
     imports: [
-        JwtModule.registerAsync({
-            inject: [ConfigService],
-            useFactory: (configService: ConfigService) => ({
-                secret: configService.get<string>("JWT_SECRET"),
-                signOptions: { expiresIn: "1h" },
-            }),
-        }),
         MailerModule.forRootAsync({
             inject: [ConfigService],
             useFactory: (configService: ConfigService) => ({

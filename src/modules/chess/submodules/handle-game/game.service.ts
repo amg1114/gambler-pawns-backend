@@ -93,14 +93,11 @@ export class GameService {
         };
     }
 
-    async playerMove(playerId: string, move: { from: string; to: string }) {
-        const gameInstance =
-            this.activeGamesService.findGameByPlayerId(playerId);
-
-        if (!gameInstance) {
-            return { error: "Game not found" };
-        }
-
+    async playerMove(
+        playerId: string,
+        move: { from: string; to: string; promotion?: string },
+        gameInstance: Game,
+    ) {
         // make move in game instance
         const moveResult = gameInstance.makeMove(playerId, move);
 
@@ -179,11 +176,17 @@ export class GameService {
             await this.userService.increaseStreakBy1(
                 gameInstance.blacksPlayer.playerId,
             );
+            await this.userService.increaseCoins(
+                gameInstance.blacksPlayer.playerId,
+            );
             await this.userService.resetStreak(
                 gameInstance.whitesPlayer.playerId,
             );
         } else if (winner === "w") {
             await this.userService.increaseStreakBy1(
+                gameInstance.whitesPlayer.playerId,
+            );
+            await this.userService.increaseCoins(
                 gameInstance.whitesPlayer.playerId,
             );
             await this.userService.resetStreak(
