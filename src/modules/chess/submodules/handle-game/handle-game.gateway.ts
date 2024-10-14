@@ -5,7 +5,9 @@ import {
     SubscribeMessage,
     WebSocketGateway,
     WebSocketServer,
+    WsException,
 } from "@nestjs/websockets";
+import { OnEvent } from "@nestjs/event-emitter";
 import { Server, Socket } from "socket.io";
 import { CORS } from "src/config/constants";
 // ws utils
@@ -13,6 +15,7 @@ import { CustomWsFilterException } from "src/common/websockets-utils/websocket.f
 import { ParseJsonPipe } from "src/common/websockets-utils/websocketParseJson.filter";
 // dtos
 import { MakeMoveDTO } from "./dto/makeMove.dto";
+// services
 import { ActiveGamesService } from "../active-games/active-games.service";
 import { GameService } from "./game.service";
 
@@ -34,59 +37,29 @@ export class HandleGameGateway {
     async handleMakeMove(
         @MessageBody()
         payload: MakeMoveDTO,
-        @ConnectedSocket() socket: Socket,
+        //@ConnectedSocket() socket: Socket,
     ) {
-        console.log("Making move", payload);
-        const result = await this.gameService.playerMove(payload.playerId, {
-            from: payload.from,
-            to: payload.to,
-        });
+        // TODO: validar que el mismo socket registrado sea quien haga la solicitud
+        // TODO: pedir player id y game id para simplificar la logica
 
-        if (result.error) {
-            socket.emit("moveError", result.error);
-        } else if (result.gameOver) {
-            const game = this.activeGamesService.findGameByPlayerId(
-                payload.playerId,
-            );
-            if (game) {
-                const player1Socket =
-                    this.activeGamesService.getSocketIdByPlayerId(
-                        game.whitesPlayer.playerId,
-                    );
-                const player2Socket =
-                    this.activeGamesService.getSocketIdByPlayerId(
-                        game.blacksPlayer.playerId,
-                    );
+        const gameInstance = this.activeGamesService.findGameByPlayerId(
+            payload.playerId,
+        );
 
-                if (player1Socket && player2Socket) {
-                    this.server
-                        .to(player1Socket)
-                        .emit("gameOver", { winner: result.winner });
-                    this.server
-                        .to(player2Socket)
-                        .emit("gameOver", { winner: result.winner });
-                }
-            }
-        } else {
-            const game = this.activeGamesService.findGameByPlayerId(
-                payload.playerId,
-            );
-            if (game) {
-                const player1Socket =
-                    this.activeGamesService.getSocketIdByPlayerId(
-                        game.whitesPlayer.playerId,
-                    );
-                const player2Socket =
-                    this.activeGamesService.getSocketIdByPlayerId(
-                        game.blacksPlayer.playerId,
-                    );
-
-                if (player1Socket && player2Socket) {
-                    this.server.to(player1Socket).emit("moveMade", result);
-                    this.server.to(player2Socket).emit("moveMade", result);
-                }
-            }
+        if (!gameInstance) {
+            throw new WsException("Player not found in any game");
         }
+
+        const result = await this.gameService.playerMove(
+            payload.playerId,
+            {
+                from: payload.from,
+                to: payload.to,
+                promotion: payload?.promotion,
+            },
+            gameInstance,
+        );
+        this.server.to(gameInstance.gameId).emit("moveMade", result);
     }
 
     @SubscribeMessage("game:resign")
@@ -96,26 +69,11 @@ export class HandleGameGateway {
         //@ConnectedSocket() socket: Socket,
     ) {
         // TODO: validar que el mismo socket que hace la petición este registrado en el juego
-        const result = this.gameService.handleResign(payload.playerId);
+        this.gameService.handleResign(payload.playerId);
+    }
 
-        if (result && result.gameInstance) {
-            const player1Socket = this.activeGamesService.getSocketIdByPlayerId(
-                result.gameInstance.whitesPlayer.playerId,
-            );
-            const player2Socket = this.activeGamesService.getSocketIdByPlayerId(
-                result.gameInstance.blacksPlayer.playerId,
-            );
-
-            if (player1Socket && player2Socket) {
-                this.server.to(player1Socket).emit("gameOver", {
-                    winner: result.winner,
-                    reason: "resign",
-                });
-                this.server.to(player2Socket).emit("gameOver", {
-                    winner: result.winner,
-                    reason: "resign",
-                });
-            }
-        }
+    @OnEvent("game.end")
+    endGame(payload: { gameId: string; resultData: any }) {
+        this.server.to(payload.gameId).emit("gameEnd", payload.resultData);
     }
 }

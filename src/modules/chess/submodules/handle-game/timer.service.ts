@@ -1,5 +1,4 @@
-// TODO: agregar columnas de tiempo para cada jugador en la tabla game
-// TODO: investigar si es mejor usar redis
+// TODO: investigar como usar redis
 import { Injectable } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { Interval } from "@nestjs/schedule";
@@ -52,10 +51,10 @@ export class TimerService {
         }
 
         // Add increment to the player who just moved
-        if (timerData.activePlayer === "b") {
-            timerData.whitesPlayerTime += timerData.increment * 1000;
+        if (timerData.activePlayer === "w") {
+            timerData.whitesPlayerTime += timerData.increment;
         } else {
-            timerData.blacksPlayerTime += timerData.increment * 1000;
+            timerData.blacksPlayerTime += timerData.increment;
         }
 
         // Update active player and last update time
@@ -101,27 +100,21 @@ export class TimerService {
     handleTimerUpdates() {
         for (const gameId of this.timers.keys()) {
             const remainingTime = this.getRemainingTime(gameId);
+
             if (!remainingTime) continue;
 
             if (
                 remainingTime.playerOneTime <= 0 ||
                 remainingTime.playerTwoTime <= 0
             ) {
+                console.log("active timers", this.timers);
                 // Time's up for one of the players
                 const winner = remainingTime.playerOneTime <= 0 ? "b" : "w";
-                this.handleTimeOut(gameId, winner);
+                this.eventEmitter.emit("timer.timeout", { gameId, winner });
             } else {
                 this.emitTimerUpdate(gameId);
             }
         }
-    }
-
-    private handleTimeOut(gameId: string, winner: activePlayerType): void {
-        console.log(`Game ${gameId} ended. Winner by timeout: ${winner}`);
-        this.stopTimer(gameId);
-
-        // trigger events in game.service and timer.gateway
-        this.eventEmitter.emit("timer.timeout", { gameId, winner });
     }
 
     /** Emmit to trigger method in TimerGateway */
@@ -130,8 +123,7 @@ export class TimerService {
         if (timerData) {
             this.eventEmitter.emit("timer.updated", {
                 gameId,
-                playerOneTime: timerData.playerOneTime,
-                playerTwoTime: timerData.playerTwoTime,
+                ...timerData,
             });
         }
     }

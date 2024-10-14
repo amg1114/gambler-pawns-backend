@@ -13,15 +13,41 @@ import { GameWithArcadeModifiers } from "./gameWithArcadeModifiers.entity";
 
 // reusable types / enums
 export type GameWinner = "w" | "b" | "draw";
+export const gameWinnerEnum = ["w", "b", "draw"];
+
 export type GameResultType =
+    | "Check Mate"
     | "On Time"
-    | "Draw offer"
-    | "Abandon"
-    | "Resign"
     | "Stalemate"
-    | "N Moves Rule"
-    | "Check Mate";
+    | "Resign"
+    | "Abandon"
+    // draw cases
+    | "50 Moves Rule"
+    | "Stalesmate"
+    | "Threefold Repetition"
+    | "Insufficient Material"
+    | "Draw Offer";
+
+export const gameResultTypeEnum = [
+    "Check Mate",
+    "On Time",
+    "Stalemate",
+    "Resign",
+    "Abandon", // TODO: right now is not used, it was thought to be used when a player leaves the game (disconnects) and certain time passes
+    // draw cases
+    "50 Moves Rule",
+    "Stalesmate",
+    "Threefold Repetition",
+    "Insufficient Material",
+    "Draw Offer",
+];
+
 export type GameTypePairing = "Link Shared" | "Friend Req" | "Random Pairing";
+export const gameTypePairingEnum = [
+    "Link Shared",
+    "Friend Req",
+    "Random Pairing",
+];
 
 export type GameModeType = "rapid" | "blitz" | "bullet" | "arcade";
 export const gameModeEnum = ["rapid", "blitz", "bullet", "arcade"];
@@ -50,7 +76,7 @@ export class Game {
     @Index("idx_game_blacks_player_ids")
     blacksPlayer: Relation<User | null>;
 
-    @Column({ type: "enum", enum: ["White", "Black", "Draw"], nullable: true })
+    @Column({ type: "enum", enum: gameWinnerEnum, nullable: true })
     winner: GameWinner | null;
 
     @Column({ type: "int", nullable: true })
@@ -71,6 +97,13 @@ export class Game {
     @Column({ type: "int", nullable: true })
     eloBlacksAfterGame: number | null;
 
+    // time pending for tboth players at the end of the game
+    @Column({ type: "int", nullable: true })
+    timeAfterGameEndWhites: number | null;
+
+    @Column({ type: "int", nullable: true })
+    timeAfterGameEndBlacks: number | null;
+
     // TODO: tuve que dejar el nullable en true pq la migracion me daba error
     // revisar porque
     @Column({ type: "enum", enum: gameModeEnum, nullable: true })
@@ -78,22 +111,14 @@ export class Game {
 
     @Column({
         type: "enum",
-        enum: [
-            "On Time",
-            "Draw offer",
-            "Abandon",
-            "Resign",
-            "Stalemate",
-            "N Moves Rule",
-            "Check Mate",
-        ],
+        enum: gameResultTypeEnum,
         nullable: true,
     })
     resultType: GameResultType | null;
 
     @Column({
         type: "enum",
-        enum: ["Link Shared", "Friend Req", "Random Pairing"],
+        enum: gameTypePairingEnum,
         nullable: true,
     })
     typePairing: GameTypePairing | null;

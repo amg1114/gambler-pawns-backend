@@ -155,4 +155,11 @@ export class UserService {
             streakDays: 0,
         });
     }
+
+    async increaseCoins(playerId: string) {
+        await this.userRepository.update(playerId, {
+            currentCoins: () => "currentCoins + 10",
+            acumulatedAllTimeCoins: () => "acumulatedAllTimeCoins + 10",
+        });
+    }
 }

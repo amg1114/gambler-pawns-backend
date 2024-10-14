@@ -25,11 +25,4 @@ export class TimerGateway {
             playerTwoTime: payload.playerTwoTime,
         });
     }
-
-    @OnEvent("timer.timeout")
-    handleTimerTimeout(payload: { gameId: string; winner: string }) {
-        this.server
-            .to(payload.gameId)
-            .emit("timerTimeout", { winner: payload.winner });
-    }
 }
