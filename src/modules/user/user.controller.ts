@@ -1,10 +1,11 @@
-import { Body, Controller, Get, Param, Patch } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, UseGuards } from "@nestjs/common";
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 
 import { UserService } from "./user.service";
 import { User } from "./entities/user.entity";
 import { UpdateResult } from "typeorm";
 import { UpdateUserDto } from "./dto/updateUser.dto";
+import { AuthGuard } from "src/common/guards/auth.guard";
 
 @Controller("user")
 @ApiTags("user")
@@ -18,7 +19,10 @@ export class UserController {
         return this.userService.getUserInfo(nickname);
     }
 
+    //TODO: Verify with the JWT token if the user is the same as the one in the params (req.user)
+    //TODO: Add case 401 - unauthorized
     @Patch(":id")
+    @UseGuards(AuthGuard)
     @ApiOperation({ summary: "Update user data" })
     @ApiResponse({ status: 200, description: "User data updated successfully" })
     @ApiResponse({ status: 404, description: "User not found" })
@@ -29,7 +33,9 @@ export class UserController {
         return this.userService.updateUserById(id, userFields);
     }
 
+    //TODO: Verify with the JWT token if the user is the same as the one in the params
     @Patch(":id/avatar")
+    @UseGuards(AuthGuard)
     @ApiOperation({ summary: "Update user avatar" })
     @ApiResponse({
         status: 200,

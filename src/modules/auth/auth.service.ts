@@ -93,11 +93,11 @@ export class AuthService {
         return this.generateToken(user);
     }
 
-    private generateToken(user: User) {
+    private generateToken({ password, ...userWithoutPassword }: User) {
         return {
             access_token: this.jwtService.sign({
-                sub: user.userId,
-                ...user,
+                sub: userWithoutPassword.userId,
+                ...userWithoutPassword,
             }),
         };
     }
@@ -123,7 +123,7 @@ export class AuthService {
             throw new InternalServerErrorException("Failed to send email");
         });
 
-        // This return must be changed so the response doesnt return the token since it will be only accessible by the user's email
+        // FIXME: This return must be changed so the response doesnt return the token since it will be only accessible by the user's email
         // This is just for debugging/development purposes
         return { token: token };
     }
@@ -131,15 +131,13 @@ export class AuthService {
     async resetPassword({ token, newPassword }: resetPasswordDto) {
         let email: string;
         try {
-            email = this.jwtService.verify(token).email;
+            const data = await this.jwtService.verifyAsync(token);
+            email = data.email;
         } catch (error) {
             throw new UnauthorizedException("Invalid token");
         }
         const user = await this.userService.findOneByEmail(email);
-
-        if (!user) {
-            throw new UnauthorizedException("Invalid credentials");
-        }
+        if (!user) throw new UnauthorizedException("Invalid credentials");
 
         const hashedPassword = await bcrypt.hash(newPassword, 10);
 

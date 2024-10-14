@@ -1,7 +1,7 @@
 import { Module } from "@nestjs/common";
 
 // config
-import { ConfigModule } from "@nestjs/config";
+import { ConfigModule, ConfigService } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { DataSourceConfig } from "./config/db/database.provider";
 import { ServeStaticModule } from "@nestjs/serve-static";
@@ -18,6 +18,7 @@ import { StoreModule } from "./modules/store/store.module";
 import { ClubModule } from "./modules/club/club.module";
 import { ScheduleModule } from "@nestjs/schedule";
 import { EventEmitterModule } from "@nestjs/event-emitter";
+import { JwtModule } from "@nestjs/jwt";
 
 @Module({
     imports: [
@@ -31,6 +32,14 @@ import { EventEmitterModule } from "@nestjs/event-emitter";
         }),
         ServeStaticModule.forRoot({
             rootPath: join(__dirname, "..", "public"),
+        }),
+        JwtModule.registerAsync({
+            inject: [ConfigService],
+            useFactory: (configService: ConfigService) => ({
+                secret: configService.get<string>("JWT_SECRET"),
+                signOptions: { expiresIn: "1h" },
+            }),
+            global: true,
         }),
         AuthModule,
         ChessModule,

@@ -79,6 +79,7 @@ export class UserService {
         }
     }
 
+    //TODO: Fix this because wtf is this shit even doing
     async updateUserAvatar(id: number, fileName: string) {
         try {
             const avatar = await this.userAvatarImgRepository.findOne({
