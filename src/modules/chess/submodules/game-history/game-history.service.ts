@@ -31,12 +31,14 @@ export class GameHistoryService {
         const query = this.gameRepository
             .createQueryBuilder("game")
             .leftJoinAndSelect("game.whitesPlayer", "whitesPlayer")
-            .leftJoinAndSelect("game.blacksPlayer", "blacksPlayer")
-            .where(
+            .leftJoinAndSelect("game.blacksPlayer", "blacksPlayer");
+
+        if (user) {
+            query.where(
                 "whitesPlayer.userId = :userId OR blacksPlayer.userId = :userId",
                 { userId },
             );
-
+        }
         // Filtros dinámicos
         if (mode) {
             query.andWhere("game.gameMode = :mode", { mode });
@@ -84,6 +86,7 @@ export class GameHistoryService {
             const isWhite = game.whitesPlayer.userId === userId;
 
             return {
+                userId: userId,
                 gameDate: game.gameTimestamp,
                 mode: game.gameMode,
                 eloBefore: isWhite

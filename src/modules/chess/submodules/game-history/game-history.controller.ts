@@ -21,8 +21,8 @@ export class GameHistoryController {
     ): Promise<Game[]> {
         try {
             const history = await this.gameHistoryService.getUserGameHistory(
-                Number(userId),
-                mode as GameModeType, // Asegúrate de que `mode` sea del tipo correcto
+                userId,
+                mode as GameModeType,
                 side,
                 result,
             );
