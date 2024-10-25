@@ -33,53 +33,44 @@ export class GameHistoryService {
             .leftJoinAndSelect("game.whitesPlayer", "whitesPlayer")
             .leftJoinAndSelect("game.blacksPlayer", "blacksPlayer");
 
-        if (user) {
-            query.where(
-                "whitesPlayer.userId = :userId OR blacksPlayer.userId = :userId",
-                { userId },
-            );
+        let whereClause = "";
+        const parameters: Record<string, any> = { userId };
+
+        // Filtro según el side (lado del jugador)
+        if (side === "w") {
+            whereClause += "whitesPlayer.userId = :userId";
+        } else if (side === "b") {
+            whereClause += "blacksPlayer.userId = :userId";
+        } else {
+            whereClause +=
+                "(whitesPlayer.userId = :userId OR blacksPlayer.userId = :userId)";
         }
-        // Filtros dinámicos
+
+        // Condición para el modo de juego
         if (mode) {
-            query.andWhere("game.gameMode = :mode", { mode });
+            whereClause += " AND game.gameMode = :mode";
+            parameters["mode"] = mode;
         }
 
-        if (side) {
-            if (side === "w") {
-                query.andWhere("whitesPlayer.userId = :userId", { userId });
-            } else if (side === "b") {
-                query.andWhere("blacksPlayer.userId = :userId", { userId });
-            }
-        }
-
+        // Condición para el resultado
         if (result) {
-            switch (result) {
-                case "win":
-                    query.andWhere(
-                        "(whitesPlayer.userId = :userId AND game.winner = 'w') OR (blacksPlayer.userId = :userId AND game.winner = 'b')",
-                        { userId },
-                    );
-                    break;
-                case "loss":
-                    query.andWhere(
-                        "(whitesPlayer.userId = :userId AND game.winner = 'b') OR (blacksPlayer.userId = :userId AND game.winner = 'w')",
-                        { userId },
-                    );
-                    break;
-                case "draw":
-                    query.andWhere("game.winner = 'draw'");
-                    break;
+            if (result === "win") {
+                whereClause +=
+                    " AND ((whitesPlayer.userId = :userId AND game.winner = 'w') OR (blacksPlayer.userId = :userId AND game.winner = 'b'))";
+            } else if (result === "loss") {
+                whereClause +=
+                    " AND ((whitesPlayer.userId = :userId AND game.winner = 'b') OR (blacksPlayer.userId = :userId AND game.winner = 'w'))";
+            } else if (result === "draw") {
+                whereClause += " AND game.winner = 'draw'";
             }
         }
+
+        // Aplicar la cláusula WHERE completa
+        query.where(whereClause, parameters);
 
         const games = await query
             .orderBy("game.gameTimestamp", "ASC")
             .getMany();
-
-        console.log("mode", mode);
-        console.log("side", side);
-        console.log("result", result);
-        console.log("userId", userId);
 
         // Mapear los resultados
         return games.map((game) => {
@@ -98,7 +89,7 @@ export class GameHistoryService {
                 winner: game.winner,
                 gameIdEncrypted: this.gameLinkService.genGameLinkEncodeByGameId(
                     game.gameId,
-                ), // Encriptar el gameId
+                ),
             };
         });
     }
