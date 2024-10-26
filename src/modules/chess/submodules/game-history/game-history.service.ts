@@ -5,6 +5,7 @@ import { Game } from "../../entities/db/game.entity";
 import { User } from "../../../user/entities/user.entity";
 import { GameModeType } from "../../entities/db/game.entity";
 import { GameLinkService } from "../game-link/game-link.service";
+import { UserAvatarImg } from "src/modules/user/entities/userAvatar.entity";
 
 @Injectable()
 export class GameHistoryService {
@@ -13,6 +14,8 @@ export class GameHistoryService {
         private readonly gameRepository: Repository<Game>,
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
+        @InjectRepository(UserAvatarImg)
+        private readonly userAvatarImgRepository: Repository<UserAvatarImg>,
         private readonly gameLinkService: GameLinkService,
     ) {}
 
@@ -31,7 +34,9 @@ export class GameHistoryService {
         const query = this.gameRepository
             .createQueryBuilder("game")
             .leftJoinAndSelect("game.whitesPlayer", "whitesPlayer")
-            .leftJoinAndSelect("game.blacksPlayer", "blacksPlayer");
+            .leftJoinAndSelect("game.blacksPlayer", "blacksPlayer")
+            .leftJoinAndSelect("whitesPlayer.userAvatarImg", "whiteAvatar")
+            .leftJoinAndSelect("blacksPlayer.userAvatarImg", "blackAvatar");
 
         let whereClause = "";
         const parameters: Record<string, any> = { userId };
@@ -67,7 +72,6 @@ export class GameHistoryService {
 
         // Aplicar la cláusula WHERE completa
         query.where(whereClause, parameters);
-
         const games = await query
             .orderBy("game.gameTimestamp", "ASC")
             .getMany();
@@ -75,9 +79,10 @@ export class GameHistoryService {
         // Mapear los resultados
         return games.map((game) => {
             const isWhite = game.whitesPlayer.userId === userId;
-
             return {
-                userId: userId,
+                opponentNickname: isWhite
+                    ? game.blacksPlayer.nickname
+                    : game.whitesPlayer.nickname,
                 gameDate: game.gameTimestamp,
                 mode: game.gameMode,
                 eloBefore: isWhite
@@ -86,7 +91,9 @@ export class GameHistoryService {
                 eloAfter: isWhite
                     ? game.eloWhitesAfterGame
                     : game.eloBlacksAfterGame,
-                winner: game.winner,
+                opponentAvatar: isWhite
+                    ? game.blacksPlayer.userAvatarImg?.fileName
+                    : game.whitesPlayer.userAvatarImg?.fileName,
                 gameIdEncrypted: this.gameLinkService.genGameLinkEncodeByGameId(
                     game.gameId,
                 ),
