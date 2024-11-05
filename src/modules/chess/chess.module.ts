@@ -22,6 +22,8 @@ import { DrawGateway } from "./submodules/handle-game/draw.gateway";
 import { DrawService } from "./submodules/handle-game/draw.service";
 import { TimerGateway } from "./submodules/handle-game/timer.gateway";
 import { RewatchGameController } from "./submodules/rewatch/rewatch.controller";
+import { GameHistoryService } from "./submodules/game-history/game-history.service";
+import { GameHistoryController } from "./submodules/game-history/game-history.controller";
 
 @Module({
     imports: [
@@ -47,7 +49,12 @@ import { RewatchGameController } from "./submodules/rewatch/rewatch.controller";
         DrawService,
         TimerService,
         TimerGateway,
+        GameHistoryService,
     ],
-    controllers: [GameLinkController, RewatchGameController],
+    controllers: [
+        GameLinkController,
+        RewatchGameController,
+        GameHistoryController,
+    ],
 })
 export class ChessModule {}
