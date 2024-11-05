@@ -52,21 +52,18 @@ export class RandomPairingService {
         const currentTime = Date.now();
         let bestMatch: Player | null = null;
         let bestMatchIndex: number = -1;
-        const eloRange = this.INITIAL_ELO_RANGE;
+        const adjustedEloRange = this.calculateAdjustedEloRange(
+            player.joinedAt,
+            currentTime,
+        );
 
         for (let i = 0; i < timePool.length; i++) {
             const opponent = timePool[i];
             if (opponent.playerId === player.playerId) continue;
 
-            const waitTime = currentTime - opponent.joinedAt;
             const eloDifference = Math.abs(
                 player.eloRating - opponent.eloRating,
             );
-
-            // Increase Elo range based on wait time
-            const adjustedEloRange =
-                eloRange +
-                Math.floor(waitTime / 5000) * this.ELO_RANGE_INCREMENT;
 
             if (eloDifference <= adjustedEloRange) {
                 bestMatch = opponent;
@@ -77,7 +74,7 @@ export class RandomPairingService {
             // If no match found within Elo range, pick the closest after MAX_WAIT_TIME
             if (
                 !bestMatch &&
-                waitTime >= this.MAX_WAIT_TIME &&
+                currentTime - opponent.joinedAt >= this.MAX_WAIT_TIME &&
                 (bestMatchIndex === -1 ||
                     eloDifference <
                         Math.abs(player.eloRating - bestMatch.eloRating))
@@ -88,13 +85,11 @@ export class RandomPairingService {
         }
 
         if (bestMatch) {
-            // Remove matched players from the pool
-            timePool.splice(bestMatchIndex, 1);
-            timePool.splice(
-                timePool.findIndex((p) => p.playerId === player.playerId),
-                1,
+            this.removeMatchedPlayers(
+                timePool,
+                bestMatchIndex,
+                player.playerId,
             );
-
             return this.createGame(mode, player, bestMatch);
         }
 
@@ -109,26 +104,53 @@ export class RandomPairingService {
         const [initialTime, incrementTime] = this.getTimeKey(player1)
             .split("-")
             .map(Number);
-        const newGame = await this.gameService.createGame(
-            player1.playerId,
-            player2.playerId,
-            mode,
-            "Random Pairing",
-            initialTime,
-            incrementTime,
-        );
 
-        return {
-            gameId: newGame.gameId,
-            player1Socket: player1.socketId,
-            player2Socket: player2.socketId,
-            playerWhite: newGame.whitesPlayer,
-            playerBlack: newGame.blacksPlayer,
-            eloDifference: Math.abs(player1.eloRating - player2.eloRating),
-        };
+        try {
+            const newGame = await this.gameService.createGame(
+                player1.playerId,
+                player2.playerId,
+                mode,
+                "Random Pairing",
+                initialTime,
+                incrementTime,
+            );
+
+            return {
+                gameId: newGame.gameId,
+                player1Socket: player1.socketId,
+                player2Socket: player2.socketId,
+                playerWhite: newGame.whitesPlayer,
+                playerBlack: newGame.blacksPlayer,
+                eloDifference: Math.abs(player1.eloRating - player2.eloRating),
+            };
+        } catch (error) {
+            // Handle the error or propagate it
+            throw new Error("Failed to create game: " + error.message);
+        }
     }
 
     private getTimeKey(player: Player): TimeKey {
         return `${player.initialTime}-${player.incrementTime}`;
+    }
+
+    private calculateAdjustedEloRange(
+        joinedAt: number,
+        currentTime: number,
+    ): number {
+        const waitTime = currentTime - joinedAt;
+        return (
+            this.INITIAL_ELO_RANGE +
+            Math.floor(waitTime / 5000) * this.ELO_RANGE_INCREMENT
+        );
+    }
+
+    private removeMatchedPlayers(
+        timePool: Player[],
+        indexToRemove: number,
+        playerId: string,
+    ) {
+        timePool.splice(indexToRemove, 1);
+        const playerIndex = timePool.findIndex((p) => p.playerId === playerId);
+        if (playerIndex !== -1) timePool.splice(playerIndex, 1);
     }
 }
