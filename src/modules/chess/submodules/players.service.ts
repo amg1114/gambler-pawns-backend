@@ -20,7 +20,7 @@ export type PlayerCandidateVerifiedData = RegisteredPlayer | GuestPlayer;
 export interface RegisteredPlayer {
     isGuest: boolean;
     elo: number;
-    userInfo: User;
+    userInfo: Partial<User>;
 }
 
 export interface GuestPlayer {
@@ -31,7 +31,7 @@ export interface GuestPlayer {
         nickname: string;
         aboutText: string;
         countryCode: string;
-        avatar: UserAvatarImg;
+        userAvatarImg: UserAvatarImg;
     };
 }
 
@@ -71,7 +71,7 @@ export class PlayersService {
                 nickname: "Guest",
                 aboutText: "Guest",
                 countryCode: "Guest",
-                avatar: await this.userAvatarImg.findOneBy({
+                userAvatarImg: await this.userAvatarImg.findOneBy({
                     userAvatarImgId: Math.random() * (25 - 1) + 1,
                 }),
             },
@@ -105,5 +105,19 @@ export class PlayersService {
             arcade: user.eloArcade,
         };
         return eloByMode[gameMode];
+    }
+
+    /** Trasnform players data in order to avoid sending undesired fileds like password and userId to client */
+    transforPlayerData(player: PlayerCandidateVerifiedData) {
+        return {
+            isGuest: player.isGuest,
+            elo: player.elo,
+            userInfo: {
+                nickname: player.userInfo.nickname,
+                aboutText: player.userInfo.aboutText,
+                countryCode: player.userInfo.countryCode,
+                userAvatarImg: player.userInfo.userAvatarImg,
+            },
+        };
     }
 }

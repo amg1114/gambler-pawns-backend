@@ -24,7 +24,7 @@ export class DrawService {
 
     async acceptDraw(gameId: string, playerId: string): Promise<boolean> {
         const game = this.activeGamesService.findGameByPlayerId(playerId);
-        // TODO: manejo de excepciones, revisar
+
         if (!game) throw new WsException("Game not found");
 
         if (this.drawOffers.has(gameId)) {

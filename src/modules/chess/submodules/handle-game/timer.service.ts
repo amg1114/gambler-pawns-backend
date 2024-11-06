@@ -2,8 +2,10 @@
 import { Injectable } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { Interval } from "@nestjs/schedule";
+import { WsException } from "@nestjs/websockets";
 
 type activePlayerType = "w" | "b";
+type gameId = string;
 
 @Injectable()
 export class TimerService {
@@ -11,7 +13,7 @@ export class TimerService {
 
     /**  Map to keep track of timers for each game,  gameId -> data */
     private timers: Map<
-        string,
+        gameId,
         {
             whitesPlayerTime: number;
             blacksPlayerTime: number;
@@ -75,8 +77,8 @@ export class TimerService {
         gameId: string,
     ): { playerOneTime: number; playerTwoTime: number } | null {
         const timerData = this.timers.get(gameId);
-        // TODO: como manejar las excepciones?
-        if (!timerData) return null;
+
+        if (!timerData) throw new WsException("Timer not found");
 
         const now = Date.now();
         const elapsedTime = now - timerData.lastUpdateTime;
@@ -107,7 +109,6 @@ export class TimerService {
                 remainingTime.playerOneTime <= 0 ||
                 remainingTime.playerTwoTime <= 0
             ) {
-                console.log("active timers", this.timers);
                 // Time's up for one of the players
                 const winner = remainingTime.playerOneTime <= 0 ? "b" : "w";
                 await this.eventEmitter.emit("timer.timeout", {

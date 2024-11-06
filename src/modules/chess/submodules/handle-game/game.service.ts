@@ -84,10 +84,7 @@ export class GameService {
             incrementTime,
         );
 
-        return {
-            ...newGame,
-            gameId: gameEncryptedId,
-        };
+        return gameInstance;
     }
 
     async playerMove(
@@ -131,7 +128,7 @@ export class GameService {
             payload.gameId,
         );
         if (!gameInstance) {
-            throw new WsException("Game not found");
+            throw new WsException("Game not found for timeout");
         }
         await this.endGame(payload.winner, gameInstance, "On Time");
     }

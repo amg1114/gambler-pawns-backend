@@ -6,6 +6,7 @@ import {
     PlayerCandidateVerifiedRequestData,
     PlayersService,
 } from "../players.service";
+import { WsException } from "@nestjs/websockets";
 
 export interface PlayerCandidateToBeMatchedData
     extends PlayerCandidateVerifiedRequestData {
@@ -134,20 +135,22 @@ export class RandomPairingService {
                 incrementTime,
             );
 
-            // TODO: revisar que solo devuelva los datos necesarios
             return {
                 player1Socket: player1.socketId,
                 player2Socket: player2.socketId,
                 gameId: newGame.gameId,
-                playerWhite: newGame.whitesPlayer,
-                playerBlack: newGame.blacksPlayer,
+                playerWhite: this.playersService.transforPlayerData(
+                    newGame.whitesPlayer,
+                ),
+                playerBlack: this.playersService.transforPlayerData(
+                    newGame.blacksPlayer,
+                ),
                 eloDifference: Math.abs(
                     player1.userData.elo - player2.userData.elo,
                 ),
             };
         } catch (error) {
-            console.error(error);
-            throw new Error("Failed to create game");
+            throw new WsException("Failed to create game");
         }
     }
 

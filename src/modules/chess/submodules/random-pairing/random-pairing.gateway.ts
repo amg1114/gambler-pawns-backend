@@ -35,9 +35,6 @@ export class RandomPairingGateway {
         const { playerId, eloRating, mode, initialTime, incrementTime } =
             payload;
 
-        // Register player and socket in chess service
-        //this.activeGamesService.registerPlayerSocket(playerId, socket.id); // TODO: revisar
-
         const pairing = await this.randomPairingService.addToPool(
             {
                 playerId,

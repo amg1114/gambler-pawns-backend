@@ -20,8 +20,7 @@ export class Game {
         this.board = new Chess();
     }
 
-    /** method init game */
-    // TODO: pedir la instancia de ambos jugadores mas bien
+    /** method to init game */
     async createGame(
         whitesPlayer: PlayerCandidateVerifiedData,
         blacksPlayer: PlayerCandidateVerifiedData,
