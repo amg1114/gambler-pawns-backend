@@ -39,7 +39,10 @@ export class RandomPairingService {
         player: PlayerCandidateToBeMatchedData,
         mode: GameModeType,
     ) {
-        const playerVerified = await this.playersService.createPlayer(player);
+        const playerVerified = await this.playersService.createPlayer(
+            player,
+            mode,
+        );
         const playerCandidateToBeMatched = {
             ...player,
             userData: playerVerified,
@@ -78,7 +81,7 @@ export class RandomPairingService {
             if (opponent.playerId === player.playerId) continue;
 
             const eloDifference = Math.abs(
-                player.eloRating - opponent.eloRating,
+                player.userData.elo - opponent.userData.elo,
             );
 
             if (eloDifference <= adjustedEloRange) {
@@ -93,7 +96,7 @@ export class RandomPairingService {
                 currentTime - opponent.joinedAt >= this.MAX_WAIT_TIME &&
                 (bestMatchIndex === -1 ||
                     eloDifference <
-                        Math.abs(player.eloRating - bestMatch.eloRating))
+                        Math.abs(player.userData.elo - bestMatch.userData.elo))
             ) {
                 bestMatch = opponent;
                 bestMatchIndex = i;
@@ -131,16 +134,18 @@ export class RandomPairingService {
                 incrementTime,
             );
 
+            // TODO: revisar que solo devuelva los datos necesarios
             return {
                 player1Socket: player1.socketId,
                 player2Socket: player2.socketId,
                 gameId: newGame.gameId,
                 playerWhite: newGame.whitesPlayer,
                 playerBlack: newGame.blacksPlayer,
-                eloDifference: Math.abs(player1.eloRating - player2.eloRating),
+                eloDifference: Math.abs(
+                    player1.userData.elo - player2.userData.elo,
+                ),
             };
         } catch (error) {
-            // Handle the error or propagate it
             console.error(error);
             throw new Error("Failed to create game");
         }

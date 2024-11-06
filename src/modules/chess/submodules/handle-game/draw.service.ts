@@ -45,8 +45,8 @@ export class DrawService {
     }
 
     getOpponentId(playerId: string, game: Game): string {
-        return playerId === game.whitesPlayer.playerId
-            ? game.blacksPlayer.playerId
-            : game.whitesPlayer.playerId;
+        return playerId === game.whitesPlayer.userInfo.userId.toString()
+            ? game.blacksPlayer.userInfo.userId.toString()
+            : game.whitesPlayer.userInfo.userId.toString();
     }
 }

@@ -97,7 +97,7 @@ export class TimerService {
     }
 
     @Interval(1000) // Run every second
-    handleTimerUpdates() {
+    async handleTimerUpdates() {
         for (const gameId of this.timers.keys()) {
             const remainingTime = this.getRemainingTime(gameId);
 
@@ -110,7 +110,10 @@ export class TimerService {
                 console.log("active timers", this.timers);
                 // Time's up for one of the players
                 const winner = remainingTime.playerOneTime <= 0 ? "b" : "w";
-                this.eventEmitter.emit("timer.timeout", { gameId, winner });
+                await this.eventEmitter.emit("timer.timeout", {
+                    gameId,
+                    winner,
+                });
             } else {
                 this.emitTimerUpdate(gameId);
             }

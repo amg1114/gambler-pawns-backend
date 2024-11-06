@@ -4,6 +4,7 @@ import { User } from "src/modules/user/entities/user.entity";
 import { Repository } from "typeorm/repository/Repository";
 import { WsException } from "@nestjs/websockets";
 import { GameModeType } from "../entities/db/game.entity";
+import { UserAvatarImg } from "src/modules/user/entities/userAvatar.entity";
 
 export interface PlayerCandidateVerifiedRequestData {
     eloRating: number;
@@ -17,19 +18,20 @@ export interface PlayerCandidateVerifiedRequestData {
 export type PlayerCandidateVerifiedData = RegisteredPlayer | GuestPlayer;
 
 export interface RegisteredPlayer {
-    isGuest: false;
+    isGuest: boolean;
+    elo: number;
     userInfo: User;
 }
 
 export interface GuestPlayer {
-    isGuest: true;
+    isGuest: boolean;
+    elo: number;
     userInfo: {
-        playerId: string;
+        userId: string;
         nickname: string;
         aboutText: string;
-        elo: number;
         countryCode: string;
-        avatar: string;
+        avatar: UserAvatarImg;
     };
 }
 
@@ -41,38 +43,44 @@ export class PlayersService {
     constructor(
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
+        @InjectRepository(UserAvatarImg)
+        private readonly userAvatarImg: Repository<UserAvatarImg>,
     ) {}
 
     async createPlayer(
         player: PlayerCandidateVerifiedRequestData,
+        gameMode: GameModeType,
     ): Promise<PlayerCandidateVerifiedData> {
         if (this.isGuest(player.playerId)) {
-            return this.createGuestPlayer(player.playerId);
+            return await this.createGuestPlayer(player.playerId);
         }
 
-        return await this.verifyNonGuestPlayer(player);
+        return await this.verifyNonGuestPlayer(player, gameMode);
     }
 
     private isGuest(playerId: string) {
         return playerId.includes("guest");
     }
 
-    private createGuestPlayer(playerId: string) {
+    private async createGuestPlayer(playerId: string) {
         return {
             isGuest: true,
+            elo: 1200,
             userInfo: {
-                playerId: playerId,
+                userId: playerId,
                 nickname: "Guest",
                 aboutText: "Guest",
-                elo: 1200,
                 countryCode: "Guest",
-                avatar: "Guest",
+                avatar: await this.userAvatarImg.findOneBy({
+                    userAvatarImgId: Math.random() * (25 - 1) + 1,
+                }),
             },
         };
     }
 
     private async verifyNonGuestPlayer(
         player: PlayerCandidateVerifiedRequestData,
+        gameMode: GameModeType,
     ) {
         const user = await this.userRepository.findOneBy({
             userId: +player.playerId,
@@ -83,19 +91,19 @@ export class PlayersService {
         }
 
         return {
+            elo: this.setEloByModeForNonGuestPlayer(user, gameMode),
             isGuest: false,
             userInfo: user,
         };
     }
 
-    // private setEloByModeForNonGuestPlayer(user: User, gameMode: GameModeType) {
-    //     const eloByMode = {
-    //         rapid: user.eloRapid,
-    //         blitz: user.eloBlitz,
-    //         bullet: user.eloBullet,
-    //         arcade: user.eloArcade,
-    //     };
-
-    //     return eloByMode[gameMode];
-    // }
+    private setEloByModeForNonGuestPlayer(user: User, gameMode: GameModeType) {
+        const eloByMode = {
+            rapid: user.eloRapid,
+            blitz: user.eloBlitz,
+            bullet: user.eloBullet,
+            arcade: user.eloArcade,
+        };
+        return eloByMode[gameMode];
+    }
 }

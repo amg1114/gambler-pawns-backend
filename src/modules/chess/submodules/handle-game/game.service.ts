@@ -21,6 +21,7 @@ import { GameWinner } from "../../entities/db/game.entity";
 import { UserService } from "src/modules/user/user.service";
 import { ActiveGamesService } from "../active-games/active-games.service";
 import { PlayerCandidateVerifiedData } from "../players.service";
+import { User } from "src/modules/user/entities/user.entity";
 
 @Injectable()
 /** Handle chess game logic */
@@ -59,10 +60,10 @@ export class GameService {
         const newGameEntity = this.gameRepository.create({
             gameTimestamp: new Date(),
             pgn: gameInstance.board.pgn(),
-            whitesPlayer: gameInstance.whitesPlayer.playerId,
-            blacksPlayer: gameInstance.blacksPlayer.playerId,
-            eloWhitesBeforeGame: gameInstance.whitesPlayer.elo,
-            eloBlacksBeforeGame: gameInstance.blacksPlayer.elo,
+            whitesPlayer: player1.isGuest ? null : (player1.userInfo as User),
+            blacksPlayer: player2.isGuest ? null : (player2.userInfo as User),
+            eloWhitesBeforeGame: player1.elo,
+            eloBlacksBeforeGame: player2.elo,
             gameMode: gameInstance.mode,
             typePairing: gameInstance.typePairing,
         });
@@ -73,9 +74,8 @@ export class GameService {
         );
         gameInstance.gameId = gameEncryptedId;
 
-        // save game in memory (HashMap)
-        this.activeGamesService.setActiveGame(player1Id, gameInstance);
-        this.activeGamesService.setActiveGame(player2Id, gameInstance);
+        // register game in active games service
+        this.activeGamesService.registerActiveGame(gameInstance);
 
         // start timer for game
         this.timerService.startTimer(
@@ -123,7 +123,7 @@ export class GameService {
         };
     }
 
-    @OnEvent("timer.timeout")
+    @OnEvent("timer.timeout", { async: true })
     async handleGameTimeout(payload: { gameId: string; winner: "w" | "b" }) {
         console.log(`Time up for game ${payload.gameId}`);
 
@@ -142,7 +142,12 @@ export class GameService {
         resultType: GameResultType,
     ): Promise<void> {
         console.log(`Game ${gameInstance.gameId} ended with winner: ${winner}`);
-        // TODO: eliminar el juego de todos los maps (activeGames, draws, revisar esto)
+        this.activeGamesService.unRegisterActiveGame(gameInstance);
+
+        const whitesPlayerId =
+            gameInstance.whitesPlayer.userInfo.userId.toString();
+        const blacksPlayerId =
+            gameInstance.blacksPlayer.userInfo.userId.toString();
 
         // get timer data and stop timer
         const timeAfterGameEndWhites = this.timerService.getRemainingTime(
@@ -170,25 +175,13 @@ export class GameService {
         // update streaks if players are not guests
         // TODO: how to handle guests?
         if (winner === "b") {
-            await this.userService.increaseStreakBy1(
-                gameInstance.blacksPlayer.playerId,
-            );
-            await this.userService.increaseCoins(
-                gameInstance.blacksPlayer.playerId,
-            );
-            await this.userService.resetStreak(
-                gameInstance.whitesPlayer.playerId,
-            );
+            await this.userService.increaseStreakBy1(blacksPlayerId);
+            await this.userService.increaseCoins(blacksPlayerId);
+            await this.userService.resetStreak(whitesPlayerId);
         } else if (winner === "w") {
-            await this.userService.increaseStreakBy1(
-                gameInstance.whitesPlayer.playerId,
-            );
-            await this.userService.increaseCoins(
-                gameInstance.whitesPlayer.playerId,
-            );
-            await this.userService.resetStreak(
-                gameInstance.blacksPlayer.playerId,
-            );
+            await this.userService.increaseStreakBy1(whitesPlayerId);
+            await this.userService.increaseCoins(whitesPlayerId);
+            await this.userService.resetStreak(blacksPlayerId);
         }
 
         // update game in
@@ -235,7 +228,9 @@ export class GameService {
         }
 
         const winner =
-            gameInstance.whitesPlayer.playerId === playerId ? "b" : "w";
+            gameInstance.whitesPlayer.userInfo.userId.toString() === playerId
+                ? "b"
+                : "w";
 
         this.endGame(winner, gameInstance, "Resign");
     }

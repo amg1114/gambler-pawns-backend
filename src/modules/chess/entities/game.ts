@@ -1,11 +1,8 @@
-import { Repository } from "typeorm";
 import { WsException } from "@nestjs/websockets";
 import { Chess } from "chess.js";
 
 // entities
 import { GameModeType, GameTypePairing } from "./db/game.entity";
-import { User } from "src/modules/user/entities/user.entity";
-import { GamePlayer } from "./player";
 import { PlayerCandidateVerifiedData } from "../submodules/players.service";
 
 // TODO: logica apuestas
@@ -15,8 +12,8 @@ export class Game {
     public initialTime: number;
     public incrementTime: number;
     public gameId: string; // encrypted game id
-    public whitesPlayer: GamePlayer;
-    public blacksPlayer: GamePlayer;
+    public whitesPlayer: PlayerCandidateVerifiedData;
+    public blacksPlayer: PlayerCandidateVerifiedData;
     public board: Chess;
 
     constructor() {
@@ -48,9 +45,9 @@ export class Game {
     ) {
         if (
             (this.board.turn() === "w" &&
-                playerId !== this.whitesPlayer.playerId) ||
+                playerId !== this.whitesPlayer.userInfo.userId.toString()) ||
             (this.board.turn() === "b" &&
-                playerId !== this.blacksPlayer.playerId)
+                playerId !== this.blacksPlayer.userInfo.userId.toString())
         ) {
             throw new WsException("Not your turn");
         }
