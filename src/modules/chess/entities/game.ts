@@ -6,6 +6,7 @@ import { Chess } from "chess.js";
 import { GameModeType, GameTypePairing } from "./db/game.entity";
 import { User } from "src/modules/user/entities/user.entity";
 import { GamePlayer } from "./player";
+import { PlayerCandidateVerifiedData } from "../submodules/players.service";
 
 // TODO: logica apuestas
 export class Game {
@@ -23,31 +24,21 @@ export class Game {
     }
 
     /** method init game */
+    // TODO: pedir la instancia de ambos jugadores mas bien
     async createGame(
-        player1Id: string,
-        player2Id: string,
+        whitesPlayer: PlayerCandidateVerifiedData,
+        blacksPlayer: PlayerCandidateVerifiedData,
         mode: GameModeType,
         typePairing: GameTypePairing,
         initialTime: number,
         incrementTime: number,
-        userRepository: Repository<User>,
     ) {
         this.mode = mode;
         this.typePairing = typePairing;
         this.initialTime = initialTime;
         this.incrementTime = incrementTime;
-
-        // Create players and assign sides
-        this.whitesPlayer = await new GamePlayer(userRepository).create(
-            player1Id,
-            "w",
-            this.mode,
-        );
-        this.blacksPlayer = await new GamePlayer(userRepository).create(
-            player2Id,
-            "b",
-            this.mode,
-        );
+        this.whitesPlayer = whitesPlayer;
+        this.blacksPlayer = blacksPlayer;
     }
 
     /** Validate and make move */

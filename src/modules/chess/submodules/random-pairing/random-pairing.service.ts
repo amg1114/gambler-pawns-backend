@@ -1,21 +1,25 @@
 import { Injectable } from "@nestjs/common";
 import { GameModeType } from "../../entities/db/game.entity";
 import { GameService } from "../handle-game/game.service";
+import {
+    PlayerCandidateVerifiedData,
+    PlayerCandidateVerifiedRequestData,
+    PlayersService,
+} from "../players.service";
 
-export interface Player {
-    playerId: string;
-    eloRating: number;
-    socketId: string;
-    initialTime: number;
-    incrementTime: number;
-    joinedAt: number;
+export interface PlayerCandidateToBeMatchedData
+    extends PlayerCandidateVerifiedRequestData {
+    userData: PlayerCandidateVerifiedData;
 }
 
 type TimeKey = string;
 
 @Injectable()
 export class RandomPairingService {
-    private pools: Record<GameModeType, Map<TimeKey, Player[]>> = {
+    private pools: Record<
+        GameModeType,
+        Map<TimeKey, PlayerCandidateToBeMatchedData[]>
+    > = {
         rapid: new Map(),
         blitz: new Map(),
         bullet: new Map(),
@@ -26,31 +30,43 @@ export class RandomPairingService {
     private readonly INITIAL_ELO_RANGE = 100;
     private readonly ELO_RANGE_INCREMENT = 50;
 
-    constructor(private gameService: GameService) {}
+    constructor(
+        private gameService: GameService,
+        private playersService: PlayersService,
+    ) {}
 
-    async addToPool(player: Player, mode: GameModeType) {
+    async addToPool(
+        player: PlayerCandidateToBeMatchedData,
+        mode: GameModeType,
+    ) {
+        const playerVerified = await this.playersService.createPlayer(player);
+        const playerCandidateToBeMatched = {
+            ...player,
+            userData: playerVerified,
+        };
+
         const pool = this.pools[mode];
-        const timeKey = this.getTimeKey(player);
+        const timeKey = this.getTimeKey(playerCandidateToBeMatched);
 
         if (!pool.has(timeKey)) {
             pool.set(timeKey, []);
         }
         const timePool = pool.get(timeKey)!;
 
-        player.joinedAt = Date.now();
-        timePool.push(player);
+        playerCandidateToBeMatched.joinedAt = Date.now();
+        timePool.push(playerCandidateToBeMatched);
 
-        return this.findMatch(mode, timeKey, player);
+        return this.findMatch(mode, timeKey, playerCandidateToBeMatched);
     }
 
     private async findMatch(
         mode: GameModeType,
         timeKey: TimeKey,
-        player: Player,
+        player: PlayerCandidateToBeMatchedData,
     ) {
         const timePool = this.pools[mode].get(timeKey)!;
         const currentTime = Date.now();
-        let bestMatch: Player | null = null;
+        let bestMatch: PlayerCandidateToBeMatchedData | null = null;
         let bestMatchIndex: number = -1;
         const adjustedEloRange = this.calculateAdjustedEloRange(
             player.joinedAt,
@@ -98,8 +114,8 @@ export class RandomPairingService {
 
     private async createGame(
         mode: GameModeType,
-        player1: Player,
-        player2: Player,
+        player1: PlayerCandidateToBeMatchedData,
+        player2: PlayerCandidateToBeMatchedData,
     ) {
         const [initialTime, incrementTime] = this.getTimeKey(player1)
             .split("-")
@@ -107,8 +123,8 @@ export class RandomPairingService {
 
         try {
             const newGame = await this.gameService.createGame(
-                player1.playerId,
-                player2.playerId,
+                player1.userData,
+                player2.userData,
                 mode,
                 "Random Pairing",
                 initialTime,
@@ -116,20 +132,21 @@ export class RandomPairingService {
             );
 
             return {
-                gameId: newGame.gameId,
                 player1Socket: player1.socketId,
                 player2Socket: player2.socketId,
+                gameId: newGame.gameId,
                 playerWhite: newGame.whitesPlayer,
                 playerBlack: newGame.blacksPlayer,
                 eloDifference: Math.abs(player1.eloRating - player2.eloRating),
             };
         } catch (error) {
             // Handle the error or propagate it
-            throw new Error("Failed to create game: " + error.message);
+            console.error(error);
+            throw new Error("Failed to create game");
         }
     }
 
-    private getTimeKey(player: Player): TimeKey {
+    private getTimeKey(player: PlayerCandidateToBeMatchedData): TimeKey {
         return `${player.initialTime}-${player.incrementTime}`;
     }
 
@@ -145,7 +162,7 @@ export class RandomPairingService {
     }
 
     private removeMatchedPlayers(
-        timePool: Player[],
+        timePool: PlayerCandidateToBeMatchedData[],
         indexToRemove: number,
         playerId: string,
     ) {

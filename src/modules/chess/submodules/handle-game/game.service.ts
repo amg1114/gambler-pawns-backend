@@ -12,7 +12,6 @@ import {
     GameTypePairing,
 } from "../../entities/db/game.entity";
 import { Game } from "../../entities/game";
-import { User } from "src/modules/user/entities/user.entity";
 
 // services
 import { TimerService } from "./timer.service";
@@ -21,6 +20,7 @@ import { EloService } from "./elo.service";
 import { GameWinner } from "../../entities/db/game.entity";
 import { UserService } from "src/modules/user/user.service";
 import { ActiveGamesService } from "../active-games/active-games.service";
+import { PlayerCandidateVerifiedData } from "../players.service";
 
 @Injectable()
 /** Handle chess game logic */
@@ -28,8 +28,6 @@ export class GameService {
     constructor(
         @InjectRepository(GameEntity)
         private readonly gameRepository: Repository<GameEntity>,
-        @InjectRepository(User)
-        private readonly userRepository: Repository<User>,
         private readonly timerService: TimerService,
         private readonly gameLinkService: GameLinkService,
         private readonly eloService: EloService,
@@ -39,8 +37,8 @@ export class GameService {
     ) {}
 
     async createGame(
-        player1Id: string,
-        player2Id: string,
+        player1: PlayerCandidateVerifiedData,
+        player2: PlayerCandidateVerifiedData,
         mode: GameModeType,
         typePairing: GameTypePairing,
         initialTime: number,
@@ -49,21 +47,20 @@ export class GameService {
         // Create game instance
         const gameInstance = new Game();
         await gameInstance.createGame(
-            player1Id,
-            player2Id,
+            player1,
+            player2,
             mode,
             typePairing,
             initialTime,
             incrementTime,
-            this.userRepository,
         );
 
         // Save game in db
         const newGameEntity = this.gameRepository.create({
             gameTimestamp: new Date(),
             pgn: gameInstance.board.pgn(),
-            whitesPlayer: gameInstance.whitesPlayer.user,
-            blacksPlayer: gameInstance.blacksPlayer.user,
+            whitesPlayer: gameInstance.whitesPlayer.playerId,
+            blacksPlayer: gameInstance.blacksPlayer.playerId,
             eloWhitesBeforeGame: gameInstance.whitesPlayer.elo,
             eloBlacksBeforeGame: gameInstance.blacksPlayer.elo,
             gameMode: gameInstance.mode,
