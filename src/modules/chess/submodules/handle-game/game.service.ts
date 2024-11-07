@@ -66,6 +66,8 @@ export class GameService {
             blacksPlayer: player2.isGuest ? null : (player2.userInfo as User),
             eloWhitesBeforeGame: player1.elo,
             eloBlacksBeforeGame: player2.elo,
+            whitesPlayerTime: initialTime,
+            blacksPlayerTime: initialTime,
             gameMode: gameInstance.mode,
             typePairing: gameInstance.typePairing,
         });
@@ -185,7 +187,6 @@ export class GameService {
             gameInstance.gameId,
         ).playerTwoTime;
 
-        // TODO: update players elo in db
         this.activeGamesService.unRegisterActiveGame(gameInstance);
         this.inactivityService.stopTracking(gameInstance.gameId);
         this.timerService.stopTimer(gameInstance.gameId);
@@ -202,17 +203,14 @@ export class GameService {
             winner === "b" ? 1 : winner === "w" ? 0 : 0.5,
         );
 
-        // update streaks if players are not guests
-        // TODO: how to handle guests?
-        if (winner === "b") {
-            await this.userService.increaseStreakBy1(blacksPlayerId);
-            await this.userService.increaseCoins(blacksPlayerId);
-            await this.userService.resetStreak(whitesPlayerId);
-        } else if (winner === "w") {
-            await this.userService.increaseStreakBy1(whitesPlayerId);
-            await this.userService.increaseCoins(whitesPlayerId);
-            await this.userService.resetStreak(blacksPlayerId);
-        }
+        await this.userService.updatePlayersStats(
+            winner,
+            blacksPlayerId,
+            whitesPlayerId,
+            eloBlacksAfterGame,
+            eloWhitesAfterGame,
+            gameInstance.mode,
+        );
 
         // update game in
         await this.gameRepository.update(
@@ -229,18 +227,26 @@ export class GameService {
         );
 
         // emit event to notify
-        const eloWhitesAfterGameVariation =
-            gameInstance.whitesPlayer.elo - eloWhitesAfterGame;
-        const eloBlacksAfterGameVariation =
-            gameInstance.blacksPlayer.elo - eloBlacksAfterGame;
+        const eloWhitesAfterGameVariation = Math.abs(
+            gameInstance.whitesPlayer.elo - eloWhitesAfterGame,
+        );
+        const eloBlacksAfterGameVariation = Math.abs(
+            gameInstance.blacksPlayer.elo - eloBlacksAfterGame,
+        );
 
         const resultData = {
             winner,
             resultType,
-            eloWhitesAfterGameVariation,
-            eloBlacksAfterGameVariation,
-            // TODO: revisar esto (diferente de la apuesta, es es el dinero que le juego da por default al ganar)
-            gameGiftForWin: 10,
+            eloWhitesAfterGameVariation:
+                winner === "w"
+                    ? eloWhitesAfterGameVariation
+                    : eloWhitesAfterGameVariation * -1,
+            eloBlacksAfterGameVariation:
+                winner === "b"
+                    ? eloBlacksAfterGameVariation
+                    : eloBlacksAfterGameVariation * -1,
+            gameGiftForWin: 10, // different from bet, is a fixed gift for winning given by the game
+            // TODO: revisar como mandarlo solo al ganador
         };
 
         // emit event to trigger notification to users in handle-game.gateway

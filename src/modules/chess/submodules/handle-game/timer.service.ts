@@ -2,7 +2,6 @@
 import { Injectable } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { Interval } from "@nestjs/schedule";
-import { WsException } from "@nestjs/websockets";
 
 type activePlayerType = "w" | "b";
 type gameId = string;

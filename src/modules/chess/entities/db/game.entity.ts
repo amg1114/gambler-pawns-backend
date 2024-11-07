@@ -79,6 +79,7 @@ export class Game {
     @Column({ type: "enum", enum: gameWinnerEnum, nullable: true })
     winner: GameWinner | null;
 
+    // TODO: review the usage of whitesPlayerTime and blacksPlayerTime vs timeAfterGamedEndWhites, timeAfterGameEndsBlacks
     @Column({ type: "int", nullable: true })
     whitesPlayerTime: number | null;
 

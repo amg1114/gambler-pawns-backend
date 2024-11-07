@@ -7,6 +7,7 @@ import {
     PlayersService,
 } from "../players.service";
 import { WsException } from "@nestjs/websockets";
+import { ActiveGamesService } from "../active-games/active-games.service";
 
 export interface PlayerCandidateToBeMatchedData
     extends PlayerCandidateVerifiedRequestData {
@@ -34,12 +35,22 @@ export class RandomPairingService {
     constructor(
         private gameService: GameService,
         private playersService: PlayersService,
+        private activeGamesService: ActiveGamesService,
     ) {}
 
     async addToPool(
         player: PlayerCandidateToBeMatchedData,
         mode: GameModeType,
     ) {
+        // verify player has not active games
+        const hasActiveGame = this.activeGamesService.findGameByPlayerId(
+            player.playerId,
+        );
+        if (hasActiveGame) {
+            throw new WsException("Player already has an active game");
+        }
+
+        // verify player
         const playerVerified = await this.playersService.createPlayer(
             player,
             mode,
