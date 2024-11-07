@@ -113,6 +113,7 @@ export class PlayersService {
             isGuest: player.isGuest,
             elo: player.elo,
             userInfo: {
+                userId: player.userInfo.userId,
                 nickname: player.userInfo.nickname,
                 aboutText: player.userInfo.aboutText,
                 countryCode: player.userInfo.countryCode,

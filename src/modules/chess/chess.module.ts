@@ -23,6 +23,7 @@ import { DrawService } from "./submodules/handle-game/draw.service";
 import { TimerGateway } from "./submodules/handle-game/timer.gateway";
 import { RewatchGameController } from "./submodules/rewatch/rewatch.controller";
 import { PlayersService } from "./submodules/players.service";
+import { InactivityService } from "./submodules/handle-game/inactivity.service";
 
 @Module({
     imports: [
@@ -49,6 +50,7 @@ import { PlayersService } from "./submodules/players.service";
         TimerService,
         TimerGateway,
         PlayersService,
+        InactivityService,
     ],
     controllers: [GameLinkController, RewatchGameController],
 })

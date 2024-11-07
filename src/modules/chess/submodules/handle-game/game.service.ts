@@ -22,6 +22,7 @@ import { UserService } from "src/modules/user/user.service";
 import { ActiveGamesService } from "../active-games/active-games.service";
 import { PlayerCandidateVerifiedData } from "../players.service";
 import { User } from "src/modules/user/entities/user.entity";
+import { InactivityService } from "./inactivity.service";
 
 @Injectable()
 /** Handle chess game logic */
@@ -34,6 +35,7 @@ export class GameService {
         private readonly eloService: EloService,
         private readonly userService: UserService,
         private readonly activeGamesService: ActiveGamesService,
+        private readonly inactivityService: InactivityService,
         private eventEmitter: EventEmitter2,
     ) {}
 
@@ -77,6 +79,17 @@ export class GameService {
         // register game in active games service
         this.activeGamesService.registerActiveGame(gameInstance);
 
+        // initialize inactivity tracker
+        const blackPlayerId = player2.userInfo.userId.toString();
+        const whitePlayerId = player1.userInfo.userId.toString();
+
+        this.inactivityService.initializeTracker(
+            gameEncryptedId,
+            initialTime,
+            whitePlayerId,
+            blackPlayerId,
+        );
+
         // start timer for game
         this.timerService.startTimer(
             gameEncryptedId,
@@ -115,6 +128,11 @@ export class GameService {
             gameInstance.board.turn(),
         );
 
+        // update inactivity tracker
+        this.inactivityService.updateActivity(
+            gameInstance.gameId,
+            gameInstance.board.turn(),
+        );
         return {
             moveResult,
         };
@@ -133,13 +151,26 @@ export class GameService {
         await this.endGame(payload.winner, gameInstance, "On Time");
     }
 
+    @OnEvent("inactivity.timeout")
+    async handleInactivityTimeout(payload: {
+        gameId: string;
+        winner: "w" | "b";
+    }) {
+        const gameInstance = this.activeGamesService.findGameByGameId(
+            payload.gameId,
+        );
+        if (!gameInstance) {
+            throw new WsException("Game not found for inactivity timeout");
+        }
+        await this.endGame(payload.winner, gameInstance, "Abandon");
+    }
+
     async endGame(
         winner: GameWinner,
         gameInstance: Game,
         resultType: GameResultType,
     ): Promise<void> {
         console.log(`Game ${gameInstance.gameId} ended with winner: ${winner}`);
-        this.activeGamesService.unRegisterActiveGame(gameInstance);
 
         const whitesPlayerId =
             gameInstance.whitesPlayer.userInfo.userId.toString();
@@ -154,9 +185,11 @@ export class GameService {
             gameInstance.gameId,
         ).playerTwoTime;
 
+        // TODO: update players elo in db
+        this.activeGamesService.unRegisterActiveGame(gameInstance);
+        this.inactivityService.stopTracking(gameInstance.gameId);
         this.timerService.stopTimer(gameInstance.gameId);
 
-        // TODO: update players elo in db
         // calculate new elo for both players
         const eloWhitesAfterGame = this.eloService.calculateNewElo(
             gameInstance.whitesPlayer.elo,

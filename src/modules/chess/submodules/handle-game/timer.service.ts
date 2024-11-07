@@ -78,7 +78,7 @@ export class TimerService {
     ): { playerOneTime: number; playerTwoTime: number } | null {
         const timerData = this.timers.get(gameId);
 
-        if (!timerData) throw new WsException("Timer not found");
+        if (!timerData) return;
 
         const now = Date.now();
         const elapsedTime = now - timerData.lastUpdateTime;
@@ -99,7 +99,7 @@ export class TimerService {
     }
 
     @Interval(1000) // Run every second
-    async handleTimerUpdates() {
+    private async handleTimerUpdates() {
         for (const gameId of this.timers.keys()) {
             const remainingTime = this.getRemainingTime(gameId);
 
@@ -124,11 +124,11 @@ export class TimerService {
     /** Emmit to trigger method in TimerGateway */
     private emitTimerUpdate(gameId: string): void {
         const timerData = this.getRemainingTime(gameId);
-        if (timerData) {
-            this.eventEmitter.emit("timer.updated", {
-                gameId,
-                ...timerData,
-            });
-        }
+        if (!timerData) return;
+
+        this.eventEmitter.emit("timer.updated", {
+            gameId,
+            ...timerData,
+        });
     }
 }

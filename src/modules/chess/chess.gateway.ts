@@ -6,6 +6,7 @@ import {
     SubscribeMessage,
     MessageBody,
     ConnectedSocket,
+    WsException,
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
 import { CORS } from "../../config/constants";
@@ -21,8 +22,6 @@ import { ActiveGamesService } from "./submodules/active-games/active-games.servi
 })
 /** Handle connections and reconnections */
 export class ChessGateway implements OnGatewayConnection, OnGatewayDisconnect {
-    // TODO: implement /game namespace acrross all gateways of the chess module
-
     @WebSocketServer()
     server: Server;
 
@@ -34,14 +33,6 @@ export class ChessGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
     handleDisconnect(client: Socket) {
         console.log(`Client disconnected: ${client.id}`);
-
-        // const playerId = this.activeGamesService.findPlayerIdBySocketId(
-        //     client.id,
-        // );
-
-        // if (playerId) {
-        //     this.activeGamesService.unRegisterPlayerSocket(playerId);
-        // }
     }
 
     // handle recconnection of clients
@@ -59,25 +50,25 @@ export class ChessGateway implements OnGatewayConnection, OnGatewayDisconnect {
         const game = this.activeGamesService.findGameByPlayerId(playerId);
         if (game && game.gameId === gameId) {
             socket.join(gameId);
-            // update players map with new socket id
-            // this.activeGamesService.registerPlayerSocket(playerId, socket.id);
-            // console.log(
-            //     `Player ${playerId} reconnected with socket ID ${socket.id}`,
-            // );
+
+            const whitePlayerId = game.whitesPlayer.userInfo.userId.toString();
+            const blackPlayerId = game.blacksPlayer.userInfo.userId.toString();
+
+            // join player to its own room in order to send private messages
+            if (playerId === whitePlayerId) {
+                socket.join(whitePlayerId);
+            } else {
+                socket.join(blackPlayerId);
+            }
 
             // send game data to reconnected client
             socket.emit("game:reconnected", {
-                color:
-                    game.whitesPlayer.userInfo.userId.toString() === playerId
-                        ? "white"
-                        : "black",
+                color: whitePlayerId === playerId ? "white" : "black",
                 board: game.board.fen(),
                 moveHistory: game.board.history(),
             });
         } else {
-            socket.emit("error", {
-                message: "No game found or invalid gameId",
-            });
+            throw new WsException("Invalid game or player id");
         }
     }
 }

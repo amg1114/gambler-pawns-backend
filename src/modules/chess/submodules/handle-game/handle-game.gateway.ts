@@ -1,6 +1,5 @@
 import { UseFilters, UsePipes, ValidationPipe } from "@nestjs/common";
 import {
-    ConnectedSocket,
     MessageBody,
     SubscribeMessage,
     WebSocketGateway,
@@ -8,7 +7,7 @@ import {
     WsException,
 } from "@nestjs/websockets";
 import { OnEvent } from "@nestjs/event-emitter";
-import { Server, Socket } from "socket.io";
+import { Server } from "socket.io";
 import { CORS } from "src/config/constants";
 // ws utils
 import { CustomWsFilterException } from "src/common/websockets-utils/websocket.filter";
