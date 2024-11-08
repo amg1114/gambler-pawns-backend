@@ -33,17 +33,17 @@ export class InactivityService {
      * Initializes an inactivity tracker for a given game.
      *
      * @param gameId - The unique identifier of the game.
-     * @param initialTimeInMinutes - The initial time of the game in minutes.
+     * @param timeInMinutesInMinutes - The initial time of the game in minutes.
      * @param whitePlayerId - The unique identifier of the white player.
      * @param blackPlayerId - The unique identifier of the black player.
      */
     initializeTracker(
         gameId: string,
-        initialTimeInMinutes: number,
+        timeInMinutesInMinutes: number,
         whitePlayerId: string,
         blackPlayerId: string,
     ): void {
-        const totalGameTime = initialTimeInMinutes * 60 * 1000; // initialTime in minutes to miliseconds
+        const totalGameTime = timeInMinutesInMinutes * 60 * 1000; // timeInMinutes in minutes to miliseconds
 
         this.inactivityTrackers.set(gameId, {
             lastMoveTimestamp: Date.now(),

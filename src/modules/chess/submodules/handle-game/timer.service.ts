@@ -22,11 +22,11 @@ export class TimerService {
         }
     > = new Map();
 
-    startTimer(gameId: string, initialTime: number, increment: number): void {
+    startTimer(gameId: string, timeInMinutes: number, increment: number): void {
         this.timers.set(gameId, {
             // player's time to miliseconds to minutes
-            whitesPlayerTime: initialTime * 60 * 1000,
-            blacksPlayerTime: initialTime * 60 * 1000,
+            whitesPlayerTime: timeInMinutes * 60 * 1000,
+            blacksPlayerTime: timeInMinutes * 60 * 1000,
             // increment seconds to miliseconds
             increment: increment * 1000,
             activePlayer: "w", // Assuming white starts

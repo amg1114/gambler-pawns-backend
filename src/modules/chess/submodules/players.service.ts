@@ -9,9 +9,9 @@ import { UserAvatarImg } from "src/modules/user/entities/userAvatar.entity";
 export interface PlayerCandidateVerifiedRequestData {
     eloRating: number;
     playerId: string;
-    initialTime: number;
+    timeInMinutes: number;
     socketId: string;
-    incrementTime: number;
+    timeIncrementPerMoveSeconds: number;
     joinedAt: number;
 }
 

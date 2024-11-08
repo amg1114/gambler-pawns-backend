@@ -5,7 +5,6 @@ import {
     SubscribeMessage,
     WebSocketGateway,
     WebSocketServer,
-    WsException,
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
 import { CustomWsFilterException } from "src/common/websockets-utils/websocket.filter";
@@ -33,15 +32,20 @@ export class RandomPairingGateway {
         @ConnectedSocket() socket: Socket,
     ) {
         console.log("Joining game", payload);
-        const { playerId, eloRating, mode, initialTime, incrementTime } =
-            payload;
+        const {
+            playerId,
+            eloRating,
+            mode,
+            timeInMinutes,
+            timeIncrementPerMoveSeconds,
+        } = payload;
 
         const pairing = await this.randomPairingService.addToPool(
             {
                 playerId,
                 eloRating,
-                initialTime,
-                incrementTime,
+                timeInMinutes,
+                timeIncrementPerMoveSeconds,
                 joinedAt: Date.now(),
                 userData: undefined,
                 socketId: socket.id,

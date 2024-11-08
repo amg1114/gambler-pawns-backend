@@ -9,8 +9,8 @@ import { PlayerCandidateVerifiedData } from "../submodules/players.service";
 export class Game {
     public mode: GameModeType;
     public typePairing: GameTypePairing;
-    public initialTime: number;
-    public incrementTime: number;
+    public timeInMinutes: number;
+    public timeIncrementPerMoveSeconds: number;
     public gameId: string; // encrypted game id
     public whitesPlayer: PlayerCandidateVerifiedData;
     public blacksPlayer: PlayerCandidateVerifiedData;
@@ -26,13 +26,13 @@ export class Game {
         blacksPlayer: PlayerCandidateVerifiedData,
         mode: GameModeType,
         typePairing: GameTypePairing,
-        initialTime: number,
-        incrementTime: number,
+        timeInMinutes: number,
+        timeIncrementPerMoveSeconds: number,
     ) {
         this.mode = mode;
         this.typePairing = typePairing;
-        this.initialTime = initialTime;
-        this.incrementTime = incrementTime;
+        this.timeInMinutes = timeInMinutes;
+        this.timeIncrementPerMoveSeconds = timeIncrementPerMoveSeconds;
         this.whitesPlayer = whitesPlayer;
         this.blacksPlayer = blacksPlayer;
     }

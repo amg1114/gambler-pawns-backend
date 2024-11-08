@@ -132,7 +132,9 @@ export class RandomPairingService {
         player1: PlayerCandidateToBeMatchedData,
         player2: PlayerCandidateToBeMatchedData,
     ) {
-        const [initialTime, incrementTime] = this.getTimeKey(player1)
+        const [timeInMinutes, timeIncrementPerMoveSeconds] = this.getTimeKey(
+            player1,
+        )
             .split("-")
             .map(Number);
 
@@ -142,8 +144,8 @@ export class RandomPairingService {
                 player2.userData,
                 mode,
                 "Random Pairing",
-                initialTime,
-                incrementTime,
+                timeInMinutes,
+                timeIncrementPerMoveSeconds,
             );
 
             return {
@@ -167,7 +169,7 @@ export class RandomPairingService {
     }
 
     private getTimeKey(player: PlayerCandidateToBeMatchedData): TimeKey {
-        return `${player.initialTime}-${player.incrementTime}`;
+        return `${player.timeInMinutes}-${player.timeIncrementPerMoveSeconds}`;
     }
 
     private calculateAdjustedEloRange(

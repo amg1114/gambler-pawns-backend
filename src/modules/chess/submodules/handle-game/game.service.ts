@@ -44,8 +44,8 @@ export class GameService {
         player2: PlayerCandidateVerifiedData,
         mode: GameModeType,
         typePairing: GameTypePairing,
-        initialTime: number,
-        incrementTime: number,
+        timeInMinutes: number,
+        timeIncrementPerMoveSeconds: number,
     ) {
         // Create game instance
         const gameInstance = new Game();
@@ -54,8 +54,8 @@ export class GameService {
             player2,
             mode,
             typePairing,
-            initialTime,
-            incrementTime,
+            timeInMinutes,
+            timeIncrementPerMoveSeconds,
         );
 
         // Save game in db
@@ -66,8 +66,8 @@ export class GameService {
             blacksPlayer: player2.isGuest ? null : (player2.userInfo as User),
             eloWhitesBeforeGame: player1.elo,
             eloBlacksBeforeGame: player2.elo,
-            whitesPlayerTime: initialTime,
-            blacksPlayerTime: initialTime,
+            whitesPlayerTime: timeInMinutes,
+            blacksPlayerTime: timeInMinutes,
             gameMode: gameInstance.mode,
             typePairing: gameInstance.typePairing,
         });
@@ -87,7 +87,7 @@ export class GameService {
 
         this.inactivityService.initializeTracker(
             gameEncryptedId,
-            initialTime,
+            timeInMinutes,
             whitePlayerId,
             blackPlayerId,
         );
@@ -95,10 +95,11 @@ export class GameService {
         // start timer for game
         this.timerService.startTimer(
             gameEncryptedId,
-            initialTime,
-            incrementTime,
+            timeInMinutes,
+            timeIncrementPerMoveSeconds,
         );
 
+        console.log("Game created", gameEncryptedId);
         return gameInstance;
     }
 
@@ -245,8 +246,16 @@ export class GameService {
                 winner === "b"
                     ? eloBlacksAfterGameVariation
                     : eloBlacksAfterGameVariation * -1,
-            gameGiftForWin: 10, // different from bet, is a fixed gift for winning given by the game
-            // TODO: revisar como mandarlo solo al ganador
+            // gameCoinsGift different from bet, is a fixed gift for winning given by the game
+            gameGiftForWin: 10,
+            // winner : 10, draw: 5, loser: 0
+            //gameCoinsGiftIfWin: 10,
+            //gameCoinsGiftIfDraw: 5,
+            //gameCoinsGiftIfLose: 0,
+
+            // TODO: revisar si se va a implementar apuestas
+            //betCoinsWonIfWin: 0,
+            //betCoinsWonIfDraw: 0,
         };
 
         // emit event to trigger notification to users in handle-game.gateway

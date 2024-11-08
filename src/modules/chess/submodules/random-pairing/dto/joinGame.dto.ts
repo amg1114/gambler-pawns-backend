@@ -20,9 +20,9 @@ export class JoinGameDTO {
 
     // time in minutes
     @IsNumber()
-    initialTime: number;
+    timeInMinutes: number;
 
     // increment in seconds
     @IsNumber()
-    incrementTime: number;
+    timeIncrementPerMoveSeconds: number;
 }
