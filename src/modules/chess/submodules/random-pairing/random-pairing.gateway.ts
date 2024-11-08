@@ -32,49 +32,57 @@ export class RandomPairingGateway {
         @ConnectedSocket() socket: Socket,
     ) {
         console.log("Joining game", payload);
-        const { playerId, eloRating, mode, initialTime, incrementTime } =
-            payload;
-
-        // Register player and socket in chess service
-        this.activeGamesService.registerPlayerSocket(playerId, socket.id);
-
-        // TODO: aquí debería crear la instancia de jugador (la cual de una vez hace las validaciones)
+        const {
+            playerId,
+            eloRating,
+            mode,
+            timeInMinutes,
+            timeIncrementPerMoveSeconds,
+        } = payload;
 
         const pairing = await this.randomPairingService.addToPool(
             {
                 playerId,
                 eloRating,
-                socketId: socket.id,
-                initialTime,
-                incrementTime,
+                timeInMinutes,
+                timeIncrementPerMoveSeconds,
                 joinedAt: Date.now(),
+                userData: undefined,
+                socketId: socket.id,
             },
             mode,
         );
 
-        if (pairing) {
-            const { player1Socket, player2Socket, ...rest } = pairing;
+        if (!pairing) return;
 
-            // join current paired player's socket to the game room
-            socket.join(pairing.gameId);
+        const { player1Socket, player2Socket, ...rest } = pairing;
 
-            const opponentSocket = this.server.sockets.sockets.get(
-                socket.id === player1Socket ? player2Socket : player1Socket,
-            );
-
-            if (opponentSocket) {
-                opponentSocket.join(pairing.gameId);
-            }
-
-            // Notify players and send required data
-            this.server.to(player1Socket).emit("game:started", {
-                color: "white",
-                ...rest,
-            });
-            this.server.to(player2Socket).emit("game:started", {
-                color: "black",
-                ...rest,
-            });
+        // join players to its own room in order to send private messages
+        if (player1Socket === socket.id) {
+            socket.join(pairing.playerWhite.userInfo.userId.toString());
+        } else {
+            socket.join(pairing.playerBlack.userInfo.userId.toString());
         }
+
+        // join current paired player's socket to the game room
+        socket.join(pairing.gameId);
+
+        const opponentSocket = this.server.sockets.sockets.get(
+            socket.id === player1Socket ? player2Socket : player1Socket,
+        );
+
+        if (opponentSocket) {
+            opponentSocket.join(pairing.gameId);
+        }
+
+        // Notify players and send required data
+        this.server.to(player1Socket).emit("game:started", {
+            color: "white",
+            ...rest,
+        });
+        this.server.to(player2Socket).emit("game:started", {
+            color: "black",
+            ...rest,
+        });
     }
 }

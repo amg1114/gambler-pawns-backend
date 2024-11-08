@@ -20,7 +20,7 @@ export class GameLinkService {
 
     private sqids = new Sqids({
         minLength: 4,
-        alphabet: this.configService.get<string>("ALPHABET"),
+        alphabet: this.configService.getOrThrow<string>("ALPHABET"),
     });
 
     async createGameLink({ gameMode }: CreateGameLinkDto) {

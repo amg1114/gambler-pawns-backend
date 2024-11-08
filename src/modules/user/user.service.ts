@@ -6,9 +6,10 @@ import {
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { User } from "./entities/user.entity";
-import { Repository, UpdateResult } from "typeorm";
+import { QueryRunner, Repository, UpdateResult } from "typeorm";
 import { UpdateUserDto } from "./dto/updateUser.dto";
 import { UserAvatarImg } from "./entities/userAvatar.entity";
+import { GameModeType, GameWinner } from "../chess/entities/db/game.entity";
 
 @Injectable()
 export class UserService {
@@ -127,39 +128,144 @@ export class UserService {
             friendsList,
         };
     }
-
-    // Streak
-    // TODO: agregar logica de exepciones en caso de error
-    async increaseStreakBy1(playerId: string) {
-        await this.userRepository
+    private async updateWinnerStats(
+        queryRunner: QueryRunner,
+        playerId: string,
+        newElo: number,
+        gameMode: GameModeType,
+    ) {
+        const eloField = this.getEloFieldByGameMode(gameMode);
+        await queryRunner.manager
             .createQueryBuilder()
             .update(User)
             .set({
                 streakDays: () => "streak_days + 1",
+                currentCoins: () => "current_coins + 10",
+                acumulatedAllTimeCoins: () => "acumulated_all_time_coins + 10",
+                [eloField]: newElo,
             })
-            .where("userId = :userId", {
-                userId: playerId,
-            })
+            .where("userId = :userId", { userId: playerId })
             .execute();
     }
-    /*
-     const user = await this.userRepository.findOne(userId);
-    if (user) {
-      user.winningStreak += 1;
-      await this.userRepository.save(user);
-    }
-    */
 
-    async resetStreak(playerId: string) {
-        await this.userRepository.update(playerId, {
-            streakDays: 0,
-        });
+    private async updateLoserStats(
+        queryRunner: QueryRunner,
+        playerId: string,
+        newElo: number,
+        gameMode: GameModeType,
+    ) {
+        const eloField = this.getEloFieldByGameMode(gameMode);
+        await queryRunner.manager
+            .createQueryBuilder()
+            .update(User)
+            .set({
+                streakDays: 0,
+                [eloField]: newElo,
+            })
+            .where("userId = :userId", { userId: playerId })
+            .execute();
     }
 
-    async increaseCoins(playerId: string) {
-        await this.userRepository.update(playerId, {
-            currentCoins: () => "currentCoins + 10",
-            acumulatedAllTimeCoins: () => "acumulatedAllTimeCoins + 10",
-        });
+    private async updateDrawStats(
+        queryRunner: QueryRunner,
+        playerId: string,
+        newElo: number,
+        gameMode: GameModeType,
+    ) {
+        const eloField = this.getEloFieldByGameMode(gameMode);
+        await queryRunner.manager
+            .createQueryBuilder()
+            .update(User)
+            .set({
+                [eloField]: newElo,
+            })
+            .where("userId = :userId", { userId: playerId })
+            .execute();
+    }
+
+    private getEloFieldByGameMode(gameMode: GameModeType): string {
+        const getEloFieldObjectLookup = {
+            rapid: "eloRapid",
+            blitz: "eloBlitz",
+            bullet: "eloBullet",
+            arcade: "eloArcade",
+        };
+
+        return getEloFieldObjectLookup[gameMode];
+    }
+
+    /**
+     * Updates the players' statistics after a game.
+     *
+     * @param {GameWinner} winner - The winner of the game ("b" for black, "w" for white, "draw" for a tie).
+     * @param {string} blacksPlayerId - The ID of the black player.
+     * @param {string} whitesPlayerId - The ID of the white player.
+     * @param {number} blacksNewElo - The new ELO rating for the black player.
+     * @param {number} whitesNewElo - The new ELO rating for the white player.
+     * @param {GameModeType} gameMode - The game mode (rapid, blitz, bullet, arcade).
+     * @throws {Error} If an error occurs during the transaction.
+     */
+    async updatePlayersStats(
+        winner: GameWinner,
+        blacksPlayerId: string,
+        whitesPlayerId: string,
+        blacksNewElo: number,
+        whitesNewElo: number,
+        gameMode: GameModeType,
+    ) {
+        const queryRunner =
+            this.userRepository.manager.connection.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+
+        try {
+            if (winner === "b") {
+                await this.updateWinnerStats(
+                    queryRunner,
+                    blacksPlayerId,
+                    blacksNewElo,
+                    gameMode,
+                );
+                await this.updateLoserStats(
+                    queryRunner,
+                    whitesPlayerId,
+                    whitesNewElo,
+                    gameMode,
+                );
+            } else if (winner === "w") {
+                await this.updateWinnerStats(
+                    queryRunner,
+                    whitesPlayerId,
+                    whitesNewElo,
+                    gameMode,
+                );
+                await this.updateLoserStats(
+                    queryRunner,
+                    blacksPlayerId,
+                    blacksNewElo,
+                    gameMode,
+                );
+            } else if (winner === "draw") {
+                await this.updateDrawStats(
+                    queryRunner,
+                    blacksPlayerId,
+                    blacksNewElo,
+                    gameMode,
+                );
+                await this.updateDrawStats(
+                    queryRunner,
+                    whitesPlayerId,
+                    whitesNewElo,
+                    gameMode,
+                );
+            }
+
+            await queryRunner.commitTransaction();
+        } catch (error) {
+            await queryRunner.rollbackTransaction();
+            throw error;
+        } finally {
+            await queryRunner.release();
+        }
     }
 }

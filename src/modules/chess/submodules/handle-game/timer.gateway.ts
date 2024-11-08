@@ -13,7 +13,7 @@ export class TimerGateway {
     @WebSocketServer()
     server: Server;
 
-    // listen event triggered from timer service
+    // listen events triggered from timer timers service
     @OnEvent("timer.updated")
     handleTimerUpdate(payload: {
         gameId: string;
@@ -24,5 +24,18 @@ export class TimerGateway {
             playerOneTime: payload.playerOneTime,
             playerTwoTime: payload.playerTwoTime,
         });
+    }
+
+    @OnEvent("inactivity.countdown.update")
+    handleInactivityUpdate(payload: {
+        inactivePlayerId: string;
+        activePlayer: string;
+        remainingMiliseconds: number;
+    }) {
+        this.server
+            .to(payload.inactivePlayerId)
+            .emit("inactivity:countdown:update", {
+                remainingMiliseconds: payload.remainingMiliseconds,
+            });
     }
 }
