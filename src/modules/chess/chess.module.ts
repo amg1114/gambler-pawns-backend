@@ -24,6 +24,8 @@ import { TimerGateway } from "./submodules/handle-game/timer.gateway";
 import { RewatchGameController } from "./submodules/rewatch/rewatch.controller";
 import { PlayersService } from "./submodules/players.service";
 import { InactivityService } from "./submodules/handle-game/inactivity.service";
+import { GameHistoryService } from "./submodules/game-history/game-history.service";
+import { GameHistoryController } from "./submodules/game-history/game-history.controller";
 
 @Module({
     imports: [
@@ -51,7 +53,12 @@ import { InactivityService } from "./submodules/handle-game/inactivity.service";
         TimerGateway,
         PlayersService,
         InactivityService,
+        GameHistoryService,
     ],
-    controllers: [GameLinkController, RewatchGameController],
+    controllers: [
+        GameLinkController,
+        RewatchGameController,
+        GameHistoryController,
+    ],
 })
 export class ChessModule {}
