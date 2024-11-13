@@ -24,4 +24,10 @@ export class PuzzleService {
         const { puzzleId, userSolvedPuzzles, ...puzzleData } = puzzle;
         return puzzleData;
     }
+
+    async getPuzzleById(id: string) {
+        return this.puzzleEntityRepository.findOne({
+            where: { lichessId: id },
+        });
+    }
 }
