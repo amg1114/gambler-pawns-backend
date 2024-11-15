@@ -8,9 +8,6 @@ export class JoinGameDTO {
     @IsString()
     playerId: string;
 
-    @IsNumber()
-    eloRating: number;
-
     @IsEnum(gameModeEnum)
     mode: GameModeType;
 

@@ -16,8 +16,24 @@ export interface PlayerCandidateToBeMatchedData
 
 type TimeKey = string;
 
+/**
+ * Service responsible for managing the random pairing of players for different game modes.
+ * It handles adding players to matching pools, finding suitable matches based on ELO and wait time,
+ * and creating new games with matched players.
+ */
 @Injectable()
 export class RandomPairingService {
+    /**
+     * A record of player pools categorized by game mode.
+     * Each game mode has a map where the key is a time key (combination of time in minutes and increment per move)
+     * and the value is an array of players waiting to be matched.
+     *
+     * @type {Record<GameModeType, Map<TimeKey, PlayerCandidateToBeMatchedData[]>>}
+     * @property {Map<TimeKey, PlayerCandidateToBeMatchedData[]>} rapid - Pool for rapid games.
+     * @property {Map<TimeKey, PlayerCandidateToBeMatchedData[]>} blitz - Pool for blitz games.
+     * @property {Map<TimeKey, PlayerCandidateToBeMatchedData[]>} bullet - Pool for bullet games.
+     * @property {Map<TimeKey, PlayerCandidateToBeMatchedData[]>} arcade - Pool for arcade games.
+     */
     private pools: Record<
         GameModeType,
         Map<TimeKey, PlayerCandidateToBeMatchedData[]>
@@ -28,20 +44,24 @@ export class RandomPairingService {
         arcade: new Map(),
     };
 
-    private readonly MAX_WAIT_TIME = 30000; // 30 seconds
-    private readonly INITIAL_ELO_RANGE = 100;
-    private readonly ELO_RANGE_INCREMENT = 50;
-
     constructor(
         private gameService: GameService,
         private playersService: PlayersService,
         private activeGamesService: ActiveGamesService,
     ) {}
 
+    /**
+     * Adds a player to the matching pool and attempts to find a match.
+     *
+     * @param {PlayerCandidateToBeMatchedData} player - The player to be added to the pool.
+     * @param {GameModeType} mode - The game mode (rapid, blitz, bullet, arcade).
+     * @returns {Promise<any>} The match result or null if no match is found.
+     * @throws {WsException} If the player already has an active game.
+     */
     async addToPool(
         player: PlayerCandidateToBeMatchedData,
         mode: GameModeType,
-    ) {
+    ): Promise<any> {
         // verify player has not active games
         const hasActiveGame = this.activeGamesService.findGameByPlayerId(
             player.playerId,
@@ -68,70 +88,59 @@ export class RandomPairingService {
         }
         const timePool = pool.get(timeKey)!;
 
-        playerCandidateToBeMatched.joinedAt = Date.now();
         timePool.push(playerCandidateToBeMatched);
 
         return this.findMatch(mode, timeKey, playerCandidateToBeMatched);
     }
 
+    /**
+     * Finds a match for the given player in the specified game mode and time pool.
+     *
+     * @param {GameModeType} mode - The game mode (rapid, blitz, bullet, arcade).
+     * @param {TimeKey} timeKey - The time key representing the game time settings.
+     * @param {PlayerCandidateToBeMatchedData} player - The player to find a match for.
+     * @returns {Promise<any>} The match result or null if no match is found.
+     */
     private async findMatch(
         mode: GameModeType,
         timeKey: TimeKey,
         player: PlayerCandidateToBeMatchedData,
-    ) {
+    ): Promise<any> {
         const timePool = this.pools[mode].get(timeKey)!;
-        const currentTime = Date.now();
-        let bestMatch: PlayerCandidateToBeMatchedData | null = null;
-        let bestMatchIndex: number = -1;
-        const adjustedEloRange = this.calculateAdjustedEloRange(
-            player.joinedAt,
-            currentTime,
-        );
 
-        for (let i = 0; i < timePool.length; i++) {
-            const opponent = timePool[i];
-            if (opponent.playerId === player.playerId) continue;
+        // time pool sorted by ELO
+        timePool.sort((a, b) => a.userData.elo - b.userData.elo);
 
-            const eloDifference = Math.abs(
-                player.userData.elo - opponent.userData.elo,
-            );
+        if (timePool.length >= 2) {
+            const player1 = timePool.shift()!;
+            const player2 = timePool.shift()!;
 
-            if (eloDifference <= adjustedEloRange) {
-                bestMatch = opponent;
-                bestMatchIndex = i;
-                break;
-            }
+            // Remove matched players from the pools
+            // TODO: search if the are better ways to do this: data structures and algos for deletion and matching
+            console.log("Match found", player1.userData, player2.userData);
+            this.removeMatchedPlayers(mode, timeKey, player1, player2);
 
-            // If no match found within Elo range, pick the closest after MAX_WAIT_TIME
-            if (
-                !bestMatch &&
-                currentTime - opponent.joinedAt >= this.MAX_WAIT_TIME &&
-                (bestMatchIndex === -1 ||
-                    eloDifference <
-                        Math.abs(player.userData.elo - bestMatch.userData.elo))
-            ) {
-                bestMatch = opponent;
-                bestMatchIndex = i;
-            }
+            return this.createGame(mode, player1, player2);
         }
 
-        if (bestMatch) {
-            this.removeMatchedPlayers(
-                timePool,
-                bestMatchIndex,
-                player.playerId,
-            );
-            return this.createGame(mode, player, bestMatch);
-        }
-
+        console.log(`No match found for ${player.playerId}`);
         return null; // No match found
     }
 
+    /**
+     * Creates a new game with the matched players.
+     *
+     * @param {GameModeType} mode - The game mode (rapid, blitz, bullet, arcade).
+     * @param {PlayerCandidateToBeMatchedData} player1 - The first player.
+     * @param {PlayerCandidateToBeMatchedData} player2 - The second player.
+     * @returns {Promise<any>} The game creation result.
+     * @throws {WsException} If the game creation fails.
+     */
     private async createGame(
         mode: GameModeType,
         player1: PlayerCandidateToBeMatchedData,
         player2: PlayerCandidateToBeMatchedData,
-    ) {
+    ): Promise<any> {
         const [timeInMinutes, timeIncrementPerMoveSeconds] = this.getTimeKey(
             player1,
         )
@@ -168,28 +177,55 @@ export class RandomPairingService {
         }
     }
 
+    /**
+     * Generates a time key based on the player's time settings.
+     *
+     * @param {PlayerCandidateToBeMatchedData} player - The player.
+     * @returns {TimeKey} The generated time key.
+     */
     private getTimeKey(player: PlayerCandidateToBeMatchedData): TimeKey {
         return `${player.timeInMinutes}-${player.timeIncrementPerMoveSeconds}`;
     }
 
-    private calculateAdjustedEloRange(
-        joinedAt: number,
-        currentTime: number,
-    ): number {
-        const waitTime = currentTime - joinedAt;
-        return (
-            this.INITIAL_ELO_RANGE +
-            Math.floor(waitTime / 5000) * this.ELO_RANGE_INCREMENT
-        );
+    /**
+     * Removes matched players from the time pool and the pool by mode.
+     *
+     * @param {GameModeType} mode - The game mode (rapid, blitz, bullet, arcade).
+     * @param {TimeKey} timeKey - The time key representing the game time settings.
+     * @param {PlayerCandidateToBeMatchedData} player1 - The first matched player.
+     * @param {PlayerCandidateToBeMatchedData} player2 - The second matched player.
+     */
+    private removeMatchedPlayers(
+        mode: GameModeType,
+        timeKey: TimeKey,
+        player1: PlayerCandidateToBeMatchedData,
+        player2: PlayerCandidateToBeMatchedData,
+    ) {
+        const timePool = this.pools[mode].get(timeKey)!;
+
+        // Remove players from the time pool
+        this.removePlayerFromPool(timePool, player1);
+        this.removePlayerFromPool(timePool, player2);
+
+        // If the time pool is empty, remove the time key from the pool by mode
+        if (timePool.length === 0) {
+            this.pools[mode].delete(timeKey);
+        }
     }
 
-    private removeMatchedPlayers(
-        timePool: PlayerCandidateToBeMatchedData[],
-        indexToRemove: number,
-        playerId: string,
+    /**
+     * Removes a player from the specified pool.
+     *
+     * @param {PlayerCandidateToBeMatchedData[]} pool - The pool from which to remove the player.
+     * @param {PlayerCandidateToBeMatchedData} player - The player to remove.
+     */
+    private removePlayerFromPool(
+        pool: PlayerCandidateToBeMatchedData[],
+        player: PlayerCandidateToBeMatchedData,
     ) {
-        timePool.splice(indexToRemove, 1);
-        const playerIndex = timePool.findIndex((p) => p.playerId === playerId);
-        if (playerIndex !== -1) timePool.splice(playerIndex, 1);
+        const index = pool.findIndex((p) => p.playerId === player.playerId);
+        if (index !== -1) {
+            pool.splice(index, 1);
+        }
     }
 }
