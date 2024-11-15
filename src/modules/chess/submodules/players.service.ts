@@ -47,7 +47,7 @@ export class PlayersService {
     ) {}
 
     async createPlayer(
-        player: Partial<PlayerCandidateVerifiedRequestData>,
+        player: PlayerCandidateVerifiedRequestData,
         gameMode: GameModeType,
     ): Promise<PlayerCandidateVerifiedData> {
         if (this.isGuest(player.playerId)) {
