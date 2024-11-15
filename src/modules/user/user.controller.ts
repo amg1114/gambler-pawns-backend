@@ -45,16 +45,16 @@ export class UserController {
     @ApiResponse({ status: 200, description: "User data updated successfully" })
     @ApiResponse({ status: 404, description: "User not found" })
     updateUser(
-           @Param("id") id: number,
+        @Param("id") id: number,
         @Body() userFields: UpdateUserDto,
     ): Promise<UpdateResult> {
-             return this.userService.updateUserById(id, userFields);
+        return this.userService.updateUserById(id, userFields);
     }
 
     //TODO: Verify with the JWT token if the user is the same as the one in the params
     @Patch(":id/avatar")
     @UseGuards(AuthGuard)
-    @ApiOperation({ summary: "Update user avatar" }   )
+    @ApiOperation({ summary: "Update user avatar" })
     @ApiResponse({
         status: 200,
         description: "User avatar updated successfully",
