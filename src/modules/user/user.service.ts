@@ -275,7 +275,7 @@ export class UserService {
         //TODO: This also returns the hashed password
         const users = await this.userRepository
             .createQueryBuilder("user")
-            .where("user.nickname LIKE :query", { query: `%${query}%` })
+            .where("user.nickname ILIKE :query", { query: `%${query}%` })
             .andWhere("user.userId != :userId", { userId })
             .getMany();
 
