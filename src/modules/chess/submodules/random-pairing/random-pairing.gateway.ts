@@ -32,18 +32,12 @@ export class RandomPairingGateway {
         @ConnectedSocket() socket: Socket,
     ) {
         console.log("Joining game", payload);
-        const {
-            playerId,
-            eloRating,
-            mode,
-            timeInMinutes,
-            timeIncrementPerMoveSeconds,
-        } = payload;
+        const { playerId, mode, timeInMinutes, timeIncrementPerMoveSeconds } =
+            payload;
 
         const pairing = await this.randomPairingService.addToPool(
             {
                 playerId,
-                eloRating,
                 timeInMinutes,
                 timeIncrementPerMoveSeconds,
                 joinedAt: Date.now(),
