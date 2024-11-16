@@ -18,6 +18,8 @@ export class GameHistoryController {
         @Query("mode") mode?: string,
         @Query("side") side?: "w" | "b",
         @Query("result") result?: "win" | "draw" | "loss",
+        @Query("page") page: number = 1,
+        @Query("limit") limit: number = 10,
     ): Promise<Game[]> {
         try {
             const history = await this.gameHistoryService.getUserGameHistory(
@@ -25,6 +27,8 @@ export class GameHistoryController {
                 mode as GameModeType,
                 side,
                 result,
+                page,
+                limit,
             );
             if (!history) {
                 throw new NotFoundException(
