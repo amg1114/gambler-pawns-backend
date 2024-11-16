@@ -51,16 +51,16 @@ export class Notification {
     @Column({ type: "text" })
     message: string;
 
-    @Column()
+    @Column({ nullable: true })
     actionLink1: string;
 
-    @Column()
+    @Column({ nullable: true })
     actionText1: string;
 
-    @Column()
+    @Column({ nullable: true })
     actionLink2: string;
 
-    @Column()
+    @Column({ nullable: true })
     actionText2: string;
 
     @Column({ type: "boolean", default: false })
