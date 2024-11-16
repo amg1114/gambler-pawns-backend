@@ -22,6 +22,8 @@ import { DrawGateway } from "./submodules/handle-game/draw.gateway";
 import { DrawService } from "./submodules/handle-game/draw.service";
 import { TimerGateway } from "./submodules/handle-game/timer.gateway";
 import { RewatchGameController } from "./submodules/rewatch/rewatch.controller";
+import { PlayersService } from "./submodules/players.service";
+import { InactivityService } from "./submodules/handle-game/inactivity.service";
 import { GameHistoryService } from "./submodules/game-history/game-history.service";
 import { GameHistoryController } from "./submodules/game-history/game-history.controller";
 
@@ -49,6 +51,8 @@ import { GameHistoryController } from "./submodules/game-history/game-history.co
         DrawService,
         TimerService,
         TimerGateway,
+        PlayersService,
+        InactivityService,
         GameHistoryService,
     ],
     controllers: [

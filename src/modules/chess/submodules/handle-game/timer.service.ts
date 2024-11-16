@@ -4,6 +4,7 @@ import { EventEmitter2 } from "@nestjs/event-emitter";
 import { Interval } from "@nestjs/schedule";
 
 type activePlayerType = "w" | "b";
+type gameId = string;
 
 @Injectable()
 export class TimerService {
@@ -11,7 +12,7 @@ export class TimerService {
 
     /**  Map to keep track of timers for each game,  gameId -> data */
     private timers: Map<
-        string,
+        gameId,
         {
             whitesPlayerTime: number;
             blacksPlayerTime: number;
@@ -21,11 +22,11 @@ export class TimerService {
         }
     > = new Map();
 
-    startTimer(gameId: string, initialTime: number, increment: number): void {
+    startTimer(gameId: string, timeInMinutes: number, increment: number): void {
         this.timers.set(gameId, {
             // player's time to miliseconds to minutes
-            whitesPlayerTime: initialTime * 60 * 1000,
-            blacksPlayerTime: initialTime * 60 * 1000,
+            whitesPlayerTime: timeInMinutes * 60 * 1000,
+            blacksPlayerTime: timeInMinutes * 60 * 1000,
             // increment seconds to miliseconds
             increment: increment * 1000,
             activePlayer: "w", // Assuming white starts
@@ -75,8 +76,8 @@ export class TimerService {
         gameId: string,
     ): { playerOneTime: number; playerTwoTime: number } | null {
         const timerData = this.timers.get(gameId);
-        // TODO: como manejar las excepciones?
-        if (!timerData) return null;
+
+        if (!timerData) return;
 
         const now = Date.now();
         const elapsedTime = now - timerData.lastUpdateTime;
@@ -97,7 +98,7 @@ export class TimerService {
     }
 
     @Interval(1000) // Run every second
-    handleTimerUpdates() {
+    private async handleTimerUpdates() {
         for (const gameId of this.timers.keys()) {
             const remainingTime = this.getRemainingTime(gameId);
 
@@ -107,10 +108,12 @@ export class TimerService {
                 remainingTime.playerOneTime <= 0 ||
                 remainingTime.playerTwoTime <= 0
             ) {
-                console.log("active timers", this.timers);
                 // Time's up for one of the players
                 const winner = remainingTime.playerOneTime <= 0 ? "b" : "w";
-                this.eventEmitter.emit("timer.timeout", { gameId, winner });
+                await this.eventEmitter.emit("timer.timeout", {
+                    gameId,
+                    winner,
+                });
             } else {
                 this.emitTimerUpdate(gameId);
             }
@@ -120,11 +123,11 @@ export class TimerService {
     /** Emmit to trigger method in TimerGateway */
     private emitTimerUpdate(gameId: string): void {
         const timerData = this.getRemainingTime(gameId);
-        if (timerData) {
-            this.eventEmitter.emit("timer.updated", {
-                gameId,
-                ...timerData,
-            });
-        }
+        if (!timerData) return;
+
+        this.eventEmitter.emit("timer.updated", {
+            gameId,
+            ...timerData,
+        });
     }
 }

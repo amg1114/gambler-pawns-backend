@@ -6,6 +6,7 @@ import {
     SubscribeMessage,
     MessageBody,
     ConnectedSocket,
+    WsException,
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
 import { CORS } from "../../config/constants";
@@ -13,6 +14,7 @@ import { UseFilters, UsePipes, ValidationPipe } from "@nestjs/common";
 import { CustomWsFilterException } from "../../common/websockets-utils/websocket.filter";
 import { ParseJsonPipe } from "src/common/websockets-utils/websocketParseJson.filter";
 import { ActiveGamesService } from "./submodules/active-games/active-games.service";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 
 @UseFilters(new CustomWsFilterException())
 @UsePipes(new ParseJsonPipe(), new ValidationPipe({ transform: true }))
@@ -21,27 +23,25 @@ import { ActiveGamesService } from "./submodules/active-games/active-games.servi
 })
 /** Handle connections and reconnections */
 export class ChessGateway implements OnGatewayConnection, OnGatewayDisconnect {
-    // TODO: implement /game namespace acrross all gateways of the chess module
-
     @WebSocketServer()
     server: Server;
 
-    constructor(private readonly activeGamesService: ActiveGamesService) {}
+    constructor(
+        private readonly activeGamesService: ActiveGamesService,
+        private eventEmitter: EventEmitter2,
+    ) {}
 
     // log connected and disconnected clients for debugging purposes
     handleConnection(client: Socket) {
         console.log(`Client connected: ${client.id}`);
     }
+
+    // TODO: maybe is better to have a namespace for the game
     handleDisconnect(client: Socket) {
+        this.eventEmitter.emit("game.checkIfRandomPairingIsAborted", {
+            socketId: client.id,
+        });
         console.log(`Client disconnected: ${client.id}`);
-
-        const playerId = this.activeGamesService.findPlayerIdBySocketId(
-            client.id,
-        );
-
-        if (playerId) {
-            this.activeGamesService.unRegisterPlayerSocket(playerId);
-        }
     }
 
     // handle recconnection of clients
@@ -59,23 +59,25 @@ export class ChessGateway implements OnGatewayConnection, OnGatewayDisconnect {
         const game = this.activeGamesService.findGameByPlayerId(playerId);
         if (game && game.gameId === gameId) {
             socket.join(gameId);
-            // update players map with new socket id
-            this.activeGamesService.registerPlayerSocket(playerId, socket.id);
-            console.log(
-                `Player ${playerId} reconnected with socket ID ${socket.id}`,
-            );
+
+            const whitePlayerId = game.whitesPlayer.userInfo.userId.toString();
+            const blackPlayerId = game.blacksPlayer.userInfo.userId.toString();
+
+            // join player to its own room in order to send private messages
+            if (playerId === whitePlayerId) {
+                socket.join(whitePlayerId);
+            } else {
+                socket.join(blackPlayerId);
+            }
 
             // send game data to reconnected client
             socket.emit("game:reconnected", {
-                color:
-                    game.whitesPlayer.playerId === playerId ? "white" : "black",
+                color: whitePlayerId === playerId ? "white" : "black",
                 board: game.board.fen(),
                 moveHistory: game.board.history(),
             });
         } else {
-            socket.emit("error", {
-                message: "No game found or invalid gameId",
-            });
+            throw new WsException("Invalid game or player id");
         }
     }
 }

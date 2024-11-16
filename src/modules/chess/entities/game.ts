@@ -1,53 +1,40 @@
-import { Repository } from "typeorm";
 import { WsException } from "@nestjs/websockets";
 import { Chess } from "chess.js";
 
 // entities
 import { GameModeType, GameTypePairing } from "./db/game.entity";
-import { User } from "src/modules/user/entities/user.entity";
-import { GamePlayer } from "./player";
+import { PlayerCandidateVerifiedData } from "../submodules/players.service";
 
 // TODO: logica apuestas
 export class Game {
     public mode: GameModeType;
     public typePairing: GameTypePairing;
-    public initialTime: number;
-    public incrementTime: number;
+    public timeInMinutes: number;
+    public timeIncrementPerMoveSeconds: number;
     public gameId: string; // encrypted game id
-    public whitesPlayer: GamePlayer;
-    public blacksPlayer: GamePlayer;
+    public whitesPlayer: PlayerCandidateVerifiedData;
+    public blacksPlayer: PlayerCandidateVerifiedData;
     public board: Chess;
 
     constructor() {
         this.board = new Chess();
     }
 
-    /** method init game */
+    /** method to init game */
     async createGame(
-        player1Id: string,
-        player2Id: string,
+        whitesPlayer: PlayerCandidateVerifiedData,
+        blacksPlayer: PlayerCandidateVerifiedData,
         mode: GameModeType,
         typePairing: GameTypePairing,
-        initialTime: number,
-        incrementTime: number,
-        userRepository: Repository<User>,
+        timeInMinutes: number,
+        timeIncrementPerMoveSeconds: number,
     ) {
         this.mode = mode;
         this.typePairing = typePairing;
-        this.initialTime = initialTime;
-        this.incrementTime = incrementTime;
-
-        // Create players and assign sides
-        this.whitesPlayer = await new GamePlayer(userRepository).create(
-            player1Id,
-            "w",
-            this.mode,
-        );
-        this.blacksPlayer = await new GamePlayer(userRepository).create(
-            player2Id,
-            "b",
-            this.mode,
-        );
+        this.timeInMinutes = timeInMinutes;
+        this.timeIncrementPerMoveSeconds = timeIncrementPerMoveSeconds;
+        this.whitesPlayer = whitesPlayer;
+        this.blacksPlayer = blacksPlayer;
     }
 
     /** Validate and make move */
@@ -57,9 +44,9 @@ export class Game {
     ) {
         if (
             (this.board.turn() === "w" &&
-                playerId !== this.whitesPlayer.playerId) ||
+                playerId !== this.whitesPlayer.userInfo.userId.toString()) ||
             (this.board.turn() === "b" &&
-                playerId !== this.blacksPlayer.playerId)
+                playerId !== this.blacksPlayer.userInfo.userId.toString())
         ) {
             throw new WsException("Not your turn");
         }

@@ -12,7 +12,6 @@ import {
     GameTypePairing,
 } from "../../entities/db/game.entity";
 import { Game } from "../../entities/game";
-import { User } from "src/modules/user/entities/user.entity";
 
 // services
 import { TimerService } from "./timer.service";
@@ -21,6 +20,9 @@ import { EloService } from "./elo.service";
 import { GameWinner } from "../../entities/db/game.entity";
 import { UserService } from "src/modules/user/user.service";
 import { ActiveGamesService } from "../active-games/active-games.service";
+import { PlayerCandidateVerifiedData } from "../players.service";
+import { User } from "src/modules/user/entities/user.entity";
+import { InactivityService } from "./inactivity.service";
 
 @Injectable()
 /** Handle chess game logic */
@@ -28,44 +30,44 @@ export class GameService {
     constructor(
         @InjectRepository(GameEntity)
         private readonly gameRepository: Repository<GameEntity>,
-        @InjectRepository(User)
-        private readonly userRepository: Repository<User>,
         private readonly timerService: TimerService,
         private readonly gameLinkService: GameLinkService,
         private readonly eloService: EloService,
         private readonly userService: UserService,
         private readonly activeGamesService: ActiveGamesService,
+        private readonly inactivityService: InactivityService,
         private eventEmitter: EventEmitter2,
     ) {}
 
     async createGame(
-        player1Id: string,
-        player2Id: string,
+        player1: PlayerCandidateVerifiedData,
+        player2: PlayerCandidateVerifiedData,
         mode: GameModeType,
         typePairing: GameTypePairing,
-        initialTime: number,
-        incrementTime: number,
+        timeInMinutes: number,
+        timeIncrementPerMoveSeconds: number,
     ) {
         // Create game instance
         const gameInstance = new Game();
         await gameInstance.createGame(
-            player1Id,
-            player2Id,
+            player1,
+            player2,
             mode,
             typePairing,
-            initialTime,
-            incrementTime,
-            this.userRepository,
+            timeInMinutes,
+            timeIncrementPerMoveSeconds,
         );
 
         // Save game in db
         const newGameEntity = this.gameRepository.create({
             gameTimestamp: new Date(),
             pgn: gameInstance.board.pgn(),
-            whitesPlayer: gameInstance.whitesPlayer.user,
-            blacksPlayer: gameInstance.blacksPlayer.user,
-            eloWhitesBeforeGame: gameInstance.whitesPlayer.elo,
-            eloBlacksBeforeGame: gameInstance.blacksPlayer.elo,
+            whitesPlayer: player1.isGuest ? null : (player1.userInfo as User),
+            blacksPlayer: player2.isGuest ? null : (player2.userInfo as User),
+            eloWhitesBeforeGame: player1.elo,
+            eloBlacksBeforeGame: player2.elo,
+            whitesPlayerTime: timeInMinutes,
+            blacksPlayerTime: timeInMinutes,
             gameMode: gameInstance.mode,
             typePairing: gameInstance.typePairing,
         });
@@ -76,21 +78,29 @@ export class GameService {
         );
         gameInstance.gameId = gameEncryptedId;
 
-        // save game in memory (HashMap)
-        this.activeGamesService.setActiveGame(player1Id, gameInstance);
-        this.activeGamesService.setActiveGame(player2Id, gameInstance);
+        // register game in active games service
+        this.activeGamesService.registerActiveGame(gameInstance);
+
+        // initialize inactivity tracker
+        const blackPlayerId = player2.userInfo.userId.toString();
+        const whitePlayerId = player1.userInfo.userId.toString();
+
+        this.inactivityService.initializeTracker(
+            gameEncryptedId,
+            timeInMinutes,
+            whitePlayerId,
+            blackPlayerId,
+        );
 
         // start timer for game
         this.timerService.startTimer(
             gameEncryptedId,
-            initialTime,
-            incrementTime,
+            timeInMinutes,
+            timeIncrementPerMoveSeconds,
         );
 
-        return {
-            ...newGame,
-            gameId: gameEncryptedId,
-        };
+        console.log("Game created", gameEncryptedId);
+        return gameInstance;
     }
 
     async playerMove(
@@ -121,12 +131,17 @@ export class GameService {
             gameInstance.board.turn(),
         );
 
+        // update inactivity tracker
+        this.inactivityService.updateActivity(
+            gameInstance.gameId,
+            gameInstance.board.turn(),
+        );
         return {
             moveResult,
         };
     }
 
-    @OnEvent("timer.timeout")
+    @OnEvent("timer.timeout", { async: true })
     async handleGameTimeout(payload: { gameId: string; winner: "w" | "b" }) {
         console.log(`Time up for game ${payload.gameId}`);
 
@@ -134,9 +149,23 @@ export class GameService {
             payload.gameId,
         );
         if (!gameInstance) {
-            throw new WsException("Game not found");
+            throw new WsException("Game not found for timeout");
         }
         await this.endGame(payload.winner, gameInstance, "On Time");
+    }
+
+    @OnEvent("inactivity.timeout", { async: true })
+    async handleInactivityTimeout(payload: {
+        gameId: string;
+        winner: "w" | "b";
+    }) {
+        const gameInstance = this.activeGamesService.findGameByGameId(
+            payload.gameId,
+        );
+        if (!gameInstance) {
+            throw new WsException("Game not found for inactivity timeout");
+        }
+        await this.endGame(payload.winner, gameInstance, "Abandon");
     }
 
     async endGame(
@@ -145,7 +174,11 @@ export class GameService {
         resultType: GameResultType,
     ): Promise<void> {
         console.log(`Game ${gameInstance.gameId} ended with winner: ${winner}`);
-        // TODO: eliminar el juego de todos los maps (activeGames, draws, revisar esto)
+
+        const whitesPlayerId =
+            gameInstance.whitesPlayer.userInfo.userId.toString();
+        const blacksPlayerId =
+            gameInstance.blacksPlayer.userInfo.userId.toString();
 
         // get timer data and stop timer
         const timeAfterGameEndWhites = this.timerService.getRemainingTime(
@@ -155,9 +188,10 @@ export class GameService {
             gameInstance.gameId,
         ).playerTwoTime;
 
+        this.activeGamesService.unRegisterActiveGame(gameInstance);
+        this.inactivityService.stopTracking(gameInstance.gameId);
         this.timerService.stopTimer(gameInstance.gameId);
 
-        // TODO: update players elo in db
         // calculate new elo for both players
         const eloWhitesAfterGame = this.eloService.calculateNewElo(
             gameInstance.whitesPlayer.elo,
@@ -170,29 +204,14 @@ export class GameService {
             winner === "b" ? 1 : winner === "w" ? 0 : 0.5,
         );
 
-        // update streaks if players are not guests
-        // TODO: how to handle guests?
-        if (winner === "b") {
-            await this.userService.increaseStreakBy1(
-                gameInstance.blacksPlayer.playerId,
-            );
-            await this.userService.increaseCoins(
-                gameInstance.blacksPlayer.playerId,
-            );
-            await this.userService.resetStreak(
-                gameInstance.whitesPlayer.playerId,
-            );
-        } else if (winner === "w") {
-            await this.userService.increaseStreakBy1(
-                gameInstance.whitesPlayer.playerId,
-            );
-            await this.userService.increaseCoins(
-                gameInstance.whitesPlayer.playerId,
-            );
-            await this.userService.resetStreak(
-                gameInstance.blacksPlayer.playerId,
-            );
-        }
+        await this.userService.updatePlayersStats(
+            winner,
+            blacksPlayerId,
+            whitesPlayerId,
+            eloBlacksAfterGame,
+            eloWhitesAfterGame,
+            gameInstance.mode,
+        );
 
         // update game in
         await this.gameRepository.update(
@@ -209,18 +228,34 @@ export class GameService {
         );
 
         // emit event to notify
-        const eloWhitesAfterGameVariation =
-            gameInstance.whitesPlayer.elo - eloWhitesAfterGame;
-        const eloBlacksAfterGameVariation =
-            gameInstance.blacksPlayer.elo - eloBlacksAfterGame;
+        const eloWhitesAfterGameVariation = Math.abs(
+            gameInstance.whitesPlayer.elo - eloWhitesAfterGame,
+        );
+        const eloBlacksAfterGameVariation = Math.abs(
+            gameInstance.blacksPlayer.elo - eloBlacksAfterGame,
+        );
 
         const resultData = {
             winner,
             resultType,
-            eloWhitesAfterGameVariation,
-            eloBlacksAfterGameVariation,
-            // TODO: revisar esto (diferente de la apuesta, es es el dinero que le juego da por default al ganar)
+            eloWhitesAfterGameVariation:
+                winner === "w"
+                    ? eloWhitesAfterGameVariation
+                    : eloWhitesAfterGameVariation * -1,
+            eloBlacksAfterGameVariation:
+                winner === "b"
+                    ? eloBlacksAfterGameVariation
+                    : eloBlacksAfterGameVariation * -1,
+            // gameCoinsGift different from bet, is a fixed gift for winning given by the game
             gameGiftForWin: 10,
+            // winner : 10, draw: 5, loser: 0
+            //gameCoinsGiftIfWin: 10,
+            //gameCoinsGiftIfDraw: 5,
+            //gameCoinsGiftIfLose: 0,
+
+            // TODO: revisar si se va a implementar apuestas
+            //betCoinsWonIfWin: 0,
+            //betCoinsWonIfDraw: 0,
         };
 
         // emit event to trigger notification to users in handle-game.gateway
@@ -238,7 +273,9 @@ export class GameService {
         }
 
         const winner =
-            gameInstance.whitesPlayer.playerId === playerId ? "b" : "w";
+            gameInstance.whitesPlayer.userInfo.userId.toString() === playerId
+                ? "b"
+                : "w";
 
         this.endGame(winner, gameInstance, "Resign");
     }

@@ -76,8 +76,16 @@ export class AuthService {
     async login({ nickname, email, password }: LoginDto) {
         // 1. validar que el usuario existe por email o nickname
         const user = nickname
-            ? await this.userService.findOneByNickname(nickname)
-            : await this.userService.findOneByEmail(email);
+            ? await this.userRepository
+                  .createQueryBuilder("user")
+                  .addSelect("user.password")
+                  .where("user.nickname = :nickname", { nickname })
+                  .getOne()
+            : await this.userRepository
+                  .createQueryBuilder("user")
+                  .addSelect("user.password")
+                  .where("user.email = :email", { email })
+                  .getOne();
 
         if (!user) {
             throw new UnauthorizedException("Invalid credentials");

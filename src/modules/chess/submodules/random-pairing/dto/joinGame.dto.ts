@@ -8,9 +8,6 @@ export class JoinGameDTO {
     @IsString()
     playerId: string;
 
-    @IsNumber()
-    eloRating: number;
-
     @IsEnum(gameModeEnum)
     mode: GameModeType;
 
@@ -20,9 +17,9 @@ export class JoinGameDTO {
 
     // time in minutes
     @IsNumber()
-    initialTime: number;
+    timeInMinutes: number;
 
     // increment in seconds
     @IsNumber()
-    incrementTime: number;
+    timeIncrementPerMoveSeconds: number;
 }
