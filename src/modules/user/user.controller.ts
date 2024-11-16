@@ -54,6 +54,7 @@ export class UserController {
     //TODO: Add case 401 - unauthorized
     @Patch(":id")
     @UseGuards(AuthGuard)
+    @ApiBearerAuth()
     @ApiOperation({ summary: "Update user data" })
     @ApiResponse({ status: 200, description: "User data updated successfully" })
     @ApiResponse({ status: 404, description: "User not found" })
@@ -67,6 +68,7 @@ export class UserController {
     //TODO: Verify with the JWT token if the user is the same as the one in the params
     @Patch(":id/avatar")
     @UseGuards(AuthGuard)
+    @ApiBearerAuth()
     @ApiOperation({ summary: "Update user avatar" })
     @ApiResponse({
         status: 200,
