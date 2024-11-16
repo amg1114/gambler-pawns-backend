@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 
-export class SearchReponse200 {
+export class SearchReponse200Dto {
     @ApiProperty({
         example: [
             {
