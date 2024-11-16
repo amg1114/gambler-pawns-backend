@@ -11,7 +11,6 @@ import { CustomWsFilterException } from "src/common/websockets-utils/websocket.f
 import { ParseJsonPipe } from "src/common/websockets-utils/websocketParseJson.filter";
 import { JoinGameDTO } from "./dto/joinGame.dto";
 import { RandomPairingService } from "./random-pairing.service";
-import { ActiveGamesService } from "../active-games/active-games.service";
 
 @UseFilters(new CustomWsFilterException())
 @UsePipes(new ParseJsonPipe(), new ValidationPipe({ transform: true }))
@@ -20,10 +19,7 @@ export class RandomPairingGateway {
     @WebSocketServer()
     server: Server;
 
-    constructor(
-        private readonly randomPairingService: RandomPairingService,
-        private readonly activeGamesService: ActiveGamesService,
-    ) {}
+    constructor(private readonly randomPairingService: RandomPairingService) {}
 
     @SubscribeMessage("game:join")
     async handleJoinGame(
@@ -31,19 +27,12 @@ export class RandomPairingGateway {
         payload: JoinGameDTO,
         @ConnectedSocket() socket: Socket,
     ) {
-        console.log("Joining game", payload);
-        const {
-            playerId,
-            eloRating,
-            mode,
-            timeInMinutes,
-            timeIncrementPerMoveSeconds,
-        } = payload;
+        const { playerId, mode, timeInMinutes, timeIncrementPerMoveSeconds } =
+            payload;
 
         const pairing = await this.randomPairingService.addToPool(
             {
                 playerId,
-                eloRating,
                 timeInMinutes,
                 timeIncrementPerMoveSeconds,
                 joinedAt: Date.now(),

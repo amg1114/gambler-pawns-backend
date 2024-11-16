@@ -44,7 +44,6 @@ export class DrawGateway {
         const game = this.activeGamesService.findGameByPlayerId(
             payload.playerId,
         );
-        console.log(`game:offerDraw ${payload.gameId} ${payload.playerId}`);
         if (!game) throw new WsException("Game not found");
 
         const drawOfferResult = this.drawService.offerDraw(
@@ -67,7 +66,6 @@ export class DrawGateway {
         payload: AcceptDrawDTO,
         //@ConnectedSocket() socket: Socket,
     ) {
-        console.log(`game:acceptDraw ${payload.gameId} ${payload.playerId}`);
         // TODO: validar que el socket sea el mismo que el que se registró en el servicio
         const drawAccepted = await this.drawService.acceptDraw(
             payload.gameId,
@@ -87,7 +85,6 @@ export class DrawGateway {
         payload: AcceptDrawDTO,
         @ConnectedSocket() socket: Socket,
     ) {
-        console.log(`game:rejectDraw ${payload.gameId} ${payload.playerId}`);
         // TODO: validar que el socket sea el mismo que el que se registró en el servicio
         const game = this.activeGamesService.findGameByPlayerId(
             payload.playerId,
