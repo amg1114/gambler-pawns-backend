@@ -1,16 +1,47 @@
-import { Body, Controller, Get, Param, Patch, UseGuards } from "@nestjs/common";
-import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
+import {
+    Body,
+    Controller,
+    Get,
+    Param,
+    Patch,
+    Query,
+    Req,
+    UseGuards,
+} from "@nestjs/common";
+import {
+    ApiBearerAuth,
+    ApiOperation,
+    ApiResponse,
+    ApiTags,
+} from "@nestjs/swagger";
 
 import { UserService } from "./user.service";
 import { User } from "./entities/user.entity";
 import { UpdateResult } from "typeorm";
 import { UpdateUserDto } from "./dto/updateUser.dto";
 import { AuthGuard } from "src/common/guards/auth.guard";
+import { SearchReponse200Dto } from "./dto/responses/searchResponses.dto";
 
 @Controller("user")
 @ApiTags("user")
 export class UserController {
     constructor(private readonly userService: UserService) {}
+
+    @Get("search")
+    @UseGuards(AuthGuard)
+    @ApiBearerAuth()
+    @ApiOperation({
+        summary: "Search users and flags those who are friends with the user",
+    })
+    @ApiResponse({
+        status: 200,
+        description: "Users fetched successfully",
+        type: SearchReponse200Dto,
+    })
+    async searchUsers(@Query("query") query: string, @Req() req: any) {
+        const userId = req.user.userId;
+        return this.userService.searchUsers(query, userId);
+    }
 
     @Get(":nickname")
     @ApiOperation({ summary: "Get user data by nickname" })
@@ -23,6 +54,7 @@ export class UserController {
     //TODO: Add case 401 - unauthorized
     @Patch(":id")
     @UseGuards(AuthGuard)
+    @ApiBearerAuth()
     @ApiOperation({ summary: "Update user data" })
     @ApiResponse({ status: 200, description: "User data updated successfully" })
     @ApiResponse({ status: 404, description: "User not found" })
@@ -36,6 +68,7 @@ export class UserController {
     //TODO: Verify with the JWT token if the user is the same as the one in the params
     @Patch(":id/avatar")
     @UseGuards(AuthGuard)
+    @ApiBearerAuth()
     @ApiOperation({ summary: "Update user avatar" })
     @ApiResponse({
         status: 200,

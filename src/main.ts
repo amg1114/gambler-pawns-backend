@@ -30,6 +30,7 @@ async function bootstrap() {
             "This document contains the API documentation for all the endpoints of the Gambler Pawns project.",
         )
         .setVersion("1.0")
+        .addBearerAuth()
         .build();
     await SwaggerModule.loadPluginMetadata(metadata);
     const document = SwaggerModule.createDocument(app, config);
