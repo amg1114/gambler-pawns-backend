@@ -154,7 +154,7 @@ export class GameService {
         await this.endGame(payload.winner, gameInstance, "On Time");
     }
 
-    @OnEvent("inactivity.timeout")
+    @OnEvent("inactivity.timeout", { async: true })
     async handleInactivityTimeout(payload: {
         gameId: string;
         winner: "w" | "b";
