@@ -14,6 +14,7 @@ import { UseFilters, UsePipes, ValidationPipe } from "@nestjs/common";
 import { CustomWsFilterException } from "../../common/websockets-utils/websocket.filter";
 import { ParseJsonPipe } from "src/common/websockets-utils/websocketParseJson.filter";
 import { ActiveGamesService } from "./submodules/active-games/active-games.service";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 
 @UseFilters(new CustomWsFilterException())
 @UsePipes(new ParseJsonPipe(), new ValidationPipe({ transform: true }))
@@ -25,13 +26,21 @@ export class ChessGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @WebSocketServer()
     server: Server;
 
-    constructor(private readonly activeGamesService: ActiveGamesService) {}
+    constructor(
+        private readonly activeGamesService: ActiveGamesService,
+        private eventEmitter: EventEmitter2,
+    ) {}
 
     // log connected and disconnected clients for debugging purposes
     handleConnection(client: Socket) {
         console.log(`Client connected: ${client.id}`);
     }
+
+    // TODO: maybe is better to have a namespace for the game
     handleDisconnect(client: Socket) {
+        this.eventEmitter.emit("game.checkIfRandomPairingIsAborted", {
+            socketId: client.id,
+        });
         console.log(`Client disconnected: ${client.id}`);
     }
 
