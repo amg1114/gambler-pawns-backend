@@ -8,13 +8,19 @@ import {
     Req,
     UseGuards,
 } from "@nestjs/common";
-import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
+import {
+    ApiBearerAuth,
+    ApiOperation,
+    ApiResponse,
+    ApiTags,
+} from "@nestjs/swagger";
 
 import { UserService } from "./user.service";
 import { User } from "./entities/user.entity";
 import { UpdateResult } from "typeorm";
 import { UpdateUserDto } from "./dto/updateUser.dto";
 import { AuthGuard } from "src/common/guards/auth.guard";
+import { SearchReponse200 } from "./dto/responses/searchResponses.dto";
 
 @Controller("user")
 @ApiTags("user")
@@ -23,8 +29,15 @@ export class UserController {
 
     @Get("search")
     @UseGuards(AuthGuard)
-    @ApiOperation({ summary: "Search users" })
-    @ApiResponse({ status: 200, description: "Users fetched successfully" })
+    @ApiBearerAuth()
+    @ApiOperation({
+        summary: "Search users and flags those who are friends with the user",
+    })
+    @ApiResponse({
+        status: 200,
+        description: "Users fetched successfully",
+        type: SearchReponse200,
+    })
     async searchUsers(@Query("query") query: string, @Req() req: any) {
         const userId = req.user.userId;
         return this.userService.searchUsers(query, userId);

@@ -272,9 +272,14 @@ export class UserService {
     }
 
     async searchUsers(query: string, userId: number) {
-        //TODO: This also returns the hashed password
         const users = await this.userRepository
             .createQueryBuilder("user")
+            .leftJoinAndSelect("user.userAvatarImg", "userAvatarImg")
+            .select([
+                "user.userId",
+                "user.nickname",
+                "userAvatarImg.userAvatarImgId",
+            ])
             .where("user.nickname ILIKE :query", { query: `%${query}%` })
             .andWhere("user.userId != :userId", { userId })
             .getMany();
