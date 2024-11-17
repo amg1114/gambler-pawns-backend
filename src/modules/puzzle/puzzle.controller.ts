@@ -8,6 +8,7 @@ import {
 import { PuzzleService } from "./puzzle.service";
 import { ApiResponse, ApiTags } from "@nestjs/swagger";
 import { GetRandomPuzzleResponses200Dto } from "./responses/getRandomPuzzleResponses.dto";
+import { GetPuzzleResponses200Dto } from "./responses/puzzleResponse.dto";
 
 @Controller("puzzle")
 @ApiTags("puzzle")
@@ -30,7 +31,7 @@ export class PuzzleController {
     @ApiResponse({
         status: 200,
         description: "Puzzle retrieved",
-        type: GetRandomPuzzleResponses200Dto,
+        type: GetPuzzleResponses200Dto,
     })
     async getPuzzleById(@Param("id") id: string) {
         const puzzle = await this.puzzleService.getPuzzleById(id);
