@@ -7,7 +7,6 @@ import { GameModeType } from "../entities/db/game.entity";
 import { UserAvatarImg } from "src/modules/user/entities/userAvatar.entity";
 
 export interface PlayerCandidateVerifiedRequestData {
-    eloRating: number;
     playerId: string;
     timeInMinutes: number;
     socketId: string;

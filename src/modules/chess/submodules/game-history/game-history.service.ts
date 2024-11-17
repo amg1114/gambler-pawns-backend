@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Game } from "../../entities/db/game.entity";
@@ -24,7 +24,9 @@ export class GameHistoryService {
         mode?: GameModeType,
         side?: "w" | "b",
         result?: "win" | "draw" | "loss",
-    ): Promise<any[]> {
+        page: number = 1,
+        limit: number = 10,
+    ): Promise<any> {
         const user = await this.userRepository.findOne({ where: { userId } });
 
         if (!user) {
@@ -72,12 +74,20 @@ export class GameHistoryService {
 
         // Aplicar la cláusula WHERE completa
         query.where(whereClause, parameters);
-        const games = await query
+
+        // Aplicar paginación
+        const [games, total] = await query
             .orderBy("game.gameTimestamp", "ASC")
-            .getMany();
+            .skip((page - 1) * limit)
+            .take(limit)
+            .getManyAndCount();
+
+        if (games.length === 0) {
+            throw new NotFoundException("No game history found for this page.");
+        }
 
         // Mapear los resultados
-        return games.map((game) => {
+        const resultData = games.map((game) => {
             const isWhite = game.whitesPlayer.userId === userId;
             return {
                 opponentNickname: isWhite
@@ -99,5 +109,14 @@ export class GameHistoryService {
                 ),
             };
         });
+
+        // Devolver resultados paginados
+        return {
+            data: resultData,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+        };
     }
 }

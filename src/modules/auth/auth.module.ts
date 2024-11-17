@@ -1,5 +1,4 @@
 import { Module } from "@nestjs/common";
-import { JwtModule } from "@nestjs/jwt";
 import { AuthService } from "./auth.service";
 import { AuthController } from "./auth.controller";
 import { ConfigService } from "@nestjs/config";
@@ -17,8 +16,12 @@ import { UserAvatarImg } from "src/modules/user/entities/userAvatar.entity";
                 transport: {
                     service: "gmail",
                     auth: {
-                        user: configService.get<string>("NODEMAILER_EMAIL"),
-                        pass: configService.get<string>("NODEMAILER_PASSWORD"),
+                        user: configService.getOrThrow<string>(
+                            "NODEMAILER_EMAIL",
+                        ),
+                        pass: configService.getOrThrow<string>(
+                            "NODEMAILER_PASSWORD",
+                        ),
                     },
                 },
             }),

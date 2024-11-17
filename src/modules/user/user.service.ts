@@ -19,6 +19,8 @@ export class UserService {
         private userAvatarImgRepository: Repository<UserAvatarImg>,
     ) {}
 
+    private friendsCache = new Map<number, Set<number>>();
+
     // db operations, ¿Should we use Abstract Repository Pattern to decople Business logic from data Access?
     async findOneByEmailOrNickname(
         email: string,
@@ -268,4 +270,89 @@ export class UserService {
             await queryRunner.release();
         }
     }
+
+    async searchUsers(query: string, userId: number) {
+        const users = await this.userRepository
+            .createQueryBuilder("user")
+            .leftJoinAndSelect("user.userAvatarImg", "userAvatarImg")
+            .select([
+                "user.userId",
+                "user.nickname",
+                "userAvatarImg.userAvatarImgId",
+            ])
+            .where("user.nickname ILIKE :query", { query: `%${query}%` })
+            .andWhere("user.userId != :userId", { userId })
+            .getMany();
+
+        const friendsSet = await this.getAllFriends(userId);
+
+        return users.map((u) => ({
+            ...u,
+            isFriend: friendsSet.has(u.userId),
+        }));
+    }
+
+    async getAllFriends(userId: number) {
+        if (this.friendsCache.has(userId)) {
+            return this.friendsCache.get(userId);
+        }
+
+        const friends = await this.userRepository
+            .createQueryBuilder("user")
+            .leftJoinAndSelect("user.friends", "friend")
+            .where("user.userId = :userId", { userId })
+            .orWhere("friend.userId = :userId", { userId })
+            .getMany();
+
+        const friendsSet = new Set<number>();
+
+        // Adds friends from either column of the table to the Set
+        friends.forEach((user) => {
+            user.friends.forEach((friend) => {
+                if (friend.userId !== userId) {
+                    friendsSet.add(friend.userId);
+                }
+            });
+            if (user.userId !== userId) {
+                friendsSet.add(user.userId);
+            }
+        });
+
+        this.friendsCache.set(userId, friendsSet);
+
+        return friendsSet;
+    }
+
+    //TODO: The following are from Copilot. Use this.friendsCache.delete(userId) on both users when adding or removing friends to clear their cache.
+
+    /* 
+    async addFriend(userId: number, friendId: number): Promise<void> {
+        const user = await this.userRepository.findOne({ where: { id: userId }, relations: ["friends"] });
+        const friend = await this.userRepository.findOne({ where: { id: friendId } });
+
+        if (!user || !friend) {
+            throw new NotFoundException("User or friend not found");
+        }
+
+        user.friends.push(friend);
+        await this.userRepository.save(user);
+
+        // Invalidate cache for the user
+        this.friendsCache.delete(userId);
+    }
+
+    async removeFriend(userId: number, friendId: number): Promise<void> {
+        const user = await this.userRepository.findOne({ where: { id: userId }, relations: ["friends"] });
+
+        if (!user) {
+            throw new NotFoundException("User not found");
+        }
+
+        user.friends = user.friends.filter(friend => friend.id !== friendId);
+        await this.userRepository.save(user);
+
+        // Invalidate cache for the user
+        this.friendsCache.delete(userId);
+    }
+ */
 }

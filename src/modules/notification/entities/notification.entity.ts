@@ -7,7 +7,20 @@ import {
     Relation,
 } from "typeorm";
 import { User } from "../../user/entities/user.entity";
-import { NotificationType } from "./notificationType.entity";
+
+export const notificationTypes = {
+    WANTS_TO_PLAY: "Wants to play with you",
+    ACCEPTED_TO_PLAY: "Accepted to play with you",
+    WANTS_TO_JOIN_CLUB: "Wants to join club",
+    MADE_A_POST: "Made a post",
+    REQUEST_TO_BE_FRIEND: "Request to be your friend",
+    ACCEPTED_FRIEND_REQUEST: "Accepted your friend request",
+    ADMIN_OF_CLUB: "You are admin of a club now",
+    SYSTEM_NOTIFICATION: "System Notification",
+} as const;
+
+export type NotificationTypeType =
+    (typeof notificationTypes)[keyof typeof notificationTypes];
 
 @Entity()
 export class Notification {
@@ -21,7 +34,7 @@ export class Notification {
         onUpdate: "CASCADE",
         orphanedRowAction: "delete",
     })
-    userWhoSend: Relation<Promise<User>>;
+    userWhoSend: Relation<User>;
 
     @ManyToOne(() => User, (userWhoReceive) => userWhoReceive.userId, {
         onDelete: "CASCADE",
@@ -30,20 +43,13 @@ export class Notification {
         orphanedRowAction: "delete",
     })
     @Index("idx_notifications_user_id")
-    userWhoReceive: Relation<Promise<User>>;
+    userWhoReceive: Relation<User>;
 
-    @ManyToOne(
-        () => NotificationType,
-        (notificationType) => notificationType.notificationTypeId,
-        {
-            eager: true,
-            onDelete: "CASCADE",
-            onUpdate: "CASCADE",
-            nullable: false,
-            orphanedRowAction: "delete",
-        },
-    )
-    notificationType: Relation<NotificationType>;
+    @Column({
+        type: "enum",
+        enum: Object.values(notificationTypes),
+    })
+    type: NotificationTypeType;
 
     @Column()
     title: string;

@@ -19,7 +19,7 @@ export class UserSolvedPuzzle {
         nullable: false,
         orphanedRowAction: "delete",
     })
-    user: Relation<Promise<User>>;
+    user: Relation<User>;
 
     @ManyToOne(() => Puzzle, (puzzle) => puzzle.puzzleId, {
         onDelete: "CASCADE",
@@ -27,7 +27,7 @@ export class UserSolvedPuzzle {
         nullable: false,
         orphanedRowAction: "delete",
     })
-    puzzle: Relation<Promise<Puzzle>>;
+    puzzle: Relation<Puzzle>;
 
     @Column({ type: "timestamptz", default: () => "NOW()" })
     solvedTimestamp: Date;
