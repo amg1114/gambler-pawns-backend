@@ -22,29 +22,19 @@ export class NotificationService {
         senderNickname,
         { receiverId }: FriendGameInviteDto,
     ) {
-        const sender = await this.userRepository.findOneBy({
-            userId: senderId,
-        });
         const receiver = await this.userRepository.findOneBy({
             userId: receiverId,
         });
-        if (!sender || !receiver) {
-            throw new NotFoundException("Sender and/or receiver not found");
-        }
+        if (!receiver) throw new NotFoundException("User not found");
 
-        const notificationType = await this.notificationTypeRepository.findOne({
-            where: { notificationTypeId: 1 }, // wants to play with you
-        });
-
-        /*         const newNotification = this.notificationRepository.create({
-            userWhoSend: Promise.resolve(sender),
-            userWhoReceive: Promise.resolve(receiver),
-            notificationType: notificationType,
+        const newNotification = this.notificationRepository.create({
+            userWhoSend: { userId: senderId },
+            userWhoReceive: { userId: receiverId },
+            notificationType: { notificationTypeId: 1 },
             title: `${senderNickname} wants to play a game with you`,
             message: `${senderNickname} has invited you to play a game.`,
             timeStamp: new Date(),
         });
-        console.log(newNotification);
-        await this.notificationRepository.save(newNotification); */
+        await this.notificationRepository.save(newNotification);
     }
 }

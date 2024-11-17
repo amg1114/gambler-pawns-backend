@@ -1,4 +1,10 @@
-import { Req, UseGuards } from "@nestjs/common";
+import {
+    Req,
+    UseFilters,
+    UseGuards,
+    UsePipes,
+    ValidationPipe,
+} from "@nestjs/common";
 import {
     MessageBody,
     SubscribeMessage,
@@ -7,9 +13,16 @@ import {
 import { AuthWsGuard } from "src/common/guards/authWs.guard";
 import { NotificationService } from "./notification.service";
 import { FriendGameInviteDto } from "./dto/friendGameInvite.dto";
+import { ParseJsonPipe } from "src/common/websockets-utils/websocketParseJson.filter";
+import { CustomWsFilterException } from "src/common/websockets-utils/websocket.filter";
+import { CORS } from "src/config/constants";
 
-@WebSocketGateway()
+@UseFilters(new CustomWsFilterException())
+@UsePipes(new ParseJsonPipe(), new ValidationPipe({ transform: true }))
 @UseGuards(AuthWsGuard)
+@WebSocketGateway({
+    cors: CORS,
+})
 export class NotificationGateway {
     constructor(private notificationService: NotificationService) {}
 
