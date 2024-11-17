@@ -16,7 +16,7 @@ function getPoolConfig() {
             username: configService.getOrThrow("LOCALDB_USER"),
             password: configService.getOrThrow("LOCALDB_PASSWORD"),
             database: configService.getOrThrow("LOCALDB_NAME"),
-            logging: false,
+            logging: configService.get("DB_LOGGING") ?? true,
             synchronize: true,
         };
     } else {

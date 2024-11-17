@@ -100,7 +100,7 @@ export class User {
     friends: Relation<User[]>;
 
     @OneToMany(() => UserSolvedPuzzle, (puzzlesSolved) => puzzlesSolved.user)
-    puzzlesSolved: Relation<Promise<UserSolvedPuzzle[]>>;
+    puzzlesSolved: Relation<UserSolvedPuzzle[]>;
 
     @OneToMany(
         () => UserBoughtProduct,
@@ -118,13 +118,13 @@ export class User {
         () => Notification,
         (notificationsSent) => notificationsSent.userWhoSend,
     )
-    notificationsSent: Relation<Promise<Notification[]>>;
+    notificationsSent: Relation<Notification[]>;
 
     @OneToMany(
         () => Notification,
         (notificationsReceived) => notificationsReceived.userWhoReceive,
     )
-    notificationsReceived: Relation<Promise<Notification[]>>;
+    notificationsReceived: Relation<Notification[]>;
 
     @OneToMany(() => UserInClub, (clubs) => clubs.user)
     clubs: Relation<UserInClub[]>;
