@@ -21,7 +21,7 @@ export class Notification {
         onUpdate: "CASCADE",
         orphanedRowAction: "delete",
     })
-    userWhoSend: Relation<Promise<User>>;
+    userWhoSend: Relation<User>;
 
     @ManyToOne(() => User, (userWhoReceive) => userWhoReceive.userId, {
         onDelete: "CASCADE",
@@ -30,7 +30,7 @@ export class Notification {
         orphanedRowAction: "delete",
     })
     @Index("idx_notifications_user_id")
-    userWhoReceive: Relation<Promise<User>>;
+    userWhoReceive: Relation<User>;
 
     @ManyToOne(
         () => NotificationType,

@@ -33,5 +33,5 @@ export class Puzzle {
         () => UserSolvedPuzzle,
         (userSolvedPuzzle) => userSolvedPuzzle.puzzle,
     )
-    userSolvedPuzzles: Relation<Promise<UserSolvedPuzzle[]>>;
+    userSolvedPuzzles: Relation<UserSolvedPuzzle[]>;
 }

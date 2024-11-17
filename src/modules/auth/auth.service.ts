@@ -79,11 +79,13 @@ export class AuthService {
             ? await this.userRepository
                   .createQueryBuilder("user")
                   .addSelect("user.password")
+                  .leftJoinAndSelect("user.userAvatarImg", "userAvatarImg")
                   .where("user.nickname = :nickname", { nickname })
                   .getOne()
             : await this.userRepository
                   .createQueryBuilder("user")
                   .addSelect("user.password")
+                  .leftJoinAndSelect("user.userAvatarImg", "userAvatarImg")
                   .where("user.email = :email", { email })
                   .getOne();
 

@@ -36,7 +36,7 @@ export class NotificationService {
             where: { notificationTypeId: 1 }, // wants to play with you
         });
 
-        const newNotification = this.notificationRepository.create({
+        /*         const newNotification = this.notificationRepository.create({
             userWhoSend: Promise.resolve(sender),
             userWhoReceive: Promise.resolve(receiver),
             notificationType: notificationType,
@@ -45,6 +45,6 @@ export class NotificationService {
             timeStamp: new Date(),
         });
         console.log(newNotification);
-        await this.notificationRepository.save(newNotification);
+        await this.notificationRepository.save(newNotification); */
     }
 }
