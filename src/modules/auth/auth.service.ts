@@ -118,7 +118,7 @@ export class AuthService {
             { expiresIn: "10m" },
         );
 
-        //TODO: write a better email html+css template
+        //FIXME: write a better email html+css template
         const msg = {
             from:
                 "Gambler Pawns <" +

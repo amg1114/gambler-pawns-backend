@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import {
     Notification,
@@ -7,6 +7,7 @@ import {
 import { Repository } from "typeorm";
 import { User } from "../user/entities/user.entity";
 import { FriendGameInviteDto } from "./dto/friendGameInvite.dto";
+import { WsException } from "@nestjs/websockets";
 
 @Injectable()
 export class NotificationService {
@@ -17,15 +18,17 @@ export class NotificationService {
         private notificationRepository: Repository<Notification>,
     ) {}
 
-    async friendGameInvite(
-        senderId,
-        senderNickname,
+    public activeUsers = new Map<number, string>(); // userId -> socket.id
+
+    async sendFriendGameInvite(
+        { userId: senderId, nickname: senderNickname }: User,
         { receiverId }: FriendGameInviteDto,
     ) {
+        // 1. Create new notification (save in DB)
         const receiver = await this.userRepository.findOneBy({
             userId: receiverId,
         });
-        if (!receiver) throw new NotFoundException("User not found");
+        if (!receiver) throw new WsException("User not found");
 
         const newNotification = this.notificationRepository.create({
             userWhoSend: { userId: senderId },
@@ -36,5 +39,10 @@ export class NotificationService {
             timeStamp: new Date(),
         });
         await this.notificationRepository.save(newNotification);
+
+        // 2. Send notification to receiver
+        const socketId = this.activeUsers.get(receiverId);
+
+        return { socketId, newNotification };
     }
 }
