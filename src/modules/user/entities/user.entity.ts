@@ -53,9 +53,13 @@ export class User {
 
     // NOTE: according to documentation I can omit @JoinColumn() in @ManyToOne
     //  https://orkhan.gitbook.io/typeorm/docs/many-to-one-one-to-many-relations
-    @ManyToOne(() => UserAvatarImg, (userAvatarImg) => userAvatarImg.fileName, {
-        eager: true,
-    })
+    @ManyToOne(
+        () => UserAvatarImg,
+        (userAvatarImg) => userAvatarImg.userAvatarImgId,
+        {
+            eager: true,
+        },
+    )
     userAvatarImg: Relation<UserAvatarImg>;
 
     @Column({ type: "int" })

@@ -67,4 +67,16 @@ export class NotificationGateway
         if (!socketId) return console.log("User is not online");
         this.server.to(socketId).emit("notif:game-invitation", newNotification);
     }
+
+    /*     @SubscribeMessage("notif:acceptFriendGameInvite")
+    async handleAcceptFriendGameInvite(
+        @MessageBody() data: { notificationId: number },
+        @Req() req: any,
+    ) {
+        const { socketId, newNotification } =
+            await this.notificationService.acceptFriendGameInvite(req.user, data);
+
+        if (!socketId) return console.log("User is not online");
+        this.server.to(socketId).emit("notif:game-invitation", newNotification);
+    } */
 }

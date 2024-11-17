@@ -21,7 +21,7 @@ export class NotificationService {
     public activeUsers = new Map<number, string>(); // userId -> socket.id
 
     async sendFriendGameInvite(
-        { userId: senderId, nickname: senderNickname }: User,
+        sender: User,
         { receiverId }: FriendGameInviteDto,
     ) {
         // 1. Create new notification (save in DB)
@@ -31,11 +31,12 @@ export class NotificationService {
         if (!receiver) throw new WsException("User not found");
 
         const newNotification = this.notificationRepository.create({
-            userWhoSend: { userId: senderId },
-            userWhoReceive: { userId: receiverId },
+            userWhoSend: sender,
+            userWhoReceive: receiver,
             type: notificationTypes.WANTS_TO_PLAY,
+            // TODO: actionLink1: "",
             title: "New Game Invite",
-            message: `${senderNickname} has invited you to play a game!`,
+            message: "has invited you to play a game!",
             timeStamp: new Date(),
         });
         await this.notificationRepository.save(newNotification);
@@ -45,4 +46,6 @@ export class NotificationService {
 
         return { socketId, newNotification };
     }
+
+    async acceptFriendGameInvite() {}
 }

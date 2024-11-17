@@ -48,10 +48,6 @@ export class AuthService {
         // 2. hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // get random avatar for new user
-        const avatar = await this.userAvatarImgRepository.findOne({
-            where: { userAvatarImgId: randomInt(1, 26) }, // Cambia el campo de búsqueda por el correcto
-        });
         // 3. insert user in database
         const newUser = this.userRepository.create({
             nickname,
@@ -59,7 +55,7 @@ export class AuthService {
             password: hashedPassword,
             countryCode,
             aboutText: "",
-            userAvatarImg: avatar,
+            userAvatarImg: { userAvatarImgId: randomInt(1, 26) },
             eloRapid: 1500,
             eloBlitz: 1500,
             eloBullet: 1500,
