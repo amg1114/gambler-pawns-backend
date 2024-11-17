@@ -67,16 +67,7 @@ export class DrawGateway {
         //@ConnectedSocket() socket: Socket,
     ) {
         // TODO: validar que el socket sea el mismo que el que se registró en el servicio
-        const drawAccepted = await this.drawService.acceptDraw(
-            payload.gameId,
-            payload.playerId,
-        );
-
-        if (drawAccepted) {
-            this.server
-                .to(payload.gameId)
-                .emit("drawAccepted", { playerId: payload.playerId });
-        }
+        await this.drawService.acceptDraw(payload.gameId, payload.playerId);
     }
 
     @SubscribeMessage("game:rejectDraw")

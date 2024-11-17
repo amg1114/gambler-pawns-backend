@@ -33,7 +33,7 @@ export const gameResultTypeEnum = [
     "On Time",
     "Stalemate",
     "Resign",
-    "Abandon", // TODO: right now is not used, it was thought to be used when a player leaves the game (disconnects) and certain time passes
+    "Abandon",
     // draw cases
     "50 Moves Rule",
     "Stalesmate",

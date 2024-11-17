@@ -1,7 +1,14 @@
-import { Controller, Get, HttpCode } from "@nestjs/common";
+import {
+    Controller,
+    Get,
+    HttpCode,
+    NotFoundException,
+    Param,
+} from "@nestjs/common";
 import { PuzzleService } from "./puzzle.service";
 import { ApiResponse, ApiTags } from "@nestjs/swagger";
 import { GetRandomPuzzleResponses200Dto } from "./responses/getRandomPuzzleResponses.dto";
+import { GetPuzzleResponses200Dto } from "./responses/puzzleResponse.dto";
 
 @Controller("puzzle")
 @ApiTags("puzzle")
@@ -17,5 +24,22 @@ export class PuzzleController {
     })
     async getRandomPuzzle() {
         return this.puzzleService.getRandomPuzzle();
+    }
+
+    @Get(":id")
+    @HttpCode(200)
+    @ApiResponse({
+        status: 200,
+        description: "Puzzle retrieved",
+        type: GetPuzzleResponses200Dto,
+    })
+    async getPuzzleById(@Param("id") id: string) {
+        const puzzle = await this.puzzleService.getPuzzleById(id);
+
+        if (!puzzle) {
+            throw new NotFoundException(`Puzzle with id ${id} not found`);
+        }
+
+        return puzzle;
     }
 }

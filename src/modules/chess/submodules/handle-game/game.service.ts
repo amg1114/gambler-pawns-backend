@@ -39,6 +39,9 @@ export class GameService {
         private eventEmitter: EventEmitter2,
     ) {}
 
+    /**
+     * Creates a game based on the provided players, game mode, pairing type, and time settings.
+     */
     async createGame(
         player1: PlayerCandidateVerifiedData,
         player2: PlayerCandidateVerifiedData,
@@ -46,14 +49,41 @@ export class GameService {
         typePairing: GameTypePairing,
         timeInMinutes: number,
         timeIncrementPerMoveSeconds: number,
-    ) {
+    ): Promise<Game> {
+        let gameInstance: Game;
+
+        if (typePairing === "Random Pairing") {
+            gameInstance = await this.createGameForRandomPairing(
+                player1,
+                player2,
+                mode,
+                timeInMinutes,
+                timeIncrementPerMoveSeconds,
+            );
+        }
+
+        console.log("Game created", gameInstance.gameId);
+        return gameInstance;
+    }
+
+    /**
+     * Creates a game for random pairing, registers it in the active games service, initializes the inactivity tracker,
+     * and starts the game timer.
+     */
+    private async createGameForRandomPairing(
+        player1: PlayerCandidateVerifiedData,
+        player2: PlayerCandidateVerifiedData,
+        mode: GameModeType,
+        timeInMinutes: number,
+        timeIncrementPerMoveSeconds: number,
+    ): Promise<Game> {
         // Create game instance
         const gameInstance = new Game();
         await gameInstance.createGame(
             player1,
             player2,
             mode,
-            typePairing,
+            "Random Pairing",
             timeInMinutes,
             timeIncrementPerMoveSeconds,
         );
@@ -76,31 +106,38 @@ export class GameService {
         const gameEncryptedId = this.gameLinkService.genGameLinkEncodeByGameId(
             newGame.gameId,
         );
+
         gameInstance.gameId = gameEncryptedId;
 
-        // register game in active games service
+        this.startGame(gameInstance);
+
+        return gameInstance;
+    }
+
+    /**
+     * Starts a game by registering it in the active games service, initializing the inactivity tracker,
+     * and starting the game timer.
+     */
+    private startGame(gameInstance: Game): void {
         this.activeGamesService.registerActiveGame(gameInstance);
 
-        // initialize inactivity tracker
-        const blackPlayerId = player2.userInfo.userId.toString();
-        const whitePlayerId = player1.userInfo.userId.toString();
+        const blackPlayerId =
+            gameInstance.blacksPlayer.userInfo.userId.toString();
+        const whitePlayerId =
+            gameInstance.whitesPlayer.userInfo.userId.toString();
 
         this.inactivityService.initializeTracker(
-            gameEncryptedId,
-            timeInMinutes,
+            gameInstance.gameId,
+            gameInstance.timeInMinutes,
             whitePlayerId,
             blackPlayerId,
         );
 
-        // start timer for game
         this.timerService.startTimer(
-            gameEncryptedId,
-            timeInMinutes,
-            timeIncrementPerMoveSeconds,
+            gameInstance.gameId,
+            gameInstance.timeInMinutes,
+            gameInstance.timeIncrementPerMoveSeconds,
         );
-
-        console.log("Game created", gameEncryptedId);
-        return gameInstance;
     }
 
     async playerMove(
