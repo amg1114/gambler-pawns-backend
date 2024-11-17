@@ -17,7 +17,7 @@ function getPoolConfig() {
             password: configService.getOrThrow("LOCALDB_PASSWORD"),
             database: configService.getOrThrow("LOCALDB_NAME"),
             logging: configService.get("DB_LOGGING") ?? true,
-            synchronize: true,
+            synchronize: false,
         };
     } else {
         return {
@@ -35,7 +35,7 @@ function getPoolConfig() {
 export const DataSourceConfig: DataSourceOptions = {
     type: "postgres",
     ...getPoolConfig(),
-    migrationsRun: false,
+    migrationsRun: true,
     entities: [__dirname + "/../../**/*.entity{.ts,.js}"],
     migrations: [__dirname + "/../../migrations/*{.ts,.js}"],
     namingStrategy: new SnakeNamingStrategy(),
