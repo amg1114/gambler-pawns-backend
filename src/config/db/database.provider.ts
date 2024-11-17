@@ -35,7 +35,7 @@ function getPoolConfig() {
 export const DataSourceConfig: DataSourceOptions = {
     type: "postgres",
     ...getPoolConfig(),
-    migrationsRun: true,
+    migrationsRun: false,
     entities: [__dirname + "/../../**/*.entity{.ts,.js}"],
     migrations: [__dirname + "/../../migrations/*{.ts,.js}"],
     namingStrategy: new SnakeNamingStrategy(),
