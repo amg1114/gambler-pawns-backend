@@ -56,6 +56,7 @@ export class Game {
             return {
                 moveResult,
                 board: this.board.fen(),
+                pgn: this.board.pgn(),
                 historyMoves: this.board.history(),
             };
         } catch (e) {
