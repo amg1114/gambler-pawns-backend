@@ -88,4 +88,11 @@ export class NotificationService {
 
         return socketId;
     }
+
+    async getAllNotifications(userId: number) {
+        return this.notificationRepository.find({
+            where: { userWhoReceive: { userId } },
+            order: { timeStamp: "DESC" },
+        });
+    }
 }
