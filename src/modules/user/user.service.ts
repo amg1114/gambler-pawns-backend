@@ -355,4 +355,21 @@ export class UserService {
         this.friendsCache.delete(userId);
     }
  */
+
+    async areUsersFriends(aUserId: number, bUserId: number) {
+        const user = await this.userRepository
+            .createQueryBuilder("user")
+            .leftJoinAndSelect("user.friends", "friend")
+            .where("user.userId = :aUserId AND friend.userId = :bUserId", {
+                aUserId,
+                bUserId,
+            })
+            .orWhere("user.userId = :bUserId AND friend.userId = :aUserId", {
+                aUserId,
+                bUserId,
+            })
+            .getOne();
+
+        return !!user;
+    }
 }

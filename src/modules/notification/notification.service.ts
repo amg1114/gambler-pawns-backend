@@ -9,6 +9,7 @@ import { User } from "../user/entities/user.entity";
 import { FriendGameInviteDto } from "./dto/friendGameInvite.dto";
 import { WsException } from "@nestjs/websockets";
 import { ManageFriendGameInviteDto } from "./dto/manageFriendGameInvite.dto";
+import { UserService } from "../user/user.service";
 
 @Injectable()
 export class NotificationService {
@@ -17,6 +18,7 @@ export class NotificationService {
         private userRepository: Repository<User>,
         @InjectRepository(Notification)
         private notificationRepository: Repository<Notification>,
+        private readonly userService: UserService,
     ) {}
 
     public activeUsers = new Map<number, string>(); // userId -> socket.id
@@ -25,7 +27,13 @@ export class NotificationService {
         sender: User,
         { receiverId }: FriendGameInviteDto,
     ) {
-        //TODO: Check if both users are friends
+        const areFriends = await this.userService.areUsersFriends(
+            sender.userId,
+            receiverId,
+        );
+        if (!areFriends)
+            throw new WsException("You are not friends with this user");
+
         // 1. Create new notification (save in DB)
         const receiver = await this.userRepository.findOneBy({
             userId: receiverId,
@@ -33,11 +41,12 @@ export class NotificationService {
         if (!receiver) throw new WsException("User not found");
 
         //TODO: Not send the full user object, just the important stuff
+        //TODO: Send the accept and reject event name in actionLink
         const newNotification = this.notificationRepository.create({
             userWhoSend: sender,
             userWhoReceive: receiver,
             type: notificationTypes.WANTS_TO_PLAY,
-            // TODO: actionLink1: "",
+            // actionLink1: "",
             title: "New Game Invite",
             message: "has invited you to play a game!",
             timeStamp: new Date(),
