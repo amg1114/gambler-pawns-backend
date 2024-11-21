@@ -8,6 +8,7 @@ import { Repository } from "typeorm";
 import { User } from "../user/entities/user.entity";
 import { FriendGameInviteDto } from "./dto/friendGameInvite.dto";
 import { WsException } from "@nestjs/websockets";
+import { ManageFriendGameInviteDto } from "./dto/manageFriendGameInvite.dto";
 
 @Injectable()
 export class NotificationService {
@@ -24,12 +25,14 @@ export class NotificationService {
         sender: User,
         { receiverId }: FriendGameInviteDto,
     ) {
+        //TODO: Check if both users are friends
         // 1. Create new notification (save in DB)
         const receiver = await this.userRepository.findOneBy({
             userId: receiverId,
         });
         if (!receiver) throw new WsException("User not found");
 
+        //TODO: Not send the full user object, just the important stuff
         const newNotification = this.notificationRepository.create({
             userWhoSend: sender,
             userWhoReceive: receiver,
@@ -47,5 +50,42 @@ export class NotificationService {
         return { socketId, newNotification };
     }
 
-    async acceptFriendGameInvite() {}
+    async manageFriendGameInvite(receiver: User, notifId: number) {
+        const notification = await this.notificationRepository.findOneBy({
+            notificationId: notifId,
+            type: notificationTypes.WANTS_TO_PLAY,
+        });
+
+        if (!notification) throw new WsException("Notification not found");
+        if (notification.userWhoReceive.userId !== receiver.userId)
+            throw new WsException("You are not allowed to perform this action");
+
+        await this.notificationRepository.delete({ notificationId: notifId });
+
+        return this.activeUsers.get(notification.userWhoSend.userId);
+    }
+
+    async acceptFriendGameInvite(
+        receiver: User,
+        { notificationId }: ManageFriendGameInviteDto,
+    ) {
+        const socketId = await this.manageFriendGameInvite(
+            receiver,
+            notificationId,
+        );
+        // connect players in case userWhoSend is online
+        return socketId;
+    }
+
+    async rejectFriendGameInvite(
+        receiver: User,
+        { notificationId }: ManageFriendGameInviteDto,
+    ) {
+        const socketId = await this.manageFriendGameInvite(
+            receiver,
+            notificationId,
+        );
+
+        return socketId;
+    }
 }

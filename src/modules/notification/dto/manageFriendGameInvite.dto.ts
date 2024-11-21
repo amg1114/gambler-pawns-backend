@@ -1,6 +1,6 @@
 import { IsNumber } from "class-validator";
 
-export class AcceptFriendGameInviteDto {
+export class ManageFriendGameInviteDto {
     @IsNumber()
     notificationId: number;
 }

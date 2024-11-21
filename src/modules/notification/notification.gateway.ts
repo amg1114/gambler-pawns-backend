@@ -21,6 +21,7 @@ import { CustomWsFilterException } from "src/common/websockets-utils/websocket.f
 import { CORS } from "src/config/constants";
 import { Server, Socket } from "socket.io";
 import { JwtService } from "@nestjs/jwt";
+import { ManageFriendGameInviteDto } from "./dto/manageFriendGameInvite.dto";
 
 @UseFilters(new CustomWsFilterException())
 @UsePipes(new ParseJsonPipe(), new ValidationPipe({ transform: true }))
@@ -68,15 +69,37 @@ export class NotificationGateway
         this.server.to(socketId).emit("notif:game-invitation", newNotification);
     }
 
-    /*     @SubscribeMessage("notif:acceptFriendGameInvite")
+    @SubscribeMessage("notif:acceptFriendGameInvite")
     async handleAcceptFriendGameInvite(
-        @MessageBody() data: { notificationId: number },
+        @MessageBody() data: ManageFriendGameInviteDto,
         @Req() req: any,
     ) {
-        const { socketId, newNotification } =
-            await this.notificationService.acceptFriendGameInvite(req.user, data);
+        const socketId = await this.notificationService.acceptFriendGameInvite(
+            req.user,
+            data,
+        );
 
-        if (!socketId) return console.log("User is not online");
-        this.server.to(socketId).emit("notif:game-invitation", newNotification);
-    } */
+        if (!socketId)
+            return console.log("acceptFriendGameInvite: User is not online");
+        this.server
+            .to(socketId)
+            .emit("notif:game-invitation", "notificationAccepted");
+    }
+
+    @SubscribeMessage("notif:rejectFriendGameInvite")
+    async handleRejectFriendGameInvite(
+        @MessageBody() data: ManageFriendGameInviteDto,
+        @Req() req: any,
+    ) {
+        const socketId = await this.notificationService.rejectFriendGameInvite(
+            req.user,
+            data,
+        );
+
+        if (!socketId)
+            return console.log("rejectFriendGameInvite: User is not online");
+        this.server
+            .to(socketId)
+            .emit("notif:game-invitation", "notificationRejected");
+    }
 }
