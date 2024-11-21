@@ -95,4 +95,11 @@ export class NotificationService {
             order: { timeStamp: "DESC" },
         });
     }
+
+    async markAllAsRead(userId: number) {
+        await this.notificationRepository.update(
+            { userWhoReceive: { userId } },
+            { isRead: true },
+        );
+    }
 }
