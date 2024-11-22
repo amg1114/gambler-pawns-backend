@@ -41,12 +41,11 @@ export class NotificationGateway
     server: Server;
 
     async handleConnection(client: Socket) {
-        console.log(`NOTIFICATION GATEWAY: Client connected: ${client.id}`);
         const { token } = client.handshake.auth;
 
         try {
             const { userId } = await this.jwtService.verifyAsync(token);
-            this.notificationService.activeUsers.set(userId, client.id);
+            this.notificationService.addActiveUser(userId, client.id);
         } catch (e) {
             console.log("Invalid token provided");
             return client.disconnect();
@@ -54,7 +53,7 @@ export class NotificationGateway
     }
 
     handleDisconnect(client: Socket) {
-        console.log(`NOTIFICATION GATEWAY: Client disconnected: ${client.id}`);
+        this.notificationService.removeActiveUser(client.id);
     }
 
     @SubscribeMessage("notif:friendGameInvite")
@@ -66,6 +65,7 @@ export class NotificationGateway
             await this.notificationService.sendFriendGameInvite(req.user, data);
 
         if (!socketId) return console.log("User is not online");
+        console.log("User IS online");
         this.server.to(socketId).emit("notif:game-invitation", newNotification);
     }
 
