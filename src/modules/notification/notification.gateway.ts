@@ -65,7 +65,6 @@ export class NotificationGateway
             await this.notificationService.sendFriendGameInvite(req.user, data);
 
         if (!socketId) return console.log("User is not online");
-        console.log("User IS online");
         this.server.to(socketId).emit("notif:game-invitation", newNotification);
     }
 

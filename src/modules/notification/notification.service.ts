@@ -52,15 +52,24 @@ export class NotificationService {
         });
         if (!receiver) throw new WsException("User not found");
 
-        //TODO: Not send the full user object, just the important stuff
-        //TODO: Send the accept and reject event name in actionLink
         const newNotification = this.notificationRepository.create({
-            userWhoSend: sender,
-            userWhoReceive: receiver,
+            userWhoSend: {
+                userId: sender.userId,
+                nickname: sender.nickname,
+                userAvatarImg: sender.userAvatarImg,
+            },
+            userWhoReceive: {
+                userId: receiver.userId,
+                nickname: receiver.nickname,
+                userAvatarImg: receiver.userAvatarImg,
+            },
             type: notificationTypes.WANTS_TO_PLAY,
-            // actionLink1: "",
             title: "New Game Invite",
             message: "has invited you to play a game!",
+            // actionText1: "Accept",
+            // actionLink1: "notif:acceptFriendGameInvite",
+            // actionText2: "Reject",
+            // actionLink2: "notif:rejectFriendGameInvite",
             timeStamp: new Date(),
         });
         await this.notificationRepository.save(newNotification);
