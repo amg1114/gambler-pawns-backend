@@ -22,6 +22,8 @@ import { CORS } from "src/config/constants";
 import { Server, Socket } from "socket.io";
 import { JwtService } from "@nestjs/jwt";
 import { ManageFriendGameInviteDto } from "./dto/manageFriendGameInvite.dto";
+import { ManageFriendRequestDto } from "./dto/manageFriendRequest.dto";
+import { FriendRequestDto } from "./dto/friendRequest.dto";
 
 @UseFilters(new CustomWsFilterException())
 @UsePipes(new ParseJsonPipe(), new ValidationPipe({ transform: true }))
@@ -65,7 +67,7 @@ export class NotificationGateway
             await this.notificationService.sendFriendGameInvite(req.user, data);
 
         if (!socketId) return console.log("User is not online");
-        this.server.to(socketId).emit("notif:game-invitation", newNotification);
+        this.server.to(socketId).emit("notif.game-invitation", newNotification);
     }
 
     @SubscribeMessage("notif:acceptFriendGameInvite")
@@ -77,12 +79,12 @@ export class NotificationGateway
             req.user,
             data,
         );
-
+        //FIXME: What should I emit here? What happens if the user is not online?
         if (!socketId)
             return console.log("acceptFriendGameInvite: User is not online");
         this.server
             .to(socketId)
-            .emit("notif:game-invitation", "notificationAccepted");
+            .emit("notif.game-invitation.accepted", "notificationAccepted");
     }
 
     @SubscribeMessage("notif:rejectFriendGameInvite")
@@ -94,11 +96,47 @@ export class NotificationGateway
             req.user,
             data,
         );
-
+        //FIXME: What should I emit here? What happens if the user is not online?
         if (!socketId)
             return console.log("rejectFriendGameInvite: User is not online");
         this.server
             .to(socketId)
-            .emit("notif:game-invitation", "notificationRejected");
+            .emit("notif.game-invitation.rejected", "notificationRejected");
+    }
+
+    @SubscribeMessage("notif:friendRequest")
+    async handleFriendRequest(
+        @MessageBody() data: FriendRequestDto,
+        @Req() req: any,
+    ) {
+        const { socketId, newNotification } =
+            await this.notificationService.sendFriendRequest(req.user, data);
+
+        this.server.to(socketId).emit("notif.friendRequest", newNotification);
+    }
+
+    @SubscribeMessage("notif:acceptFriendRequest")
+    async handleAcceptFriendRequest(
+        @MessageBody() data: ManageFriendRequestDto,
+        @Req() req: any,
+    ) {
+        const { socketId, newNotification } =
+            await this.notificationService.acceptFriendRequest(req.user, data);
+
+        if (!socketId) return console.log("User is not online");
+        this.server
+            .to(socketId)
+            .emit("notif.friendRequest.accepted", newNotification);
+    }
+
+    @SubscribeMessage("notif:rejectFriendRequest")
+    async handleRejectFriendRequest(
+        @MessageBody() data: ManageFriendRequestDto,
+        @Req() req: any,
+    ) {
+        return await this.notificationService.rejectFriendRequest(
+            req.user,
+            data,
+        );
     }
 }
