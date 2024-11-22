@@ -279,6 +279,7 @@ export class UserService {
                 "user.userId",
                 "user.nickname",
                 "userAvatarImg.userAvatarImgId",
+                "userAvatarImg.fileName",
             ])
             .where("user.nickname ILIKE :query", { query: `%${query}%` })
             .andWhere("user.userId != :userId", { userId })
