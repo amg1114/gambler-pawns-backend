@@ -47,6 +47,7 @@ export class GameLinkService {
 
         const game = await this.gameEntityRepository.findOne({
             where: { gameId: decodedId[0] },
+            relations: ["whitesPlayer", "blacksPlayer"],
         });
 
         if (!game) throw new NotFoundException("Game not found");
