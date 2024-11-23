@@ -77,7 +77,7 @@ export class GameService {
     }
 
     /**
-     * Creates a game for random pairing, registers it in the active games service, initializes the inactivity tracker,
+     * Creates a game for the specified pairing, registers it in the active games service, initializes the inactivity tracker,
      * and starts the game timer.
      */
     private async createGameForSpecifiedPairing(
