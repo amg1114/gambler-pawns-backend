@@ -74,6 +74,7 @@ export class ChessGateway implements OnGatewayConnection, OnGatewayDisconnect {
             socket.emit("game:reconnected", {
                 color: whitePlayerId === playerId ? "white" : "black",
                 board: game.board.fen(),
+                pgn: game.board.pgn(),
                 moveHistory: game.board.history(),
             });
         } else {
