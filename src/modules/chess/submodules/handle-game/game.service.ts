@@ -53,7 +53,7 @@ export class GameService {
         let gameInstance: Game;
 
         if (typePairing === "Random Pairing") {
-            gameInstance = await this.createGameForRandomPairing(
+            gameInstance = await this.createGameForSpecifiedPairing(
                 player1,
                 player2,
                 mode,
@@ -62,7 +62,7 @@ export class GameService {
                 timeIncrementPerMoveSeconds,
             );
         } else if (typePairing === "Friend Req") {
-            gameInstance = await this.createGameForRandomPairing(
+            gameInstance = await this.createGameForSpecifiedPairing(
                 player1,
                 player2,
                 mode,
@@ -80,7 +80,7 @@ export class GameService {
      * Creates a game for random pairing, registers it in the active games service, initializes the inactivity tracker,
      * and starts the game timer.
      */
-    private async createGameForRandomPairing(
+    private async createGameForSpecifiedPairing(
         player1: PlayerCandidateVerifiedData,
         player2: PlayerCandidateVerifiedData,
         mode: GameModeType,
@@ -94,7 +94,7 @@ export class GameService {
             player1,
             player2,
             mode,
-            "Random Pairing",
+            typePairing,
             timeInMinutes,
             timeIncrementPerMoveSeconds,
         );
