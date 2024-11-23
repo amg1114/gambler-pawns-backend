@@ -4,7 +4,7 @@ import {
     Notification,
     notificationTypes,
 } from "./entities/notification.entity";
-import { Repository } from "typeorm";
+import { LessThan, Repository } from "typeorm";
 import { User } from "../user/entities/user.entity";
 import { FriendGameInviteDto } from "./dto/friendGameInvite.dto";
 import { WsException } from "@nestjs/websockets";
@@ -16,6 +16,7 @@ import {
     PlayerCandidateVerifiedData,
     PlayersService,
 } from "../chess/submodules/players.service";
+import { Cron, CronExpression } from "@nestjs/schedule";
 
 @Injectable()
 export class NotificationService {
@@ -177,6 +178,17 @@ export class NotificationService {
             { userWhoReceive: { userId } },
             { isRead: true },
         );
+    }
+
+    @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+    async deleteAllRead() {
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+        await this.notificationRepository.delete({
+            isRead: true,
+            timeStamp: LessThan(oneWeekAgo),
+        });
     }
 
     async sendFriendRequest(sender: User, { receiverId }: FriendRequestDto) {
