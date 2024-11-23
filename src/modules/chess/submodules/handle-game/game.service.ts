@@ -57,6 +57,16 @@ export class GameService {
                 player1,
                 player2,
                 mode,
+                typePairing,
+                timeInMinutes,
+                timeIncrementPerMoveSeconds,
+            );
+        } else if (typePairing === "Friend Req") {
+            gameInstance = await this.createGameForRandomPairing(
+                player1,
+                player2,
+                mode,
+                typePairing,
                 timeInMinutes,
                 timeIncrementPerMoveSeconds,
             );
@@ -74,6 +84,7 @@ export class GameService {
         player1: PlayerCandidateVerifiedData,
         player2: PlayerCandidateVerifiedData,
         mode: GameModeType,
+        typePairing: GameTypePairing,
         timeInMinutes: number,
         timeIncrementPerMoveSeconds: number,
     ): Promise<Game> {

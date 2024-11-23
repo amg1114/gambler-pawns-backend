@@ -1,8 +1,19 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { IsNumber } from "class-validator";
+import { IsEnum, IsNumber } from "class-validator";
+import {
+    gameModeEnum,
+    GameModeType,
+} from "src/modules/chess/entities/db/game.entity";
 
 export class FriendGameInviteDto {
     @IsNumber()
-    @ApiProperty({ example: 1 })
     receiverId: number;
+
+    @IsEnum(gameModeEnum)
+    mode: GameModeType;
+
+    @IsNumber()
+    timeInMinutes: number;
+
+    @IsNumber()
+    timeIncrementPerMoveSeconds: number;
 }

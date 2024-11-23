@@ -96,7 +96,7 @@ export class PlayersService {
         };
     }
 
-    private setEloByModeForNonGuestPlayer(user: User, gameMode: GameModeType) {
+    public setEloByModeForNonGuestPlayer(user: User, gameMode: GameModeType) {
         const eloByMode = {
             rapid: user.eloRapid,
             blitz: user.eloBlitz,
@@ -107,7 +107,7 @@ export class PlayersService {
     }
 
     /** Trasnform players data in order to avoid sending undesired fileds like password and userId to client */
-    transforPlayerData(player: PlayerCandidateVerifiedData) {
+    public transforPlayerData(player: PlayerCandidateVerifiedData) {
         return {
             isGuest: player.isGuest,
             elo: player.elo,

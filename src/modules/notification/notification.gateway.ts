@@ -75,16 +75,17 @@ export class NotificationGateway
         @MessageBody() data: ManageFriendGameInviteDto,
         @Req() req: any,
     ) {
-        const socketId = await this.notificationService.acceptFriendGameInvite(
-            req.user,
-            data,
-        );
-        //FIXME: What should I emit here? What happens if the user is not online?
+        const { socketId, gameInstance } =
+            await this.notificationService.acceptFriendGameInvite(
+                req.user,
+                data,
+            );
         if (!socketId)
             return console.log("acceptFriendGameInvite: User is not online");
         this.server
             .to(socketId)
-            .emit("notif.game-invitation.accepted", "notificationAccepted");
+            .emit("notif.game-invitation.accepted", gameInstance);
+        //TODO: should I also send the gameInstance to the user who accepted the invite?
     }
 
     @SubscribeMessage("notif:rejectFriendGameInvite")
@@ -96,7 +97,6 @@ export class NotificationGateway
             req.user,
             data,
         );
-        //FIXME: What should I emit here? What happens if the user is not online?
         if (!socketId)
             return console.log("rejectFriendGameInvite: User is not online");
         this.server

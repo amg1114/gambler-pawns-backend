@@ -60,5 +60,6 @@ import { GameHistoryController } from "./submodules/game-history/game-history.co
         RewatchGameController,
         GameHistoryController,
     ],
+    exports: [GameService, PlayersService],
 })
 export class ChessModule {}

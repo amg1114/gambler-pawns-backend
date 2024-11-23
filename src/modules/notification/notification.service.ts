@@ -10,6 +10,12 @@ import { FriendGameInviteDto } from "./dto/friendGameInvite.dto";
 import { WsException } from "@nestjs/websockets";
 import { ManageFriendGameInviteDto } from "./dto/manageFriendGameInvite.dto";
 import { UserService } from "../user/user.service";
+import { FriendRequestDto } from "./dto/friendRequest.dto";
+import { GameService } from "../chess/submodules/handle-game/game.service";
+import {
+    PlayerCandidateVerifiedData,
+    PlayersService,
+} from "../chess/submodules/players.service";
 
 @Injectable()
 export class NotificationService {
@@ -19,10 +25,16 @@ export class NotificationService {
         @InjectRepository(Notification)
         private notificationRepository: Repository<Notification>,
         private readonly userService: UserService,
+        private gameService: GameService,
+        private readonly playersService: PlayersService,
     ) {}
 
     public activeUsers = new Map<number, string>(); // userId -> socket.id
     public activeUsersReverse = new Map<string, number>(); // socket.id -> userId
+    public gameInvites = new Map<
+        number,
+        { sender: User; game: FriendGameInviteDto }
+    >(); // notificationId -> game data
 
     addActiveUser(userId: number, socketId: string) {
         this.activeUsers.set(userId, socketId);
@@ -35,19 +47,16 @@ export class NotificationService {
         this.activeUsers.delete(userId);
     }
 
-    async sendFriendGameInvite(
-        sender: User,
-        { receiverId }: FriendGameInviteDto,
-    ) {
+    async sendFriendGameInvite(sender: User, data: FriendGameInviteDto) {
         // 0. Make some verifications
         const receiver = await this.userRepository.findOneBy({
-            userId: receiverId,
+            userId: data.receiverId,
         });
         if (!receiver) throw new WsException("User not found");
 
         const areFriends = await this.userService.areUsersFriends(
             sender.userId,
-            receiverId,
+            receiver.userId,
         );
         if (!areFriends)
             throw new WsException("You are not friends with this user");
@@ -67,17 +76,17 @@ export class NotificationService {
             type: notificationTypes.WANTS_TO_PLAY,
             title: "New Game Invite",
             message: "has invited you to play a game!",
-            // actionText1: "Accept",
-            // actionLink1: "notif:acceptFriendGameInvite",
-            // actionText2: "Reject",
-            // actionLink2: "notif:rejectFriendGameInvite",
             timeStamp: new Date(),
         });
         await this.notificationRepository.save(newNotification);
 
-        // 2. Send notification to receiver
-        const socketId = this.activeUsers.get(receiverId);
+        // 2. Save game data in memory
+        this.gameInvites.set(newNotification.notificationId, {
+            sender,
+            game: data,
+        });
 
+        const socketId = this.activeUsers.get(receiver.userId);
         return { socketId, newNotification };
     }
 
@@ -91,28 +100,64 @@ export class NotificationService {
         if (notification.userWhoReceive.userId !== receiver.userId)
             throw new WsException("You are not allowed to perform this action");
 
+        const gameInvite = this.gameInvites.get(notifId);
         await this.notificationRepository.delete({ notificationId: notifId });
+        this.gameInvites.delete(notifId);
 
-        return this.activeUsers.get(notification.userWhoSend.userId);
+        const socketId = this.activeUsers.get(notification.userWhoSend.userId);
+        return { socketId, gameInvite };
     }
 
     async acceptFriendGameInvite(
         receiver: User,
         { notificationId }: ManageFriendGameInviteDto,
     ) {
-        const socketId = await this.manageFriendGameInvite(
+        const { socketId, gameInvite } = await this.manageFriendGameInvite(
             receiver,
             notificationId,
         );
-        // connect players in case userWhoSend is online
-        return socketId;
+        if (!socketId) return { socketId, undefined }; // User is not online
+
+        const { sender, game } = gameInvite;
+
+        const player1Elo = this.playersService.setEloByModeForNonGuestPlayer(
+            sender,
+            game.mode,
+        );
+        const player2Elo = this.playersService.setEloByModeForNonGuestPlayer(
+            receiver,
+            game.mode,
+        );
+
+        const player1 = this.playersService.transforPlayerData({
+            elo: player1Elo,
+            isGuest: false,
+            userInfo: sender,
+        }) as PlayerCandidateVerifiedData;
+
+        const player2 = this.playersService.transforPlayerData({
+            elo: player2Elo,
+            isGuest: false,
+            userInfo: receiver,
+        }) as PlayerCandidateVerifiedData;
+
+        const gameInstance = this.gameService.createGame(
+            player1,
+            player2,
+            game.mode,
+            "Friend Req",
+            game.timeInMinutes,
+            game.timeIncrementPerMoveSeconds,
+        );
+
+        return { socketId, gameInstance };
     }
 
     async rejectFriendGameInvite(
         receiver: User,
         { notificationId }: ManageFriendGameInviteDto,
     ) {
-        const socketId = await this.manageFriendGameInvite(
+        const { socketId } = await this.manageFriendGameInvite(
             receiver,
             notificationId,
         );
@@ -134,7 +179,7 @@ export class NotificationService {
         );
     }
 
-    async sendFriendRequest(sender: User, { receiverId }: FriendGameInviteDto) {
+    async sendFriendRequest(sender: User, { receiverId }: FriendRequestDto) {
         // 0. Make some verifications
         const receiver = await this.userRepository.findOneBy({
             userId: receiverId,
