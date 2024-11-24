@@ -33,6 +33,7 @@ export class Notification {
         onDelete: "CASCADE",
         onUpdate: "CASCADE",
         orphanedRowAction: "delete",
+        eager: true,
     })
     userWhoSend: Relation<User>;
 
@@ -41,6 +42,7 @@ export class Notification {
         onUpdate: "CASCADE",
         nullable: false,
         orphanedRowAction: "delete",
+        eager: true,
     })
     @Index("idx_notifications_user_id")
     userWhoReceive: Relation<User>;
@@ -57,16 +59,16 @@ export class Notification {
     @Column({ type: "text" })
     message: string;
 
-    @Column()
+    @Column({ nullable: true })
     actionLink1: string;
 
-    @Column()
+    @Column({ nullable: true })
     actionText1: string;
 
-    @Column()
+    @Column({ nullable: true })
     actionLink2: string;
 
-    @Column()
+    @Column({ nullable: true })
     actionText2: string;
 
     @Column({ type: "boolean", default: false })

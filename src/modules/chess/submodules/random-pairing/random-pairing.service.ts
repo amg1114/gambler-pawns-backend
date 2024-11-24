@@ -83,7 +83,7 @@ export class RandomPairingService {
 
         // verify player
         const playerVerified = await this.playersService.createPlayer(
-            player,
+            player.playerId,
             mode,
         );
         const playerCandidateToBeMatched = {
@@ -179,14 +179,13 @@ export class RandomPairingService {
                 player1Socket: player1.socketId,
                 player2Socket: player2.socketId,
                 gameId: newGame.gameId,
+                timeInMinutes,
+                timeIncrementPerMoveSeconds,
                 playerWhite: this.playersService.transforPlayerData(
                     newGame.whitesPlayer,
                 ),
                 playerBlack: this.playersService.transforPlayerData(
                     newGame.blacksPlayer,
-                ),
-                eloDifference: Math.abs(
-                    player1.userData.elo - player2.userData.elo,
                 ),
                 mode: newGame.mode,
             };

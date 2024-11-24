@@ -1,11 +1,10 @@
 import { WsException } from "@nestjs/websockets";
-import { Chess } from "chess.js";
+import { BLACK, Chess, WHITE } from "chess.js";
 
 // entities
 import { GameModeType, GameTypePairing } from "./db/game.entity";
 import { PlayerCandidateVerifiedData } from "../submodules/players.service";
 
-// TODO: logica apuestas
 export class Game {
     public mode: GameModeType;
     public typePairing: GameTypePairing;
@@ -43,9 +42,9 @@ export class Game {
         move: { from: string; to: string; promotion?: string },
     ) {
         if (
-            (this.board.turn() === "w" &&
+            (this.board.turn() === WHITE &&
                 playerId !== this.whitesPlayer.userInfo.userId.toString()) ||
-            (this.board.turn() === "b" &&
+            (this.board.turn() === BLACK &&
                 playerId !== this.blacksPlayer.userInfo.userId.toString())
         ) {
             throw new WsException("Not your turn");
