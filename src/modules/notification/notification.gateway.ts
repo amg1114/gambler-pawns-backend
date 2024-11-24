@@ -101,7 +101,7 @@ export class NotificationGateway
         const receiverRoom = gameData.playerBlack.userInfo.userId.toString();
 
         // Room based on gameId
-        const gameRoom = `game:${gameData.gameId}`;
+        const gameRoom = gameData.gameId;
 
         // Add players to their user-based rooms
         this.server.sockets.sockets.get(userWhoSendsSocketId)?.join(senderRoom);
