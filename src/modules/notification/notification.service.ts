@@ -78,6 +78,10 @@ export class NotificationService {
             title: "New Game Invite",
             message: "has invited you to play a game!",
             timeStamp: new Date(),
+            actionText1: "Accept",
+            actionLink1: "notif:acceptFriendGameInvite",
+            actionText2: "Reject",
+            actionLink2: "notif:rejectFriendGameInvite",
         });
         await this.notificationRepository.save(newNotification);
 
@@ -105,19 +109,20 @@ export class NotificationService {
         await this.notificationRepository.delete({ notificationId: notifId });
         this.gameInvites.delete(notifId);
 
-        const socketId = this.activeUsers.get(notification.userWhoSend.userId);
-        return { socketId, gameInvite };
+        const userWhoSendsSocketId = this.activeUsers.get(
+            notification.userWhoSend.userId,
+        );
+        const userWhoReceivesSocketId = this.activeUsers.get(receiver.userId);
+        return { userWhoSendsSocketId, userWhoReceivesSocketId, gameInvite };
     }
 
     async acceptFriendGameInvite(
         receiver: User,
         { notificationId }: ManageFriendGameInviteDto,
     ) {
-        const { socketId, gameInvite } = await this.manageFriendGameInvite(
-            receiver,
-            notificationId,
-        );
-        if (!socketId) return { socketId, undefined }; // User is not online
+        const { userWhoSendsSocketId, userWhoReceivesSocketId, gameInvite } =
+            await this.manageFriendGameInvite(receiver, notificationId);
+        if (!userWhoSendsSocketId) return { userWhoSendsSocketId, undefined }; // User is not online
 
         const { sender, game } = gameInvite;
 
@@ -142,7 +147,7 @@ export class NotificationService {
             userInfo: receiver,
         }) as PlayerCandidateVerifiedData;
 
-        const gameInstance = this.gameService.createGame(
+        const gameInstance = await this.gameService.createGame(
             player1,
             player2,
             game.mode,
@@ -151,19 +156,30 @@ export class NotificationService {
             game.timeIncrementPerMoveSeconds,
         );
 
-        return { socketId, gameInstance };
+        const gameData = {
+            gameId: gameInstance.gameId,
+            playerWhite: this.playersService.transforPlayerData(
+                gameInstance.whitesPlayer,
+            ),
+            playerBlack: this.playersService.transforPlayerData(
+                gameInstance.blacksPlayer,
+            ),
+            mode: gameInstance.mode,
+        };
+
+        return { userWhoSendsSocketId, userWhoReceivesSocketId, gameData };
     }
 
     async rejectFriendGameInvite(
         receiver: User,
         { notificationId }: ManageFriendGameInviteDto,
     ) {
-        const { socketId } = await this.manageFriendGameInvite(
+        const { userWhoSendsSocketId } = await this.manageFriendGameInvite(
             receiver,
             notificationId,
         );
 
-        return socketId;
+        return userWhoSendsSocketId;
     }
 
     async getAllNotifications(userId: number) {

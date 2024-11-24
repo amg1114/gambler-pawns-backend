@@ -185,9 +185,6 @@ export class RandomPairingService {
                 playerBlack: this.playersService.transforPlayerData(
                     newGame.blacksPlayer,
                 ),
-                eloDifference: Math.abs(
-                    player1.userData.elo - player2.userData.elo,
-                ),
                 mode: newGame.mode,
             };
         } catch (error) {

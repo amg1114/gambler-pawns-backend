@@ -12,6 +12,7 @@ import {
     SubscribeMessage,
     WebSocketGateway,
     WebSocketServer,
+    WsException,
 } from "@nestjs/websockets";
 import { AuthWsGuard } from "src/common/guards/authWs.guard";
 import { NotificationService } from "./notification.service";
@@ -48,9 +49,8 @@ export class NotificationGateway
         try {
             const { userId } = await this.jwtService.verifyAsync(token);
             this.notificationService.addActiveUser(userId, client.id);
-        } catch (e) {
-            console.log("Invalid token provided");
-            return client.disconnect();
+        } catch {
+            // if is not logged do nothing
         }
     }
 
@@ -66,8 +66,9 @@ export class NotificationGateway
         const { socketId, newNotification } =
             await this.notificationService.sendFriendGameInvite(req.user, data);
 
-        if (!socketId) return console.log("User is not online");
-        this.server.to(socketId).emit("notif.game-invitation", newNotification);
+        if (!socketId) throw new WsException("User is not online");
+
+        this.server.to(socketId).emit("notif.new", newNotification);
     }
 
     @SubscribeMessage("notif:acceptFriendGameInvite")
@@ -75,17 +76,46 @@ export class NotificationGateway
         @MessageBody() data: ManageFriendGameInviteDto,
         @Req() req: any,
     ) {
-        const { socketId, gameInstance } =
+        const { userWhoSendsSocketId, userWhoReceivesSocketId, gameData } =
             await this.notificationService.acceptFriendGameInvite(
                 req.user,
                 data,
             );
-        if (!socketId)
+        if (!userWhoSendsSocketId)
             return console.log("acceptFriendGameInvite: User is not online");
-        this.server
-            .to(socketId)
-            .emit("notif.game-invitation.accepted", gameInstance);
-        //TODO: should I also send the gameInstance to the user who accepted the invite?
+
+        // TODO: en un futuro unir a los jugadores
+        //const color = getRandomColor();
+        //const oppositeColor = color === "white" ? "black" : "white";
+
+        // Rooms based on userId
+        const senderRoom = req.user.id;
+        const receiverRoom = gameData.playerBlack.userInfo.userId.toString();
+
+        // Room based on gameId
+        const gameRoom = `game:${gameData.gameId}`;
+
+        // Add players to their user-based rooms
+        this.server.sockets.sockets.get(userWhoSendsSocketId)?.join(senderRoom);
+        this.server.sockets.sockets
+            .get(userWhoReceivesSocketId)
+            ?.join(receiverRoom);
+
+        // Add both players to the game room
+        this.server.sockets.sockets.get(userWhoSendsSocketId)?.join(gameRoom);
+        this.server.sockets.sockets
+            .get(userWhoReceivesSocketId)
+            ?.join(gameRoom);
+
+        // Notify players and send required data
+        this.server.to(userWhoSendsSocketId).emit("game:started", {
+            color: "white",
+            ...gameData,
+        });
+        this.server.to(userWhoReceivesSocketId).emit("game:started", {
+            color: "black",
+            ...gameData,
+        });
     }
 
     @SubscribeMessage("notif:rejectFriendGameInvite")
@@ -99,9 +129,8 @@ export class NotificationGateway
         );
         if (!socketId)
             return console.log("rejectFriendGameInvite: User is not online");
-        this.server
-            .to(socketId)
-            .emit("notif.game-invitation.rejected", "notificationRejected");
+
+        this.server.to(socketId).emit("notif.new", "notificationRejected");
     }
 
     @SubscribeMessage("notif:friendRequest")
@@ -112,7 +141,7 @@ export class NotificationGateway
         const { socketId, newNotification } =
             await this.notificationService.sendFriendRequest(req.user, data);
 
-        this.server.to(socketId).emit("notif.friendRequest", newNotification);
+        this.server.to(socketId).emit("notif.new", newNotification);
     }
 
     @SubscribeMessage("notif:acceptFriendRequest")
@@ -124,9 +153,8 @@ export class NotificationGateway
             await this.notificationService.acceptFriendRequest(req.user, data);
 
         if (!socketId) return console.log("User is not online");
-        this.server
-            .to(socketId)
-            .emit("notif.friendRequest.accepted", newNotification);
+
+        this.server.to(socketId).emit("notif.new", newNotification);
     }
 
     @SubscribeMessage("notif:rejectFriendRequest")
