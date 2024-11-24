@@ -52,31 +52,6 @@ export class GameService {
         timeInMinutes: number,
         timeIncrementPerMoveSeconds: number,
     ): Promise<Game> {
-        const gameInstance = await this.createGameForSpecifiedPairing(
-            player1,
-            player2,
-            mode,
-            typePairing,
-            timeInMinutes,
-            timeIncrementPerMoveSeconds,
-        );
-
-        console.log("Game created", gameInstance.gameId);
-        return gameInstance;
-    }
-
-    /**
-     * Creates a game for the specified pairing, registers it in the active games service, initializes the inactivity tracker,
-     * and starts the game timer.
-     */
-    private async createGameForSpecifiedPairing(
-        player1: PlayerCandidateVerifiedData,
-        player2: PlayerCandidateVerifiedData,
-        mode: GameModeType,
-        typePairing: GameTypePairing,
-        timeInMinutes: number,
-        timeIncrementPerMoveSeconds: number,
-    ): Promise<Game> {
         // Create game instance
         const gameInstance = new Game();
         await gameInstance.createGame(
@@ -111,6 +86,7 @@ export class GameService {
 
         this.startGame(gameInstance);
 
+        console.log(`Game ${gameEncryptedId} created`);
         return gameInstance;
     }
 

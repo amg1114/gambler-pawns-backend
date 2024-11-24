@@ -38,6 +38,7 @@ export class ChessGateway {
         );
 
         const game = this.activeGamesService.findGameByPlayerId(playerId);
+
         if (game && game.gameId === gameId) {
             socket.join(gameId);
 
