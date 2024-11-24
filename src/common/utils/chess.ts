@@ -1,5 +1,3 @@
-import { BLACK, WHITE } from "chess.js";
-
 /** Gen Random color for chess side assignation */
 export function getRandomColor(): "white" | "black" {
     return Math.random() < 0.5 ? "white" : "black";

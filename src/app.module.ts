@@ -50,7 +50,9 @@ import { JwtModule } from "@nestjs/jwt";
         StoreModule,
         ClubModule,
         ScheduleModule.forRoot(),
-        EventEmitterModule.forRoot({ ignoreErrors: false }),
+        EventEmitterModule.forRoot({
+            ignoreErrors: false,
+        }),
     ],
 })
 export class AppModule {}

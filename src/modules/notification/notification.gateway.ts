@@ -21,10 +21,11 @@ import { ParseJsonPipe } from "src/common/websockets-utils/websocketParseJson.fi
 import { CustomWsFilterException } from "src/common/websockets-utils/websocket.filter";
 import { CORS } from "src/config/constants";
 import { Server, Socket } from "socket.io";
-import { JwtService } from "@nestjs/jwt";
 import { ManageFriendGameInviteDto } from "./dto/manageFriendGameInvite.dto";
 import { ManageFriendRequestDto } from "./dto/manageFriendRequest.dto";
 import { FriendRequestDto } from "./dto/friendRequest.dto";
+import { JwtService } from "@nestjs/jwt";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 
 @UseFilters(new CustomWsFilterException())
 @UsePipes(new ParseJsonPipe(), new ValidationPipe({ transform: true }))
@@ -35,15 +36,19 @@ import { FriendRequestDto } from "./dto/friendRequest.dto";
 export class NotificationGateway
     implements OnGatewayConnection, OnGatewayDisconnect
 {
-    constructor(
-        private notificationService: NotificationService,
-        private readonly jwtService: JwtService,
-    ) {}
-
     @WebSocketServer()
     server: Server;
 
+    constructor(
+        private notificationService: NotificationService,
+        private readonly jwtService: JwtService,
+        private eventEmitter: EventEmitter2,
+    ) {}
+
+    // TODO: handle connection of clients in a global gateway
+
     async handleConnection(client: Socket) {
+        console.log(`Client connected: ${client.id}`);
         const { token } = client.handshake.auth;
 
         try {
@@ -55,6 +60,9 @@ export class NotificationGateway
     }
 
     handleDisconnect(client: Socket) {
+        this.eventEmitter.emit("game.checkIfRandomPairingIsAborted", {
+            socketId: client.id,
+        });
         this.notificationService.removeActiveUser(client.id);
     }
 
