@@ -47,14 +47,14 @@ export class PlayersService {
     ) {}
 
     async createPlayer(
-        player: PlayerCandidateVerifiedRequestData,
+        playerId: string,
         gameMode: GameModeType,
     ): Promise<PlayerCandidateVerifiedData> {
-        if (this.isGuest(player.playerId)) {
-            return await this.createGuestPlayer(player.playerId);
+        if (this.isGuest(playerId)) {
+            return await this.createGuestPlayer(playerId);
         }
 
-        return await this.verifyNonGuestPlayer(player, gameMode);
+        return await this.verifyNonGuestPlayer(playerId, gameMode);
     }
 
     private isGuest(playerId: string) {
@@ -78,11 +78,11 @@ export class PlayersService {
     }
 
     private async verifyNonGuestPlayer(
-        player: PlayerCandidateVerifiedRequestData,
+        playerId: string,
         gameMode: GameModeType,
     ) {
         const user = await this.userRepository.findOneBy({
-            userId: +player.playerId,
+            userId: +playerId,
         });
 
         if (!user) {
