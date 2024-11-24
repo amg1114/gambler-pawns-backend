@@ -5,6 +5,7 @@ import { Repository } from "typeorm/repository/Repository";
 import { WsException } from "@nestjs/websockets";
 import { GameModeType } from "../entities/db/game.entity";
 import { UserAvatarImg } from "src/modules/user/entities/userAvatar.entity";
+import { randomInt } from "crypto";
 
 export interface PlayerCandidateVerifiedRequestData {
     playerId: string;
@@ -51,7 +52,7 @@ export class PlayersService {
         gameMode: GameModeType,
     ): Promise<PlayerCandidateVerifiedData> {
         if (this.isGuest(player.playerId)) {
-            return await this.createGuestPlayer(player.playerId);
+            return this.createGuestPlayer(player.playerId);
         }
 
         return await this.verifyNonGuestPlayer(player, gameMode);
@@ -61,7 +62,10 @@ export class PlayersService {
         return playerId.includes("guest");
     }
 
-    private async createGuestPlayer(playerId: string) {
+    private createGuestPlayer(playerId: string) {
+        // TODO: cambiar esto luego
+        const avatarId = randomInt(1, 26);
+
         return {
             isGuest: true,
             elo: 1200,
@@ -70,9 +74,10 @@ export class PlayersService {
                 nickname: "Guest",
                 aboutText: "Guest",
                 countryCode: "Guest",
-                userAvatarImg: await this.userAvatarImg.findOneBy({
-                    userAvatarImgId: Math.random() * (25 - 1) + 1,
-                }),
+                userAvatarImg: {
+                    userAvatarImgId: avatarId,
+                    fileName: `${avatarId}.png`,
+                },
             },
         };
     }

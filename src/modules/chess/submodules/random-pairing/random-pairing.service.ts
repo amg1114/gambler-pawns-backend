@@ -179,6 +179,8 @@ export class RandomPairingService {
                 player1Socket: player1.socketId,
                 player2Socket: player2.socketId,
                 gameId: newGame.gameId,
+                timeInMinutes,
+                timeIncrementPerMoveSeconds,
                 playerWhite: this.playersService.transforPlayerData(
                     newGame.whitesPlayer,
                 ),
