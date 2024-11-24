@@ -52,27 +52,14 @@ export class GameService {
         timeInMinutes: number,
         timeIncrementPerMoveSeconds: number,
     ): Promise<Game> {
-        let gameInstance: Game;
-
-        if (typePairing === "Random Pairing") {
-            gameInstance = await this.createGameForSpecifiedPairing(
-                player1,
-                player2,
-                mode,
-                typePairing,
-                timeInMinutes,
-                timeIncrementPerMoveSeconds,
-            );
-        } else if (typePairing === "Friend Req") {
-            gameInstance = await this.createGameForSpecifiedPairing(
-                player1,
-                player2,
-                mode,
-                typePairing,
-                timeInMinutes,
-                timeIncrementPerMoveSeconds,
-            );
-        }
+        const gameInstance = await this.createGameForSpecifiedPairing(
+            player1,
+            player2,
+            mode,
+            typePairing,
+            timeInMinutes,
+            timeIncrementPerMoveSeconds,
+        );
 
         console.log("Game created", gameInstance.gameId);
         return gameInstance;

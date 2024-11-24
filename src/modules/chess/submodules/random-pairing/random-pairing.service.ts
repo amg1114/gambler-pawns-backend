@@ -83,7 +83,7 @@ export class RandomPairingService {
 
         // verify player
         const playerVerified = await this.playersService.createPlayer(
-            player,
+            player.playerId,
             mode,
         );
         const playerCandidateToBeMatched = {
