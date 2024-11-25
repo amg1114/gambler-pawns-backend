@@ -178,16 +178,7 @@ export class RandomPairingService {
             return {
                 player1Socket: player1.socketId,
                 player2Socket: player2.socketId,
-                gameId: newGame.gameId,
-                timeInMinutes,
-                timeIncrementPerMoveSeconds,
-                playerWhite: this.playersService.transforPlayerData(
-                    newGame.whitesPlayer,
-                ),
-                playerBlack: this.playersService.transforPlayerData(
-                    newGame.blacksPlayer,
-                ),
-                mode: newGame.mode,
+                gameData: newGame.getProperties(),
             };
         } catch (error) {
             throw new WsException("Failed to create game");

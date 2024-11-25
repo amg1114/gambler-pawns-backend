@@ -19,8 +19,8 @@ export class Game {
         this.board = new Chess();
     }
 
-    /** method to init game */
-    async createGame(
+    /** method to init game instance */
+    createGame(
         whitesPlayer: PlayerCandidateVerifiedData,
         blacksPlayer: PlayerCandidateVerifiedData,
         mode: GameModeType,
@@ -34,6 +34,8 @@ export class Game {
         this.timeIncrementPerMoveSeconds = timeIncrementPerMoveSeconds;
         this.whitesPlayer = whitesPlayer;
         this.blacksPlayer = blacksPlayer;
+
+        return this;
     }
 
     /** Validate and make move */
@@ -58,8 +60,34 @@ export class Game {
                 pgn: this.board.pgn(),
                 historyMoves: this.board.history(),
             };
-        } catch (e) {
+        } catch {
             throw new WsException("Invalid Move");
         }
+    }
+
+    getProperties() {
+        return {
+            gameId: this.gameId,
+            mode: this.mode,
+            timeInMinutes: this.timeInMinutes,
+            timeIncrementPerMoveSeconds: this.timeIncrementPerMoveSeconds,
+            typePairing: this.typePairing,
+            playerWhite: this.tranformPlayerData(this.whitesPlayer),
+            playerBlack: this.tranformPlayerData(this.blacksPlayer),
+        };
+    }
+
+    private tranformPlayerData(player: PlayerCandidateVerifiedData) {
+        return {
+            isGuest: player.isGuest,
+            elo: player.elo,
+            userInfo: {
+                userId: player.userInfo.userId,
+                nickname: player.userInfo.nickname,
+                aboutText: player.userInfo.aboutText,
+                countryCode: player.userInfo.countryCode,
+                userAvatarImg: player.userInfo.userAvatarImg,
+            },
+        };
     }
 }

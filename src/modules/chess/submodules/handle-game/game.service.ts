@@ -53,8 +53,7 @@ export class GameService {
         timeIncrementPerMoveSeconds: number,
     ): Promise<Game> {
         // Create game instance
-        const gameInstance = new Game();
-        await gameInstance.createGame(
+        const gameInstance = new Game().createGame(
             player1,
             player2,
             mode,
