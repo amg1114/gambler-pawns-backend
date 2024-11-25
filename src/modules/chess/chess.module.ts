@@ -26,6 +26,8 @@ import { PlayersService } from "./submodules/players.service";
 import { InactivityService } from "./submodules/handle-game/inactivity.service";
 import { GameHistoryService } from "./submodules/game-history/game-history.service";
 import { GameHistoryController } from "./submodules/game-history/game-history.controller";
+import { GameLinkGateway } from "./submodules/game-link/game-link.gateway";
+import { UserModule } from "../user/user.module";
 
 @Module({
     imports: [
@@ -36,6 +38,7 @@ import { GameHistoryController } from "./submodules/game-history/game-history.co
             GameWithArcadeModifiers,
             ArcadeModifiers,
         ]),
+        UserModule,
     ],
     providers: [
         ChessGateway,
@@ -54,6 +57,7 @@ import { GameHistoryController } from "./submodules/game-history/game-history.co
         PlayersService,
         InactivityService,
         GameHistoryService,
+        GameLinkGateway,
     ],
     controllers: [
         GameLinkController,

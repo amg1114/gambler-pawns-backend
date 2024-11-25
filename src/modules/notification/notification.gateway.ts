@@ -7,8 +7,6 @@ import {
 } from "@nestjs/common";
 import {
     MessageBody,
-    OnGatewayConnection,
-    OnGatewayDisconnect,
     SubscribeMessage,
     WebSocketGateway,
     WebSocketServer,
@@ -20,12 +18,10 @@ import { FriendGameInviteDto } from "./dto/friendGameInvite.dto";
 import { ParseJsonPipe } from "src/common/websockets-utils/websocketParseJson.filter";
 import { CustomWsFilterException } from "src/common/websockets-utils/websocket.filter";
 import { CORS } from "src/config/constants";
-import { Server, Socket } from "socket.io";
+import { Server } from "socket.io";
 import { ManageFriendGameInviteDto } from "./dto/manageFriendGameInvite.dto";
 import { ManageFriendRequestDto } from "./dto/manageFriendRequest.dto";
 import { FriendRequestDto } from "./dto/friendRequest.dto";
-import { JwtService } from "@nestjs/jwt";
-import { EventEmitter2 } from "@nestjs/event-emitter";
 
 @UseFilters(new CustomWsFilterException())
 @UsePipes(new ParseJsonPipe(), new ValidationPipe({ transform: true }))
@@ -33,38 +29,11 @@ import { EventEmitter2 } from "@nestjs/event-emitter";
 @WebSocketGateway({
     cors: CORS,
 })
-export class NotificationGateway
-    implements OnGatewayConnection, OnGatewayDisconnect
-{
+export class NotificationGateway {
     @WebSocketServer()
     server: Server;
 
-    constructor(
-        private notificationService: NotificationService,
-        private readonly jwtService: JwtService,
-        private eventEmitter: EventEmitter2,
-    ) {}
-
-    // TODO: handle connection of clients in a global gateway
-
-    async handleConnection(client: Socket) {
-        console.log(`Client connected: ${client.id}`);
-        const { token } = client.handshake.auth;
-
-        try {
-            const { userId } = await this.jwtService.verifyAsync(token);
-            this.notificationService.addActiveUser(userId, client.id);
-        } catch {
-            // if is not logged do nothing
-        }
-    }
-
-    handleDisconnect(client: Socket) {
-        this.eventEmitter.emit("game.checkIfRandomPairingIsAborted", {
-            socketId: client.id,
-        });
-        this.notificationService.removeActiveUser(client.id);
-    }
+    constructor(private notificationService: NotificationService) {}
 
     @SubscribeMessage("notif:friendGameInvite")
     async handleFriendGameInvite(

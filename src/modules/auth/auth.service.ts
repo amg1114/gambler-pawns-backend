@@ -26,7 +26,6 @@ export class AuthService {
     constructor(
         @InjectRepository(User) private userRepository: Repository<User>,
         @InjectRepository(UserAvatarImg)
-        private userAvatarImgRepository: Repository<UserAvatarImg>,
         private readonly jwtService: JwtService,
         private readonly mailerService: MailerService,
         private readonly configService: ConfigService,

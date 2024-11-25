@@ -1,4 +1,6 @@
 import {
+    forwardRef,
+    Inject,
     Injectable,
     NotAcceptableException,
     NotFoundException,
@@ -19,6 +21,7 @@ import {
 } from "../players.service";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { GameService } from "../handle-game/game.service";
+import { ActiveUsersService } from "src/modules/user/active-users/active-users.service";
 
 @Injectable()
 export class GameLinkService {
@@ -27,7 +30,9 @@ export class GameLinkService {
         private gameEntityRepository: Repository<Game>,
         private readonly configService: ConfigService,
         private playersService: PlayersService,
+        @Inject(forwardRef(() => GameService))
         private gameService: GameService,
+        private activeUsersService: ActiveUsersService,
     ) {}
 
     private sqids = new Sqids({
@@ -35,7 +40,8 @@ export class GameLinkService {
         alphabet: this.configService.getOrThrow<string>("ALPHABET"),
     });
 
-    private gameCache = new Map<
+    public activeGuestUsers = new Map<string, string>(); // guestId -> socketId
+    private mapGameLinkToGameData = new Map<
         string,
         {
             createdAt: number;
@@ -44,7 +50,7 @@ export class GameLinkService {
             timeIncrementPerMoveSeconds: number;
             timeInMinutes: number;
         }
-    >();
+    >(); // linkId -> gameData
 
     async createGameLink({
         userId,
@@ -57,7 +63,7 @@ export class GameLinkService {
         // Save the game in cache to be able to retrieve it later when player B joins
         const now = Date.now();
         const gameId = this.genGameLinkEncodeByGameId(now);
-        this.gameCache.set(gameId, {
+        this.mapGameLinkToGameData.set(gameId, {
             createdAt: now,
             playerA: player,
             gameMode,
@@ -68,7 +74,7 @@ export class GameLinkService {
     }
 
     async joinGameLink({ gameId, userId }: JoinGameLinkDto) {
-        const game = this.gameCache.get(gameId);
+        const game = this.mapGameLinkToGameData.get(gameId);
 
         if (!game) throw new NotFoundException("Game not found");
 
@@ -77,7 +83,7 @@ export class GameLinkService {
             game.gameMode,
         );
 
-        this.gameCache.delete(gameId);
+        this.mapGameLinkToGameData.delete(gameId);
 
         const gameInstance = await this.gameService.createGame(
             game.playerA,
@@ -99,7 +105,14 @@ export class GameLinkService {
             mode: gameInstance.mode,
         };
 
-        return gameData;
+        const socketA = this.activeUsersService.activeUsers.get(
+            +game.playerA.userInfo.userId,
+        );
+        const socketB = this.activeUsersService.activeUsers.get(
+            +playerB.userInfo.userId,
+        );
+
+        return { gameData, socketA, socketB };
     }
 
     @Cron(CronExpression.EVERY_12_HOURS)
@@ -107,9 +120,12 @@ export class GameLinkService {
         const expirationTime = 12 * 60 * 60 * 1000;
         const now = Date.now();
 
-        for (const [id, { createdAt }] of this.gameCache.entries()) {
+        for (const [
+            id,
+            { createdAt },
+        ] of this.mapGameLinkToGameData.entries()) {
             if (now - createdAt > expirationTime) {
-                this.gameCache.delete(id);
+                this.mapGameLinkToGameData.delete(id);
             }
         }
     }

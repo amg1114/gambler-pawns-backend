@@ -17,6 +17,7 @@ import {
     PlayersService,
 } from "../chess/submodules/players.service";
 import { Cron, CronExpression } from "@nestjs/schedule";
+import { ActiveUsersService } from "../user/active-users/active-users.service";
 
 @Injectable()
 export class NotificationService {
@@ -28,25 +29,13 @@ export class NotificationService {
         private readonly userService: UserService,
         private gameService: GameService,
         private readonly playersService: PlayersService,
+        private activeUsersService: ActiveUsersService,
     ) {}
 
-    public activeUsers = new Map<number, string>(); // userId -> socket.id
-    public activeUsersReverse = new Map<string, number>(); // socket.id -> userId
     public gameInvites = new Map<
         number,
         { sender: User; game: FriendGameInviteDto }
     >(); // notificationId -> game data
-
-    addActiveUser(userId: number, socketId: string) {
-        this.activeUsers.set(userId, socketId);
-        this.activeUsersReverse.set(socketId, userId);
-    }
-
-    removeActiveUser(socketId: string) {
-        const userId = this.activeUsersReverse.get(socketId);
-        this.activeUsersReverse.delete(socketId);
-        this.activeUsers.delete(userId);
-    }
 
     async sendFriendGameInvite(sender: User, data: FriendGameInviteDto) {
         // 0. Make some verifications
@@ -91,7 +80,9 @@ export class NotificationService {
             game: data,
         });
 
-        const socketId = this.activeUsers.get(receiver.userId);
+        const socketId = this.activeUsersService.activeUsers.get(
+            receiver.userId,
+        );
         return { socketId, newNotification };
     }
 
@@ -109,10 +100,12 @@ export class NotificationService {
         await this.notificationRepository.delete({ notificationId: notifId });
         this.gameInvites.delete(notifId);
 
-        const userWhoSendsSocketId = this.activeUsers.get(
+        const userWhoSendsSocketId = this.activeUsersService.activeUsers.get(
             notification.userWhoSend.userId,
         );
-        const userWhoReceivesSocketId = this.activeUsers.get(receiver.userId);
+        const userWhoReceivesSocketId = this.activeUsersService.activeUsers.get(
+            receiver.userId,
+        );
         return { userWhoSendsSocketId, userWhoReceivesSocketId, gameInvite };
     }
 
@@ -254,7 +247,7 @@ export class NotificationService {
         await this.notificationRepository.save(newNotification);
 
         // 2. Send notification to receiver
-        const socketId = this.activeUsers.get(receiverId);
+        const socketId = this.activeUsersService.activeUsers.get(receiverId);
 
         return { socketId, newNotification };
     }
@@ -275,7 +268,9 @@ export class NotificationService {
         });
 
         await this.notificationRepository.delete({ notificationId });
-        const socketId = this.activeUsers.get(notification.userWhoSend.userId);
+        const socketId = this.activeUsersService.activeUsers.get(
+            notification.userWhoSend.userId,
+        );
 
         return { socketId, notification };
     }

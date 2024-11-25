@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { forwardRef, Inject, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
@@ -33,6 +33,7 @@ export class GameService {
         @InjectRepository(GameEntity)
         private readonly gameRepository: Repository<GameEntity>,
         private readonly timerService: TimerService,
+        @Inject(forwardRef(() => GameLinkService))
         private readonly gameLinkService: GameLinkService,
         private readonly eloService: EloService,
         private readonly userService: UserService,

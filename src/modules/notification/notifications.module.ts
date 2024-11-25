@@ -16,5 +16,6 @@ import { ChessModule } from "../chess/chess.module";
     ],
     controllers: [NotificationController],
     providers: [NotificationService, NotificationGateway],
+    exports: [NotificationService],
 })
 export class NotificationsModule {}
