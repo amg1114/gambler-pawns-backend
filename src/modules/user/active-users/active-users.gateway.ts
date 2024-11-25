@@ -26,7 +26,7 @@ export class ActiveUsersGateway
             const { userId } = await this.jwtService.verifyAsync(token);
             this.activeUsersService.addActiveUser(userId, client.id);
         } catch {
-            // if not logged in, do nothing
+            // TODO: If not logged it, generate unique ID using the format 'guest - Date.now()' and store it in the activeUsersService
         }
     }
 

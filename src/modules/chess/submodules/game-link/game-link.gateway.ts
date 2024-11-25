@@ -20,6 +20,7 @@ export class GameLinkGateway {
         const { gameData, socketA, socketB } =
             await this.gameLinkService.joinGameLink(data);
 
+        //FIXME: This is not working for guest users yet because of how the guest ID is implemented
         if (!socketA) return console.log("game:joinViaLink - Player A offline");
 
         // Rooms based on userId

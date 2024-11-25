@@ -1,6 +1,4 @@
 import {
-    forwardRef,
-    Inject,
     Injectable,
     NotAcceptableException,
     NotFoundException,
@@ -20,8 +18,8 @@ import {
     PlayersService,
 } from "../players.service";
 import { Cron, CronExpression } from "@nestjs/schedule";
-import { GameService } from "../handle-game/game.service";
 import { ActiveUsersService } from "src/modules/user/active-users/active-users.service";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 
 @Injectable()
 export class GameLinkService {
@@ -30,9 +28,8 @@ export class GameLinkService {
         private gameEntityRepository: Repository<Game>,
         private readonly configService: ConfigService,
         private playersService: PlayersService,
-        @Inject(forwardRef(() => GameService))
-        private gameService: GameService,
         private activeUsersService: ActiveUsersService,
+        private eventEmitter: EventEmitter2,
     ) {}
 
     private sqids = new Sqids({
@@ -85,14 +82,18 @@ export class GameLinkService {
 
         this.mapGameLinkToGameData.delete(gameId);
 
-        const gameInstance = await this.gameService.createGame(
-            game.playerA,
-            playerB,
-            game.gameMode,
-            "Link Shared",
-            game.timeInMinutes,
-            game.timeIncrementPerMoveSeconds,
-        );
+        const gameInstance = await new Promise<any>((resolve, reject) => {
+            this.eventEmitter.emit("game.create", {
+                player1: game.playerA,
+                player2: playerB,
+                mode: game.gameMode,
+                typePairing: "Link Shared",
+                timeInMinutes: game.timeInMinutes,
+                timeIncrementPerMoveSeconds: game.timeIncrementPerMoveSeconds,
+                resolve,
+                reject,
+            });
+        });
 
         const gameData = {
             gameId: gameInstance.gameId,

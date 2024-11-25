@@ -93,7 +93,7 @@ export class AuthService {
         if (!isPasswordValid) {
             throw new UnauthorizedException("Invalid credentials");
         }
-
+        console.log(user);
         // 3. devolver el token
         return this.generateToken(user);
     }

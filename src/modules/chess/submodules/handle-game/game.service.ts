@@ -91,6 +91,75 @@ export class GameService {
         return gameInstance;
     }
 
+    @OnEvent("game.create", { async: true })
+    async handleGameCreate(payload: {
+        player1: PlayerCandidateVerifiedData;
+        player2: PlayerCandidateVerifiedData;
+        mode: GameModeType;
+        typePairing: GameTypePairing;
+        timeInMinutes: number;
+        timeIncrementPerMoveSeconds: number;
+        resolve: (value: Game) => void;
+        reject: (reason?: any) => void;
+    }) {
+        const {
+            player1,
+            player2,
+            mode,
+            typePairing,
+            timeInMinutes,
+            timeIncrementPerMoveSeconds,
+            resolve,
+            reject,
+        } = payload;
+
+        try {
+            // Create game instance
+            const gameInstance = new Game();
+            await gameInstance.createGame(
+                player1,
+                player2,
+                mode,
+                typePairing,
+                timeInMinutes,
+                timeIncrementPerMoveSeconds,
+            );
+
+            // Save game in db
+            const newGameEntity = this.gameRepository.create({
+                gameTimestamp: new Date(),
+                pgn: gameInstance.board.pgn(),
+                whitesPlayer: player1.isGuest
+                    ? null
+                    : (player1.userInfo as User),
+                blacksPlayer: player2.isGuest
+                    ? null
+                    : (player2.userInfo as User),
+                eloWhitesBeforeGame: player1.elo,
+                eloBlacksBeforeGame: player2.elo,
+                whitesPlayerTime: timeInMinutes,
+                blacksPlayerTime: timeInMinutes,
+                gameMode: gameInstance.mode,
+                typePairing: gameInstance.typePairing,
+            });
+            const newGame = await this.gameRepository.save(newGameEntity);
+
+            const gameEncryptedId =
+                this.gameLinkService.genGameLinkEncodeByGameId(newGame.gameId);
+
+            gameInstance.gameId = gameEncryptedId;
+
+            this.startGame(gameInstance);
+
+            console.log(`Game ${gameEncryptedId} created`);
+
+            // Resolver la promesa con la instancia del juego
+            resolve(gameInstance);
+        } catch (error) {
+            reject(error);
+        }
+    }
+
     /**
      * Starts a game by registering it in the active games service, initializing the inactivity tracker,
      * and starting the game timer.
