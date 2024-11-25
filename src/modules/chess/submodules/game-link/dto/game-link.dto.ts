@@ -18,6 +18,14 @@ export class CreateGameLinkDto {
     timeInMinutes: number;
 }
 
+export class JoinGameLinkDto {
+    @IsString()
+    gameId: string;
+
+    @IsString()
+    userId: string;
+}
+
 export class GetGameByGameLinkDto {
     @IsString()
     @MinLength(4)

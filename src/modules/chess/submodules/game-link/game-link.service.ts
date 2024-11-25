@@ -3,7 +3,11 @@ import {
     NotAcceptableException,
     NotFoundException,
 } from "@nestjs/common";
-import { CreateGameLinkDto, GetGameByGameLinkDto } from "./dto/game-link.dto";
+import {
+    CreateGameLinkDto,
+    GetGameByGameLinkDto,
+    JoinGameLinkDto,
+} from "./dto/game-link.dto";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import Sqids from "sqids";
@@ -14,6 +18,7 @@ import {
     PlayersService,
 } from "../players.service";
 import { Cron, CronExpression } from "@nestjs/schedule";
+import { GameService } from "../handle-game/game.service";
 
 @Injectable()
 export class GameLinkService {
@@ -22,6 +27,7 @@ export class GameLinkService {
         private gameEntityRepository: Repository<Game>,
         private readonly configService: ConfigService,
         private playersService: PlayersService,
+        private gameService: GameService,
     ) {}
 
     private sqids = new Sqids({
@@ -59,6 +65,41 @@ export class GameLinkService {
             timeInMinutes,
         });
         return gameId;
+    }
+
+    async joinGameLink({ gameId, userId }: JoinGameLinkDto) {
+        const game = this.gameCache.get(gameId);
+
+        if (!game) throw new NotFoundException("Game not found");
+
+        const playerB = await this.playersService.createPlayer(
+            userId,
+            game.gameMode,
+        );
+
+        this.gameCache.delete(gameId);
+
+        const gameInstance = await this.gameService.createGame(
+            game.playerA,
+            playerB,
+            game.gameMode,
+            "Link Shared",
+            game.timeInMinutes,
+            game.timeIncrementPerMoveSeconds,
+        );
+
+        const gameData = {
+            gameId: gameInstance.gameId,
+            playerWhite: this.playersService.transforPlayerData(
+                gameInstance.whitesPlayer,
+            ),
+            playerBlack: this.playersService.transforPlayerData(
+                gameInstance.blacksPlayer,
+            ),
+            mode: gameInstance.mode,
+        };
+
+        return gameData;
     }
 
     @Cron(CronExpression.EVERY_12_HOURS)
