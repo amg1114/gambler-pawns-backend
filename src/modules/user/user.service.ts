@@ -12,6 +12,7 @@ import { UserAvatarImg } from "./entities/userAvatar.entity";
 import { GameModeType, GameWinner } from "../chess/entities/db/game.entity";
 import { PlayerCandidateVerifiedData } from "../chess/submodules/players.service";
 import { BLACK, WHITE } from "chess.js";
+import { Not } from "typeorm";
 
 @Injectable()
 export class UserService {
@@ -114,24 +115,29 @@ export class UserService {
             throw new HttpException("Internal Server error", 500);
         }
     }
-    async findUserFriends(userId: number) {
-        const user = await this.userRepository.findOne({
-            where: { userId },
-            relations: ["friends"],
-        });
 
-        if (!user) {
+    async findUserFriends(userId: number, page: number = 1, limit: number = 5) {
+        const [friendsList, totalFriends] =
+            await this.userRepository.findAndCount({
+                where: {
+                    userId: Not(userId),
+                },
+
+                relations: ["friends"],
+                skip: (page - 1) * limit,
+                take: limit,
+            });
+
+        if (!friendsList) {
             throw new Error("User not found");
         }
-
-        const totalFriends = user.friends.length; // Obtener el total de amigos
-        const friendsList = user.friends.slice(0, 5); // Obtener los primeros 5 amigos
 
         return {
             totalFriends,
             friendsList,
         };
     }
+
     private async updateWinnerStats(
         queryRunner: QueryRunner,
         playerId: string,
