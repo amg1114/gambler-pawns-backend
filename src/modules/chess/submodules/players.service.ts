@@ -5,6 +5,7 @@ import { Repository } from "typeorm/repository/Repository";
 import { WsException } from "@nestjs/websockets";
 import { GameModeType } from "../entities/db/game.entity";
 import { UserAvatarImg } from "src/modules/user/entities/userAvatar.entity";
+import { randomInt } from "crypto";
 
 export interface PlayerCandidateVerifiedRequestData {
     playerId: string;
@@ -47,21 +48,24 @@ export class PlayersService {
     ) {}
 
     async createPlayer(
-        player: PlayerCandidateVerifiedRequestData,
+        playerId: string,
         gameMode: GameModeType,
     ): Promise<PlayerCandidateVerifiedData> {
-        if (this.isGuest(player.playerId)) {
-            return await this.createGuestPlayer(player.playerId);
+        if (this.isGuest(playerId)) {
+            return this.createGuestPlayer(playerId);
         }
 
-        return await this.verifyNonGuestPlayer(player, gameMode);
+        return await this.verifyNonGuestPlayer(playerId, gameMode);
     }
 
     private isGuest(playerId: string) {
         return playerId.includes("guest");
     }
 
-    private async createGuestPlayer(playerId: string) {
+    private createGuestPlayer(playerId: string) {
+        // TODO: cambiar esto luego
+        const avatarId = randomInt(1, 26);
+
         return {
             isGuest: true,
             elo: 1200,
@@ -70,19 +74,20 @@ export class PlayersService {
                 nickname: "Guest",
                 aboutText: "Guest",
                 countryCode: "Guest",
-                userAvatarImg: await this.userAvatarImg.findOneBy({
-                    userAvatarImgId: Math.random() * (25 - 1) + 1,
-                }),
+                userAvatarImg: {
+                    userAvatarImgId: avatarId,
+                    fileName: `${avatarId}.png`,
+                },
             },
         };
     }
 
     private async verifyNonGuestPlayer(
-        player: PlayerCandidateVerifiedRequestData,
+        playerId: string,
         gameMode: GameModeType,
     ) {
         const user = await this.userRepository.findOneBy({
-            userId: +player.playerId,
+            userId: +playerId,
         });
 
         if (!user) {
@@ -96,7 +101,7 @@ export class PlayersService {
         };
     }
 
-    private setEloByModeForNonGuestPlayer(user: User, gameMode: GameModeType) {
+    public setEloByModeForNonGuestPlayer(user: User, gameMode: GameModeType) {
         const eloByMode = {
             rapid: user.eloRapid,
             blitz: user.eloBlitz,
@@ -107,7 +112,7 @@ export class PlayersService {
     }
 
     /** Trasnform players data in order to avoid sending undesired fileds like password and userId to client */
-    transforPlayerData(player: PlayerCandidateVerifiedData) {
+    public transforPlayerData(player: PlayerCandidateVerifiedData) {
         return {
             isGuest: player.isGuest,
             elo: player.elo,

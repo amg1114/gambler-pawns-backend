@@ -8,7 +8,12 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import Sqids from "sqids";
 import { ConfigService } from "@nestjs/config";
-import { Game } from "../../entities/db/game.entity";
+import { Game, GameModeType } from "../../entities/db/game.entity";
+import {
+    PlayerCandidateVerifiedData,
+    PlayersService,
+} from "../players.service";
+import { Cron, CronExpression } from "@nestjs/schedule";
 
 @Injectable()
 export class GameLinkService {
@@ -16,6 +21,7 @@ export class GameLinkService {
         @InjectRepository(Game)
         private gameEntityRepository: Repository<Game>,
         private readonly configService: ConfigService,
+        private playersService: PlayersService,
     ) {}
 
     private sqids = new Sqids({
@@ -23,19 +29,48 @@ export class GameLinkService {
         alphabet: this.configService.getOrThrow<string>("ALPHABET"),
     });
 
-    async createGameLink({ gameMode }: CreateGameLinkDto) {
-        const newGame = this.gameEntityRepository.create({
-            gameMode: gameMode,
-            pgn: "",
+    private gameCache = new Map<
+        string,
+        {
+            createdAt: number;
+            playerA: PlayerCandidateVerifiedData;
+            gameMode: GameModeType;
+            timeIncrementPerMoveSeconds: number;
+            timeInMinutes: number;
+        }
+    >();
+
+    async createGameLink({
+        userId,
+        gameMode,
+        timeInMinutes,
+        timeIncrementPerMoveSeconds,
+    }: CreateGameLinkDto) {
+        const player = await this.playersService.createPlayer(userId, gameMode);
+
+        // Save the game in cache to be able to retrieve it later when player B joins
+        const now = Date.now();
+        const gameId = this.genGameLinkEncodeByGameId(now);
+        this.gameCache.set(gameId, {
+            createdAt: now,
+            playerA: player,
+            gameMode,
+            timeIncrementPerMoveSeconds,
+            timeInMinutes,
         });
+        return gameId;
+    }
 
-        const savedGameEntity = await this.gameEntityRepository.save(newGame);
+    @Cron(CronExpression.EVERY_12_HOURS)
+    cleanExpiredGames() {
+        const expirationTime = 12 * 60 * 60 * 1000;
+        const now = Date.now();
 
-        return {
-            encodedGameId: this.genGameLinkEncodeByGameId(
-                savedGameEntity.gameId,
-            ),
-        };
+        for (const [id, { createdAt }] of this.gameCache.entries()) {
+            if (now - createdAt > expirationTime) {
+                this.gameCache.delete(id);
+            }
+        }
     }
 
     async getGameByGameLink({ encodedId }: GetGameByGameLinkDto) {
@@ -47,6 +82,7 @@ export class GameLinkService {
 
         const game = await this.gameEntityRepository.findOne({
             where: { gameId: decodedId[0] },
+            relations: ["whitesPlayer", "blacksPlayer"],
         });
 
         if (!game) throw new NotFoundException("Game not found");

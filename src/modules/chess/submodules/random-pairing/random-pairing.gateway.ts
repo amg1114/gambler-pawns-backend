@@ -44,34 +44,32 @@ export class RandomPairingGateway {
 
         if (!pairing) return;
 
-        const { player1Socket, player2Socket, ...rest } = pairing;
+        const { player1Socket, player2Socket, gameData } = pairing;
 
         // join players to its own room in order to send private messages
         if (player1Socket === socket.id) {
-            socket.join(pairing.playerWhite.userInfo.userId.toString());
+            socket.join(gameData.playerWhite.userInfo.userId.toString());
         } else {
-            socket.join(pairing.playerBlack.userInfo.userId.toString());
+            socket.join(gameData.playerBlack.userInfo.userId.toString());
         }
 
         // join current paired player's socket to the game room
-        socket.join(pairing.gameId);
+        socket.join(gameData.gameId);
 
         const opponentSocket = this.server.sockets.sockets.get(
             socket.id === player1Socket ? player2Socket : player1Socket,
         );
 
-        if (opponentSocket) {
-            opponentSocket.join(pairing.gameId);
-        }
+        if (opponentSocket) opponentSocket.join(gameData.gameId);
 
         // Notify players and send required data
         this.server.to(player1Socket).emit("game:started", {
             color: "white",
-            ...rest,
+            ...gameData,
         });
         this.server.to(player2Socket).emit("game:started", {
             color: "black",
-            ...rest,
+            ...gameData,
         });
     }
 }

@@ -1,7 +1,5 @@
 import {
     WebSocketGateway,
-    OnGatewayConnection,
-    OnGatewayDisconnect,
     WebSocketServer,
     SubscribeMessage,
     MessageBody,
@@ -14,7 +12,6 @@ import { UseFilters, UsePipes, ValidationPipe } from "@nestjs/common";
 import { CustomWsFilterException } from "../../common/websockets-utils/websocket.filter";
 import { ParseJsonPipe } from "src/common/websockets-utils/websocketParseJson.filter";
 import { ActiveGamesService } from "./submodules/active-games/active-games.service";
-import { EventEmitter2 } from "@nestjs/event-emitter";
 
 @UseFilters(new CustomWsFilterException())
 @UsePipes(new ParseJsonPipe(), new ValidationPipe({ transform: true }))
@@ -22,27 +19,11 @@ import { EventEmitter2 } from "@nestjs/event-emitter";
     cors: CORS,
 })
 /** Handle connections and reconnections */
-export class ChessGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class ChessGateway {
     @WebSocketServer()
     server: Server;
 
-    constructor(
-        private readonly activeGamesService: ActiveGamesService,
-        private eventEmitter: EventEmitter2,
-    ) {}
-
-    // log connected and disconnected clients for debugging purposes
-    handleConnection(client: Socket) {
-        console.log(`Client connected: ${client.id}`);
-    }
-
-    // TODO: maybe is better to have a namespace for the game
-    handleDisconnect(client: Socket) {
-        this.eventEmitter.emit("game.checkIfRandomPairingIsAborted", {
-            socketId: client.id,
-        });
-        console.log(`Client disconnected: ${client.id}`);
-    }
+    constructor(private readonly activeGamesService: ActiveGamesService) {}
 
     // handle recconnection of clients
     @SubscribeMessage("game:reconnect")
@@ -57,6 +38,7 @@ export class ChessGateway implements OnGatewayConnection, OnGatewayDisconnect {
         );
 
         const game = this.activeGamesService.findGameByPlayerId(playerId);
+
         if (game && game.gameId === gameId) {
             socket.join(gameId);
 
@@ -74,6 +56,7 @@ export class ChessGateway implements OnGatewayConnection, OnGatewayDisconnect {
             socket.emit("game:reconnected", {
                 color: whitePlayerId === playerId ? "white" : "black",
                 board: game.board.fen(),
+                pgn: game.board.pgn(),
                 moveHistory: game.board.history(),
             });
         } else {

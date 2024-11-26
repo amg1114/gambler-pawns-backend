@@ -55,7 +55,7 @@ export class ActiveGamesService {
      * @returns The game instance associated with the player ID, or undefined if not found.
      */
     findGameByPlayerId(playerId: playerId): Game | undefined {
-        const gameId = this.playerIdToGameIdMap.get(playerId);
+        const gameId = this.playerIdToGameIdMap.get(playerId.toString());
         return this.findGameByGameId(gameId);
     }
 

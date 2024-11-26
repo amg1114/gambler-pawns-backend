@@ -23,6 +23,8 @@ import { ActiveGamesService } from "../active-games/active-games.service";
 import { PlayerCandidateVerifiedData } from "../players.service";
 import { User } from "src/modules/user/entities/user.entity";
 import { InactivityService } from "./inactivity.service";
+import { BLACK, WHITE } from "chess.js";
+import { formatEloVariationAfterGameEnd } from "src/common/utils/chess";
 
 @Injectable()
 /** Handle chess game logic */
@@ -50,40 +52,12 @@ export class GameService {
         timeInMinutes: number,
         timeIncrementPerMoveSeconds: number,
     ): Promise<Game> {
-        let gameInstance: Game;
-
-        if (typePairing === "Random Pairing") {
-            gameInstance = await this.createGameForRandomPairing(
-                player1,
-                player2,
-                mode,
-                timeInMinutes,
-                timeIncrementPerMoveSeconds,
-            );
-        }
-
-        console.log("Game created", gameInstance.gameId);
-        return gameInstance;
-    }
-
-    /**
-     * Creates a game for random pairing, registers it in the active games service, initializes the inactivity tracker,
-     * and starts the game timer.
-     */
-    private async createGameForRandomPairing(
-        player1: PlayerCandidateVerifiedData,
-        player2: PlayerCandidateVerifiedData,
-        mode: GameModeType,
-        timeInMinutes: number,
-        timeIncrementPerMoveSeconds: number,
-    ): Promise<Game> {
         // Create game instance
-        const gameInstance = new Game();
-        await gameInstance.createGame(
+        const gameInstance = new Game().createGame(
             player1,
             player2,
             mode,
-            "Random Pairing",
+            typePairing,
             timeInMinutes,
             timeIncrementPerMoveSeconds,
         );
@@ -111,6 +85,7 @@ export class GameService {
 
         this.startGame(gameInstance);
 
+        console.log(`Game ${gameEncryptedId} created`);
         return gameInstance;
     }
 
@@ -212,11 +187,6 @@ export class GameService {
     ): Promise<void> {
         console.log(`Game ${gameInstance.gameId} ended with winner: ${winner}`);
 
-        const whitesPlayerId =
-            gameInstance.whitesPlayer.userInfo.userId.toString();
-        const blacksPlayerId =
-            gameInstance.blacksPlayer.userInfo.userId.toString();
-
         // get timer data and stop timer
         const timeAfterGameEndWhites = this.timerService.getRemainingTime(
             gameInstance.gameId,
@@ -225,6 +195,7 @@ export class GameService {
             gameInstance.gameId,
         ).playerTwoTime;
 
+        // stop tracking the game
         this.activeGamesService.unRegisterActiveGame(gameInstance);
         this.inactivityService.stopTracking(gameInstance.gameId);
         this.timerService.stopTimer(gameInstance.gameId);
@@ -233,18 +204,18 @@ export class GameService {
         const eloWhitesAfterGame = this.eloService.calculateNewElo(
             gameInstance.whitesPlayer.elo,
             gameInstance.blacksPlayer.elo,
-            winner === "w" ? 1 : winner === "b" ? 0 : 0.5,
+            winner === WHITE ? 1 : winner === BLACK ? 0 : 0.5,
         );
         const eloBlacksAfterGame = this.eloService.calculateNewElo(
             gameInstance.blacksPlayer.elo,
             gameInstance.whitesPlayer.elo,
-            winner === "b" ? 1 : winner === "w" ? 0 : 0.5,
+            winner === WHITE ? 1 : winner === BLACK ? 0 : 0.5,
         );
 
         await this.userService.updatePlayersStats(
             winner,
-            blacksPlayerId,
-            whitesPlayerId,
+            gameInstance.whitesPlayer,
+            gameInstance.blacksPlayer,
             eloBlacksAfterGame,
             eloWhitesAfterGame,
             gameInstance.mode,
@@ -275,22 +246,25 @@ export class GameService {
         const resultData = {
             winner,
             resultType,
-            eloWhitesAfterGameVariation:
-                winner === "w"
-                    ? eloWhitesAfterGameVariation
-                    : eloWhitesAfterGameVariation * -1,
-            eloBlacksAfterGameVariation:
-                winner === "b"
-                    ? eloBlacksAfterGameVariation
-                    : eloBlacksAfterGameVariation * -1,
-            // gameCoinsGift different from bet, is a fixed gift for winning given by the game
+            eloWhitesAfterGameVariation: formatEloVariationAfterGameEnd(
+                winner,
+                WHITE,
+                eloWhitesAfterGameVariation,
+            ),
+            eloBlacksAfterGameVariation: formatEloVariationAfterGameEnd(
+                winner,
+                BLACK,
+                eloBlacksAfterGameVariation,
+            ),
+
+            // TODO: revisar si se va a implementar apuestas
             gameGiftForWin: 10,
+            // gameCoinsGift different from bet, is a fixed gift for winning given by the game
             // winner : 10, draw: 5, loser: 0
             //gameCoinsGiftIfWin: 10,
             //gameCoinsGiftIfDraw: 5,
             //gameCoinsGiftIfLose: 0,
 
-            // TODO: revisar si se va a implementar apuestas
             //betCoinsWonIfWin: 0,
             //betCoinsWonIfDraw: 0,
         };
@@ -311,8 +285,8 @@ export class GameService {
 
         const winner =
             gameInstance.whitesPlayer.userInfo.userId.toString() === playerId
-                ? "b"
-                : "w";
+                ? BLACK
+                : WHITE;
 
         this.endGame(winner, gameInstance, "Resign");
     }

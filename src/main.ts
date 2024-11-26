@@ -7,8 +7,12 @@ import { ClassSerializerInterceptor, ValidationPipe } from "@nestjs/common";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import metadata from "./metadata";
 import { FormatAPIResponseInterceptor } from "./common/interceptors/response.interceptor";
+import { EventEmitter } from "events";
 
 async function bootstrap() {
+    // Set the max listeners for EventEmitter
+    EventEmitter.defaultMaxListeners = 20;
+
     const app = await NestFactory.create(AppModule);
     const reflector = app.get(Reflector);
     app.use(morgan("dev"));

@@ -1,11 +1,10 @@
 import { WsException } from "@nestjs/websockets";
-import { Chess } from "chess.js";
+import { BLACK, Chess, WHITE } from "chess.js";
 
 // entities
 import { GameModeType, GameTypePairing } from "./db/game.entity";
 import { PlayerCandidateVerifiedData } from "../submodules/players.service";
 
-// TODO: logica apuestas
 export class Game {
     public mode: GameModeType;
     public typePairing: GameTypePairing;
@@ -20,8 +19,8 @@ export class Game {
         this.board = new Chess();
     }
 
-    /** method to init game */
-    async createGame(
+    /** method to init game instance */
+    createGame(
         whitesPlayer: PlayerCandidateVerifiedData,
         blacksPlayer: PlayerCandidateVerifiedData,
         mode: GameModeType,
@@ -35,6 +34,8 @@ export class Game {
         this.timeIncrementPerMoveSeconds = timeIncrementPerMoveSeconds;
         this.whitesPlayer = whitesPlayer;
         this.blacksPlayer = blacksPlayer;
+
+        return this;
     }
 
     /** Validate and make move */
@@ -43,9 +44,9 @@ export class Game {
         move: { from: string; to: string; promotion?: string },
     ) {
         if (
-            (this.board.turn() === "w" &&
+            (this.board.turn() === WHITE &&
                 playerId !== this.whitesPlayer.userInfo.userId.toString()) ||
-            (this.board.turn() === "b" &&
+            (this.board.turn() === BLACK &&
                 playerId !== this.blacksPlayer.userInfo.userId.toString())
         ) {
             throw new WsException("Not your turn");
@@ -56,10 +57,37 @@ export class Game {
             return {
                 moveResult,
                 board: this.board.fen(),
+                pgn: this.board.pgn(),
                 historyMoves: this.board.history(),
             };
-        } catch (e) {
+        } catch {
             throw new WsException("Invalid Move");
         }
+    }
+
+    getProperties() {
+        return {
+            gameId: this.gameId,
+            mode: this.mode,
+            timeInMinutes: this.timeInMinutes,
+            timeIncrementPerMoveSeconds: this.timeIncrementPerMoveSeconds,
+            typePairing: this.typePairing,
+            playerWhite: this.tranformPlayerData(this.whitesPlayer),
+            playerBlack: this.tranformPlayerData(this.blacksPlayer),
+        };
+    }
+
+    private tranformPlayerData(player: PlayerCandidateVerifiedData) {
+        return {
+            isGuest: player.isGuest,
+            elo: player.elo,
+            userInfo: {
+                userId: player.userInfo.userId,
+                nickname: player.userInfo.nickname,
+                aboutText: player.userInfo.aboutText,
+                countryCode: player.userInfo.countryCode,
+                userAvatarImg: player.userInfo.userAvatarImg,
+            },
+        };
     }
 }

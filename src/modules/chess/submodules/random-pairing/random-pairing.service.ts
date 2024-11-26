@@ -25,6 +25,12 @@ type TimeKey = string;
  */
 @Injectable()
 export class RandomPairingService {
+    constructor(
+        private gameService: GameService,
+        private playersService: PlayersService,
+        private activeGamesService: ActiveGamesService,
+    ) {}
+
     /**
      * A record of player pools categorized by game mode.
      * Each game mode has a map where the key is a time key (combination of time in minutes and increment per move)
@@ -55,12 +61,6 @@ export class RandomPairingService {
         { mode: GameModeType; timeKey: TimeKey }
     > = new Map();
 
-    constructor(
-        private gameService: GameService,
-        private playersService: PlayersService,
-        private activeGamesService: ActiveGamesService,
-    ) {}
-
     /**
      * Adds a player to the matching pool and attempts to find a match.
      *
@@ -83,7 +83,7 @@ export class RandomPairingService {
 
         // verify player
         const playerVerified = await this.playersService.createPlayer(
-            player,
+            player.playerId,
             mode,
         );
         const playerCandidateToBeMatched = {
@@ -91,13 +91,13 @@ export class RandomPairingService {
             userData: playerVerified,
         };
 
-        const pool = this.pools[mode];
+        const poolByGameMode = this.pools[mode];
         const timeKey = this.getTimeKey(playerCandidateToBeMatched);
 
-        if (!pool.has(timeKey)) {
-            pool.set(timeKey, []);
+        if (!poolByGameMode.has(timeKey)) {
+            poolByGameMode.set(timeKey, []);
         }
-        const timePool = pool.get(timeKey)!;
+        const timePool = poolByGameMode.get(timeKey)!;
 
         timePool.push(playerCandidateToBeMatched);
 
@@ -121,24 +121,24 @@ export class RandomPairingService {
         timeKey: TimeKey,
         // player: PlayerCandidateToBeMatchedData,
     ): Promise<any> {
+        // TODO: search if the are better ways to do this: data structures and algos for deletion and matching
         const timePool = this.pools[mode].get(timeKey)!;
 
         // time pool sorted by ELO
         timePool.sort((a, b) => a.userData.elo - b.userData.elo);
 
-        if (timePool.length >= 2) {
-            const player1 = timePool.shift()!;
-            const player2 = timePool.shift()!;
+        const matchFound = timePool.length >= 2;
 
-            // Remove matched players from the pools
-            // TODO: search if the are better ways to do this: data structures and algos for deletion and matching
-            console.log("Match found", player1.userData, player2.userData);
-            this.removeMatchedPlayers(mode, timeKey, player1, player2);
+        // If no match is found, return nothing
+        if (!matchFound) return;
 
-            return this.createGame(mode, player1, player2);
-        }
+        const player1 = timePool.shift()!;
+        const player2 = timePool.shift()!;
 
-        return null; // No match found
+        // Remove matched players from the pools
+        this.removeMatchedPlayers(mode, timeKey, player1, player2);
+
+        return this.createGame(mode, player1, player2);
     }
 
     /**
@@ -172,23 +172,13 @@ export class RandomPairingService {
             );
 
             console.log(
-                `Game created between ${player1.userData} and ${player2.userData}`,
+                `Game created between ${player1.userData.userInfo.userId} and ${player2.userData.userInfo.userId}`,
             );
 
             return {
                 player1Socket: player1.socketId,
                 player2Socket: player2.socketId,
-                gameId: newGame.gameId,
-                playerWhite: this.playersService.transforPlayerData(
-                    newGame.whitesPlayer,
-                ),
-                playerBlack: this.playersService.transforPlayerData(
-                    newGame.blacksPlayer,
-                ),
-                eloDifference: Math.abs(
-                    player1.userData.elo - player2.userData.elo,
-                ),
-                mode: newGame.mode,
+                gameData: newGame.getProperties(),
             };
         } catch (error) {
             throw new WsException("Failed to create game");

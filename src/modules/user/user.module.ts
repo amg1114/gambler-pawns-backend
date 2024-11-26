@@ -12,5 +12,6 @@ import { UserAvatarImg } from "./entities/userAvatar.entity";
         TypeOrmModule.forFeature([User, UserAvatarImg]),
     ],
     controllers: [UserController],
+    exports: [UserService],
 })
 export class UserModule {}

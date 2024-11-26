@@ -10,6 +10,8 @@ import { QueryRunner, Repository, UpdateResult } from "typeorm";
 import { UpdateUserDto } from "./dto/updateUser.dto";
 import { UserAvatarImg } from "./entities/userAvatar.entity";
 import { GameModeType, GameWinner } from "../chess/entities/db/game.entity";
+import { PlayerCandidateVerifiedData } from "../chess/submodules/players.service";
+import { BLACK, WHITE } from "chess.js";
 
 @Injectable()
 export class UserService {
@@ -199,9 +201,9 @@ export class UserService {
     /**
      * Updates the players' statistics after a game.
      *
-     * @param {GameWinner} winner - The winner of the game ("b" for black, "w" for white, "draw" for a tie).
-     * @param {string} blacksPlayerId - The ID of the black player.
-     * @param {string} whitesPlayerId - The ID of the white player.
+     * @param {GameWinner} winner - The winner of the game ("w" for white, "b" for black, "draw" for a tie).
+     * @param {PlayerCandidateVerifiedData} blacksPlayer - The black player.
+     * @param {PlayerCandidateVerifiedData} whitesPlayer - The white player.
      * @param {number} blacksNewElo - The new ELO rating for the black player.
      * @param {number} whitesNewElo - The new ELO rating for the white player.
      * @param {GameModeType} gameMode - The game mode (rapid, blitz, bullet, arcade).
@@ -209,8 +211,8 @@ export class UserService {
      */
     async updatePlayersStats(
         winner: GameWinner,
-        blacksPlayerId: string,
-        whitesPlayerId: string,
+        blacksPlayer: PlayerCandidateVerifiedData,
+        whitesPlayer: PlayerCandidateVerifiedData,
         blacksNewElo: number,
         whitesNewElo: number,
         gameMode: GameModeType,
@@ -221,45 +223,57 @@ export class UserService {
         await queryRunner.startTransaction();
 
         try {
-            if (winner === "b") {
-                await this.updateWinnerStats(
-                    queryRunner,
-                    blacksPlayerId,
-                    blacksNewElo,
-                    gameMode,
-                );
-                await this.updateLoserStats(
-                    queryRunner,
-                    whitesPlayerId,
-                    whitesNewElo,
-                    gameMode,
-                );
-            } else if (winner === "w") {
-                await this.updateWinnerStats(
-                    queryRunner,
-                    whitesPlayerId,
-                    whitesNewElo,
-                    gameMode,
-                );
-                await this.updateLoserStats(
-                    queryRunner,
-                    blacksPlayerId,
-                    blacksNewElo,
-                    gameMode,
-                );
+            if (winner === BLACK) {
+                if (!blacksPlayer.isGuest) {
+                    await this.updateWinnerStats(
+                        queryRunner,
+                        blacksPlayer.userInfo.userId.toString(),
+                        blacksNewElo,
+                        gameMode,
+                    );
+                }
+                if (!whitesPlayer.isGuest) {
+                    await this.updateLoserStats(
+                        queryRunner,
+                        whitesPlayer.userInfo.userId.toString(),
+                        whitesNewElo,
+                        gameMode,
+                    );
+                }
+            } else if (winner === WHITE) {
+                if (!whitesPlayer.isGuest) {
+                    await this.updateWinnerStats(
+                        queryRunner,
+                        whitesPlayer.userInfo.userId.toString(),
+                        whitesNewElo,
+                        gameMode,
+                    );
+                }
+                if (!blacksPlayer.isGuest) {
+                    await this.updateLoserStats(
+                        queryRunner,
+                        blacksPlayer.userInfo.userId.toString(),
+                        blacksNewElo,
+                        gameMode,
+                    );
+                }
             } else if (winner === "draw") {
-                await this.updateDrawStats(
-                    queryRunner,
-                    blacksPlayerId,
-                    blacksNewElo,
-                    gameMode,
-                );
-                await this.updateDrawStats(
-                    queryRunner,
-                    whitesPlayerId,
-                    whitesNewElo,
-                    gameMode,
-                );
+                if (!blacksPlayer.isGuest) {
+                    await this.updateDrawStats(
+                        queryRunner,
+                        blacksPlayer.userInfo.userId.toString(),
+                        blacksNewElo,
+                        gameMode,
+                    );
+                }
+                if (!whitesPlayer.isGuest) {
+                    await this.updateDrawStats(
+                        queryRunner,
+                        whitesPlayer.userInfo.userId.toString(),
+                        whitesNewElo,
+                        gameMode,
+                    );
+                }
             }
 
             await queryRunner.commitTransaction();
@@ -279,6 +293,7 @@ export class UserService {
                 "user.userId",
                 "user.nickname",
                 "userAvatarImg.userAvatarImgId",
+                "userAvatarImg.fileName",
             ])
             .where("user.nickname ILIKE :query", { query: `%${query}%` })
             .andWhere("user.userId != :userId", { userId })
@@ -355,4 +370,21 @@ export class UserService {
         this.friendsCache.delete(userId);
     }
  */
+
+    async areUsersFriends(aUserId: number, bUserId: number) {
+        const user = await this.userRepository
+            .createQueryBuilder("user")
+            .leftJoinAndSelect("user.friends", "friend")
+            .where("user.userId = :aUserId AND friend.userId = :bUserId", {
+                aUserId,
+                bUserId,
+            })
+            .orWhere("user.userId = :bUserId AND friend.userId = :aUserId", {
+                aUserId,
+                bUserId,
+            })
+            .getOne();
+
+        return !!user;
+    }
 }
