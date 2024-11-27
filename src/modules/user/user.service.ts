@@ -385,7 +385,10 @@ export class UserService {
 
         const friend = await this.userRepository.findOne({
             where: { userId: friendId },
+            relations: ["friends"],
         });
+
+        console.log(userId, friendId);
 
         // Verificar si los usuarios existen
         if (!user || !friend) {
@@ -393,16 +396,17 @@ export class UserService {
         }
 
         // Verificar si son amigos
-        if (!user.friends.some((f) => f.userId === friend.userId)) {
+        const areFriends = await this.areUsersFriends(userId, friendId);
+        if (!areFriends) {
             throw new BadRequestException("Users are not friends");
         }
 
+        // Eliminar la relación de ambos lados
         user.friends = user.friends.filter((f) => f.userId !== friendId);
-        await this.userRepository.save(user);
+        friend.friends = friend.friends.filter((f) => f.userId !== userId);
 
-        // Invalidate cache for the user
-        this.friendsCache.delete(userId);
-        this.friendsCache.delete(friendId);
+        await this.userRepository.save(user);
+        await this.userRepository.save(friend);
     }
 
     async areUsersFriends(aUserId: number, bUserId: number) {
