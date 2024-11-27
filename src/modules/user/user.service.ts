@@ -415,6 +415,9 @@ export class UserService {
 
         await this.userRepository.save(user);
         await this.userRepository.save(friend);
+
+        this.friendsCache.delete(userId);
+        this.friendsCache.delete(friendId);
     }
 
     async areUsersFriends(aUserId: number, bUserId: number) {
