@@ -13,7 +13,6 @@ import { UserAvatarImg } from "./entities/userAvatar.entity";
 import { GameModeType, GameWinner } from "../chess/entities/db/game.entity";
 import { PlayerCandidateVerifiedData } from "../chess/submodules/players.service";
 import { BLACK, WHITE } from "chess.js";
-import { Not } from "typeorm";
 
 @Injectable()
 export class UserService {
