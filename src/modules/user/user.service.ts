@@ -7,7 +7,7 @@ import {
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { User } from "./entities/user.entity";
-import { QueryRunner, Repository, UpdateResult } from "typeorm";
+import { Brackets, QueryRunner, Repository, UpdateResult } from "typeorm";
 import { UpdateUserDto } from "./dto/updateUser.dto";
 import { UserAvatarImg } from "./entities/userAvatar.entity";
 import { GameModeType, GameWinner } from "../chess/entities/db/game.entity";
@@ -118,16 +118,25 @@ export class UserService {
     }
 
     async findUserFriends(userId: number, page: number = 1, limit: number = 5) {
-        const [friendsList, totalFriends] =
-            await this.userRepository.findAndCount({
-                where: {
-                    userId: Not(userId),
-                },
-
-                relations: ["friends"],
-                skip: (page - 1) * limit,
-                take: limit,
-            });
+        const [friendsList, totalFriends] = await this.userRepository
+            .createQueryBuilder("user")
+            .leftJoinAndSelect("user.friends", "friend")
+            .leftJoinAndSelect("user.userAvatarImg", "userAvatarImg")
+            .leftJoinAndSelect("friend.userAvatarImg", "friendAvatarImg")
+            .where(
+                // Usamos paréntesis para agrupar las condiciones correctamente
+                new Brackets((qb) => {
+                    qb.where("user.userId = :userId", { userId }).orWhere(
+                        "friend.userId = :userId",
+                        { userId },
+                    );
+                }),
+            )
+            .andWhere("user.userId != :userId", { userId }) // Excluimos al usuario actual
+            .andWhere("friend.userId IS NOT NULL") // Nos aseguramos que solo traiga amigos reales
+            .skip((page - 1) * limit)
+            .take(limit)
+            .getManyAndCount();
 
         if (!friendsList) {
             throw new Error("User not found");
@@ -385,7 +394,10 @@ export class UserService {
 
         const friend = await this.userRepository.findOne({
             where: { userId: friendId },
+            relations: ["friends"],
         });
+
+        console.log(userId, friendId);
 
         // Verificar si los usuarios existen
         if (!user || !friend) {
@@ -393,16 +405,17 @@ export class UserService {
         }
 
         // Verificar si son amigos
-        if (!user.friends.some((f) => f.userId === friend.userId)) {
+        const areFriends = await this.areUsersFriends(userId, friendId);
+        if (!areFriends) {
             throw new BadRequestException("Users are not friends");
         }
 
+        // Eliminar la relación de ambos lados
         user.friends = user.friends.filter((f) => f.userId !== friendId);
-        await this.userRepository.save(user);
+        friend.friends = friend.friends.filter((f) => f.userId !== userId);
 
-        // Invalidate cache for the user
-        this.friendsCache.delete(userId);
-        this.friendsCache.delete(friendId);
+        await this.userRepository.save(user);
+        await this.userRepository.save(friend);
     }
 
     async areUsersFriends(aUserId: number, bUserId: number) {
