@@ -377,19 +377,33 @@ export class UserService {
         this.friendsCache.delete(friendId);
     }
 
-    // async removeFriend(userId: number, friendId: number): Promise<void> {
-    //     const user = await this.userRepository.findOne({ where: { id: userId }, relations: ["friends"] });
+    async removeFriend(userId: number, friendId: number): Promise<void> {
+        const user = await this.userRepository.findOne({
+            where: { userId },
+            relations: ["friends"],
+        });
 
-    //     if (!user) {
-    //         throw new NotFoundException("User not found");
-    //     }
+        const friend = await this.userRepository.findOne({
+            where: { userId: friendId },
+        });
 
-    //     user.friends = user.friends.filter(friend => friend.id !== friendId);
-    //     await this.userRepository.save(user);
+        // Verificar si los usuarios existen
+        if (!user || !friend) {
+            throw new NotFoundException("User or friend not found");
+        }
 
-    //     // Invalidate cache for the user
-    //     this.friendsCache.delete(userId);
-    // }
+        // Verificar si son amigos
+        if (!user.friends.some((f) => f.userId === friend.userId)) {
+            throw new BadRequestException("Users are not friends");
+        }
+
+        user.friends = user.friends.filter((f) => f.userId !== friendId);
+        await this.userRepository.save(user);
+
+        // Invalidate cache for the user
+        this.friendsCache.delete(userId);
+        this.friendsCache.delete(friendId);
+    }
 
     async areUsersFriends(aUserId: number, bUserId: number) {
         const user = await this.userRepository
