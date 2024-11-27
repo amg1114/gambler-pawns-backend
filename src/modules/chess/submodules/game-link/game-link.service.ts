@@ -81,7 +81,7 @@ export class GameLinkService {
             throw new NotAcceptableException("Invalid ID");
 
         const game = await this.gameEntityRepository.findOne({
-            where: { gameId: decodedId[0] },
+            where: { gameId: decodedId },
             relations: ["whitesPlayer", "blacksPlayer"],
         });
 
