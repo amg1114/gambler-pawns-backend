@@ -286,8 +286,10 @@ export class NotificationService {
             notificationId,
         );
 
-        //TODO: Call function when it gets implemented
-        //await this.userService.addFriend(receiver.userId, notification.userWhoSend.userId);
+        await this.userService.addFriend(
+            receiver.userId,
+            notification.userWhoSend.userId,
+        );
 
         const newNotification = this.notificationRepository.create({
             userWhoReceive: {
