@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Req, UseGuards } from "@nestjs/common";
+import { Controller, Get, Req, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "src/common/guards/auth.guard";
 import { NotificationService } from "./notification.service";
 import {
@@ -25,19 +25,5 @@ export class NotificationController {
     @UseGuards(AuthGuard)
     async getAllNotifications(@Req() req: any) {
         return this.notificationService.getAllNotifications(req.user.userId);
-    }
-
-    @Patch("mark-all-as-read")
-    @ApiBearerAuth()
-    @ApiOperation({
-        summary: "Marks all notifications as read for authenticated user",
-    })
-    @ApiResponse({
-        status: 200,
-        description: "Notifications marked as read successfully",
-    })
-    @UseGuards(AuthGuard)
-    async markAllAsRead(@Req() req: any) {
-        return this.notificationService.markAllAsRead(req.user.userId);
     }
 }

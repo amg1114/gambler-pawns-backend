@@ -3,6 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import {
     Notification,
     notificationTypes,
+    NotificationTypeType,
 } from "./entities/notification.entity";
 import { LessThan, Repository } from "typeorm";
 import { User } from "../user/entities/user.entity";
@@ -18,6 +19,9 @@ import {
 } from "../chess/submodules/players.service";
 import { Cron, CronExpression } from "@nestjs/schedule";
 
+type socketId = string;
+type userId = string;
+
 @Injectable()
 export class NotificationService {
     constructor(
@@ -30,23 +34,121 @@ export class NotificationService {
         private readonly playersService: PlayersService,
     ) {}
 
-    public activeUsers = new Map<number, string>(); // userId -> socket.id
-    public activeUsersReverse = new Map<string, number>(); // socket.id -> userId
+    /**
+     * Maps user IDs to their corresponding socket IDs. to track active users
+     * userId -> socketId
+     */
+    public userIdToSocketIdMap = new Map<userId, socketId>();
+
+    /**
+     * Maps socket IDs to their corresponding user IDs. to track active users. Reverse map of userIdToSocketIdMap
+     * socketId -> userId
+     */
+    public socketIdToUserIdMap = new Map<socketId, userId>();
+
+    /** start tracking active users. its userId and socketId */
+    addActiveUser(userId: number, socketId: string) {
+        this.userIdToSocketIdMap.set(userId.toString(), socketId);
+        this.socketIdToUserIdMap.set(socketId, userId.toString());
+    }
+
+    /** stop tracking active users when they disconnect */
+    removeActiveUser(socketId: string) {
+        const userId = this.socketIdToUserIdMap.get(socketId);
+        this.socketIdToUserIdMap.delete(socketId);
+        this.userIdToSocketIdMap.delete(userId);
+    }
+
+    private getSocketIdByUserId(userId: number | string): string | null {
+        return this.userIdToSocketIdMap.get(userId.toString()) || null;
+    }
+
+    /**
+     * Returns all notifications for a given user.
+     */
+    async getAllNotifications(userId: number) {
+        const notifications = this.notificationRepository.find({
+            where: { userWhoReceive: { userId } },
+            order: { timeStamp: "DESC" },
+        });
+
+        this.markAllNotificationsAsRead(userId);
+        return notifications;
+    }
+
+    private async markAllNotificationsAsRead(userId: number) {
+        await this.notificationRepository.update(
+            { userWhoReceive: { userId } },
+            { isRead: true },
+        );
+    }
+
+    /**
+     * Deletes notifications that are older than one week and have been marked as read.
+     * This method is scheduled to run every day at midnight.
+     */
+    @Cron(CronExpression.EVERY_WEEK)
+    async deleteOldReadNotifications() {
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+        await this.notificationRepository.delete({
+            isRead: true,
+            timeStamp: LessThan(oneWeekAgo),
+        });
+    }
+
+    /**
+     * Creates a new notification and saves it to the repository.
+     */
+    async createNotification(
+        receiver: User,
+        sender: User | null,
+        type: NotificationTypeType,
+        title: string,
+        message: string,
+        options?: {
+            actionText1?: string;
+            actionLink1?: string;
+            actionText2?: string;
+            actionLink2?: string;
+        },
+    ) {
+        const { actionText1, actionLink1, actionText2, actionLink2 } = options;
+
+        // If sender is null, it means is a notification send by the system
+        const verifySender = sender
+            ? {
+                  userId: sender.userId,
+                  nickname: sender.nickname,
+                  userAvatarImg: sender.userAvatarImg,
+              }
+            : null;
+
+        const newNotification = this.notificationRepository.create({
+            userWhoSend: verifySender,
+            userWhoReceive: {
+                userId: receiver.userId,
+                nickname: receiver.nickname,
+                userAvatarImg: receiver.userAvatarImg,
+            },
+            type,
+            title,
+            message,
+            actionText1,
+            actionLink1,
+            actionText2,
+            actionLink2,
+            timeStamp: new Date(),
+        });
+        await this.notificationRepository.save(newNotification);
+        return newNotification;
+    }
+
     public gameInvites = new Map<
         number,
         { sender: User; game: FriendGameInviteDto }
     >(); // notificationId -> game data
-
-    addActiveUser(userId: number, socketId: string) {
-        this.activeUsers.set(userId, socketId);
-        this.activeUsersReverse.set(socketId, userId);
-    }
-
-    removeActiveUser(socketId: string) {
-        const userId = this.activeUsersReverse.get(socketId);
-        this.activeUsersReverse.delete(socketId);
-        this.activeUsers.delete(userId);
-    }
 
     async sendFriendGameInvite(sender: User, data: FriendGameInviteDto) {
         // 0. Make some verifications
@@ -63,27 +165,19 @@ export class NotificationService {
             throw new WsException("You are not friends with this user");
 
         // 1. Create new notification (save in DB)
-        const newNotification = this.notificationRepository.create({
-            userWhoSend: {
-                userId: sender.userId,
-                nickname: sender.nickname,
-                userAvatarImg: sender.userAvatarImg,
+        const newNotification = await this.createNotification(
+            receiver,
+            sender,
+            notificationTypes.WANTS_TO_PLAY,
+            "New Game Invite",
+            "has invited you to play a game!",
+            {
+                actionText1: "Accept",
+                actionLink1: "notif:acceptFriendGameInvite",
+                actionText2: "Reject",
+                actionLink2: "notif:rejectFriendGameInvite",
             },
-            userWhoReceive: {
-                userId: receiver.userId,
-                nickname: receiver.nickname,
-                userAvatarImg: receiver.userAvatarImg,
-            },
-            type: notificationTypes.WANTS_TO_PLAY,
-            title: "New Game Invite",
-            message: "has invited you to play a game!",
-            timeStamp: new Date(),
-            actionText1: "Accept",
-            actionLink1: "notif:acceptFriendGameInvite",
-            actionText2: "Reject",
-            actionLink2: "notif:rejectFriendGameInvite",
-        });
-        await this.notificationRepository.save(newNotification);
+        );
 
         // 2. Save game data in memory
         this.gameInvites.set(newNotification.notificationId, {
@@ -91,7 +185,7 @@ export class NotificationService {
             game: data,
         });
 
-        const socketId = this.activeUsers.get(receiver.userId);
+        const socketId = this.getSocketIdByUserId(receiver.userId);
         return { socketId, newNotification };
     }
 
@@ -109,10 +203,12 @@ export class NotificationService {
         await this.notificationRepository.delete({ notificationId: notifId });
         this.gameInvites.delete(notifId);
 
-        const userWhoSendsSocketId = this.activeUsers.get(
+        const userWhoSendsSocketId = this.getSocketIdByUserId(
             notification.userWhoSend.userId,
         );
-        const userWhoReceivesSocketId = this.activeUsers.get(receiver.userId);
+        const userWhoReceivesSocketId = this.userIdToSocketIdMap.get(
+            receiver.userId.toString(),
+        );
         return { userWhoSendsSocketId, userWhoReceivesSocketId, gameInvite };
     }
 
@@ -156,16 +252,7 @@ export class NotificationService {
             game.timeIncrementPerMoveSeconds,
         );
 
-        const gameData = {
-            gameId: gameInstance.gameId,
-            playerWhite: this.playersService.transforPlayerData(
-                gameInstance.whitesPlayer,
-            ),
-            playerBlack: this.playersService.transforPlayerData(
-                gameInstance.blacksPlayer,
-            ),
-            mode: gameInstance.mode,
-        };
+        const gameData = gameInstance.getProperties();
 
         return { userWhoSendsSocketId, userWhoReceivesSocketId, gameData };
     }
@@ -180,31 +267,6 @@ export class NotificationService {
         );
 
         return userWhoSendsSocketId;
-    }
-
-    async getAllNotifications(userId: number) {
-        return this.notificationRepository.find({
-            where: { userWhoReceive: { userId } },
-            order: { timeStamp: "DESC" },
-        });
-    }
-
-    async markAllAsRead(userId: number) {
-        await this.notificationRepository.update(
-            { userWhoReceive: { userId } },
-            { isRead: true },
-        );
-    }
-
-    @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
-    async deleteAllRead() {
-        const oneWeekAgo = new Date();
-        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-
-        await this.notificationRepository.delete({
-            isRead: true,
-            timeStamp: LessThan(oneWeekAgo),
-        });
     }
 
     async sendFriendRequest(sender: User, { receiverId }: FriendRequestDto) {
@@ -231,82 +293,97 @@ export class NotificationService {
             throw new WsException("Friend request was already sent");
 
         // 1. Create new notification (save in DB)
-        const newNotification = this.notificationRepository.create({
-            userWhoSend: {
-                userId: sender.userId,
-                nickname: sender.nickname,
-                userAvatarImg: sender.userAvatarImg,
+        const newNotification = await this.createNotification(
+            receiver,
+            sender,
+            notificationTypes.REQUEST_TO_BE_FRIEND,
+            "New Friend Request",
+            "has sent you a friend request!",
+            {
+                actionText1: "Accept",
+                actionLink1: "notif:acceptFriendRequest",
+                actionText2: "Reject",
+                actionLink2: "notif:rejectFriendRequest",
             },
-            userWhoReceive: {
-                userId: receiver.userId,
-                nickname: receiver.nickname,
-                userAvatarImg: receiver.userAvatarImg,
-            },
-            type: notificationTypes.REQUEST_TO_BE_FRIEND,
-            title: "New Friend Request",
-            message: "has sent you a friend request!",
-            actionText1: "Accept",
-            actionLink1: "notif:acceptFriendRequest",
-            actionText2: "Reject",
-            actionLink2: "notif:rejectFriendRequest",
-            timeStamp: new Date(),
-        });
-        await this.notificationRepository.save(newNotification);
+        );
 
-        // 2. Send notification to receiver
-        const socketId = this.activeUsers.get(receiverId);
+        // receiver socketId
+        const socketId = this.getSocketIdByUserId(receiverId);
 
         return { socketId, newNotification };
     }
 
-    async manageFriendRequest(receiver: User, notificationId: number) {
-        const notification = await this.notificationRepository.findOneBy({
-            notificationId,
-            type: notificationTypes.REQUEST_TO_BE_FRIEND,
-        });
-
-        if (!notification) throw new WsException("Notification not found");
-        if (notification.userWhoReceive.userId !== receiver.userId)
-            throw new WsException("You are not allowed to perform this action");
-
-        await this.notificationRepository.delete({
-            type: notificationTypes.REQUEST_TO_BE_FRIEND,
-            userWhoSend: { userId: receiver.userId },
-        });
-
-        await this.notificationRepository.delete({ notificationId });
-        const socketId = this.activeUsers.get(notification.userWhoSend.userId);
-
-        return { socketId, notification };
-    }
-
     async acceptFriendRequest(receiver: User, { notificationId }: any) {
-        const { socketId, notification } = await this.manageFriendRequest(
+        const { socketId, notification } = await this.processFriendRequest(
             receiver,
             notificationId,
         );
 
-        //TODO: Call function when it gets implemented
-        //await this.userService.addFriend(receiver.userId, notification.userWhoSend.userId);
+        await this.userService.addFriend(
+            receiver.userId,
+            notification.userWhoSend.userId,
+        );
 
-        const newNotification = this.notificationRepository.create({
-            userWhoReceive: {
-                userId: notification.userWhoSend.userId,
-                nickname: notification.userWhoSend.nickname,
-                userAvatarImg: notification.userWhoSend.userAvatarImg,
-            },
-            type: notificationTypes.ACCEPTED_FRIEND_REQUEST,
-            title: "Friend Request Accepted",
-            message: "has accepted your friend request!",
-            timeStamp: new Date(),
-        });
+        const newNotification = await this.createNotification(
+            receiver,
+            null,
+            notificationTypes.ACCEPTED_FRIEND_REQUEST,
+            "Friend Request Accepted",
+            "has accepted your friend request!",
+        );
 
         return { socketId, newNotification };
     }
 
     async rejectFriendRequest(receiver: User, { notificationId }: any) {
-        await this.manageFriendRequest(receiver, notificationId);
+        try {
+            await this.processFriendRequest(receiver, notificationId);
+        } catch (error) {
+            throw new WsException("Failed to reject friend request");
+        }
+    }
 
-        return;
+    /**
+     * Processes a friend request by validating the notification, deleting related notifications, and obtaining the sender's socket ID.
+     */
+    async processFriendRequest(receiver: User, notificationId: number) {
+        // Validar la notificación
+        const notification = await this.validateFriendRequest(
+            receiver,
+            notificationId,
+        );
+
+        // delete notification
+        await this.notificationRepository.delete({
+            type: notificationTypes.REQUEST_TO_BE_FRIEND,
+            userWhoSend: { userId: receiver.userId },
+        });
+        await this.notificationRepository.delete({ notificationId });
+
+        // return socketId of sender
+        const socketId = this.getSocketIdByUserId(
+            notification.userWhoSend.userId,
+        );
+
+        return { socketId, notification };
+    }
+
+    private async validateFriendRequest(
+        receiver: User,
+        friendRequestId: number,
+    ) {
+        const notification = await this.notificationRepository.findOneBy({
+            notificationId: friendRequestId,
+            type: notificationTypes.REQUEST_TO_BE_FRIEND,
+        });
+
+        if (!notification) throw new WsException("Friend request not found");
+        if (notification.userWhoReceive.userId !== receiver.userId) {
+            throw new WsException(
+                "You are not authorized to manage this friend request",
+            );
+        }
+
+        return notification;
     }
 }

@@ -77,7 +77,7 @@ export class GameHistoryService {
 
         // Aplicar paginación
         const [games, total] = await query
-            .orderBy("game.gameTimestamp", "ASC")
+            .orderBy("game.gameTimestamp", "DESC")
             .skip((page - 1) * limit)
             .take(limit)
             .getManyAndCount();

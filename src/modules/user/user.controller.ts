@@ -4,6 +4,7 @@ import {
     Get,
     Param,
     Patch,
+    Post,
     Query,
     Req,
     UseGuards,
@@ -88,5 +89,15 @@ export class UserController {
     @ApiResponse({ status: 200, description: "Friends fetched successfully" })
     async getUserFriends(@Param("id") id: number) {
         return this.userService.findUserFriends(id);
+    }
+
+    @Post("/remove-friend")
+    @UseGuards(AuthGuard)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: "Remove a friend" })
+    @ApiResponse({ status: 200, description: "Friend remove successfully" })
+    async removeFriend(@Body("friendId") friendId: number, @Req() req: any) {
+        const userId = req.user.userId;
+        return this.userService.removeFriend(userId, friendId);
     }
 }
