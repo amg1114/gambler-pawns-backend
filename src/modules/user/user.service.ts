@@ -7,7 +7,7 @@ import {
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { User } from "./entities/user.entity";
-import { Brackets, QueryRunner, Repository, UpdateResult } from "typeorm";
+import { QueryRunner, Repository, UpdateResult } from "typeorm";
 import { UpdateUserDto } from "./dto/updateUser.dto";
 import { UserAvatarImg } from "./entities/userAvatar.entity";
 import { GameModeType, GameWinner } from "../chess/entities/db/game.entity";
