@@ -117,33 +117,24 @@ export class UserService {
     }
 
     async findUserFriends(userId: number, page: number = 1, limit: number = 5) {
-        const [friendsList, totalFriends] = await this.userRepository
+        const [friends, totalFriends] = await this.userRepository
             .createQueryBuilder("user")
-            .leftJoinAndSelect("user.friends", "friend")
             .leftJoinAndSelect("user.userAvatarImg", "userAvatarImg")
-            .leftJoinAndSelect("friend.userAvatarImg", "friendAvatarImg")
-            .where(
-                // Usamos paréntesis para agrupar las condiciones correctamente
-                new Brackets((qb) => {
-                    qb.where("user.userId = :userId", { userId }).orWhere(
-                        "friend.userId = :userId",
-                        { userId },
-                    );
-                }),
+            .innerJoin(
+                "user_friends_user",
+                "friends",
+                "(user_user_Id_2 = user.userId AND user_user_Id_1 = :userId) OR " +
+                    "(user_user_Id_1 = user.userId AND user_user_Id_2 = :userId)",
             )
-            .andWhere("user.userId != :userId", { userId }) // Excluimos al usuario actual
-            .andWhere("friend.userId IS NOT NULL") // Nos aseguramos que solo traiga amigos reales
+            .where("user.userId != :userId")
+            .setParameter("userId", userId)
             .skip((page - 1) * limit)
             .take(limit)
             .getManyAndCount();
 
-        if (!friendsList) {
-            throw new Error("User not found");
-        }
-
         return {
             totalFriends,
-            friendsList,
+            friends,
         };
     }
 
