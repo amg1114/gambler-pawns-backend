@@ -98,7 +98,6 @@ export class UserController {
     @ApiResponse({ status: 200, description: "Friend remove successfully" })
     async removeFriend(@Body("friendId") friendId: number, @Req() req: any) {
         const userId = req.user.userId;
-        console.log(userId, friendId);
         return this.userService.removeFriend(userId, friendId);
     }
 }
