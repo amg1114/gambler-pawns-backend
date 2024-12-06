@@ -21,7 +21,6 @@ import { Cron, CronExpression } from "@nestjs/schedule";
 
 type socketId = string;
 type userId = string;
-// TODO: cuidado porque antes se usaba la versión number de userId
 
 @Injectable()
 export class NotificationService {
@@ -68,16 +67,16 @@ export class NotificationService {
      * Returns all notifications for a given user.
      */
     async getAllNotifications(userId: number) {
-        return this.notificationRepository.find({
+        const notifications = this.notificationRepository.find({
             where: { userWhoReceive: { userId } },
             order: { timeStamp: "DESC" },
         });
+
+        this.markAllNotificationsAsRead(userId);
+        return notifications;
     }
 
-    /**
-     * Marks all notifications as read for a given user.
-     */
-    async markAllAsRead(userId: number) {
+    private async markAllNotificationsAsRead(userId: number) {
         await this.notificationRepository.update(
             { userWhoReceive: { userId } },
             { isRead: true },
@@ -88,7 +87,7 @@ export class NotificationService {
      * Deletes notifications that are older than one week and have been marked as read.
      * This method is scheduled to run every day at midnight.
      */
-    @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+    @Cron(CronExpression.EVERY_WEEK)
     async deleteOldReadNotifications() {
         const oneWeekAgo = new Date();
         oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
