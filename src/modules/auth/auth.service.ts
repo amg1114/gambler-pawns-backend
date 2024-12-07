@@ -3,6 +3,7 @@ import {
     UnauthorizedException,
     ConflictException,
     InternalServerErrorException,
+    NotFoundException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
@@ -14,6 +15,7 @@ import {
     LoginDto,
     forgotPasswordDto,
     resetPasswordDto,
+    UpdatePasswordDto,
 } from "./dto/auth.dto";
 import { randomInt } from "crypto";
 import { MailerService } from "@nestjs-modules/mailer";
@@ -149,5 +151,33 @@ export class AuthService {
 
         user.password = hashedPassword;
         await this.userRepository.save(user);
+    }
+
+    async updatePassword(userId: number, passwordFields: UpdatePasswordDto) {
+        const user = await this.userRepository
+            .createQueryBuilder("user")
+            .addSelect("user.password")
+            .where("user.userId = :userId", { userId })
+            .getOne();
+
+        if (!user) {
+            throw new NotFoundException("User not found");
+        }
+
+        const isPasswordValid = await bcrypt.compare(
+            passwordFields.currentPassword,
+            user.password,
+        );
+
+        if (!isPasswordValid) {
+            throw new UnauthorizedException("Password is incorrect");
+        }
+
+        const hashedPassword = await bcrypt.hash(
+            passwordFields.newPassword,
+            10,
+        );
+
+        return this.userRepository.update(userId, { password: hashedPassword });
     }
 }

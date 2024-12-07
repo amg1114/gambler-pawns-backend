@@ -1,10 +1,19 @@
-import { Controller, Post, Body, HttpCode, Patch } from "@nestjs/common";
+import {
+    Controller,
+    Post,
+    Body,
+    HttpCode,
+    Patch,
+    UseGuards,
+    Req,
+} from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import {
     SignUpDto,
     LoginDto,
     forgotPasswordDto,
     resetPasswordDto,
+    UpdatePasswordDto,
 } from "./dto/auth.dto";
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import {
@@ -22,6 +31,11 @@ import {
     ForgotPasswordResponse400Dto,
 } from "./responses/forgotPasswordResponses.dto";
 import { ForgotPasswordResponse401Dto } from "./responses/resetPasswordResponses.dto";
+import { AuthGuard } from "src/common/guards/auth.guard";
+import {
+    UpdatePassword200Dto,
+    UpdatePassword401Dto,
+} from "./responses/updatePasswordResponses.dto";
 
 @Controller("auth")
 @ApiTags("auth")
@@ -112,5 +126,23 @@ export class AuthController {
     })
     resetPassword(@Body() body: resetPasswordDto) {
         return this.authService.resetPassword(body);
+    }
+
+    @Patch("update-password")
+    @HttpCode(200)
+    @ApiOperation({ summary: "Update password" })
+    @UseGuards(AuthGuard)
+    @ApiResponse({
+        status: 200,
+        description: "Password updated successfully",
+        type: UpdatePassword200Dto,
+    })
+    @ApiResponse({
+        status: 401,
+        description: "Password is incorrect",
+        type: UpdatePassword401Dto,
+    })
+    updatePassword(@Body() body: UpdatePasswordDto, @Req() req: any) {
+        return this.authService.updatePassword(req.user.userId, body);
     }
 }
