@@ -85,7 +85,7 @@ export class NotificationService {
 
     /**
      * Deletes notifications that are older than one week and have been marked as read.
-     * This method is scheduled to run every day at midnight.
+     * This method is scheduled to run every week.
      */
     @Cron(CronExpression.EVERY_WEEK)
     async deleteOldReadNotifications() {
