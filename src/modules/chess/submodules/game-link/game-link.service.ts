@@ -6,8 +6,6 @@ import {
 import { CreateGameLinkDto, GetGameByGameLinkDto } from "./dto/game-link.dto";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import Sqids from "sqids";
-import { ConfigService } from "@nestjs/config";
 import { Game, GameModeType } from "../../entities/db/game.entity";
 import {
     PlayerCandidateVerifiedData,
@@ -16,6 +14,7 @@ import {
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { GameService } from "../handle-game/game.service";
 import { WsException } from "@nestjs/websockets";
+import { SqidsUtils } from "src/common/utils/sqids.utils";
 
 interface CreateNewGameByLinkData {
     createdAt: number;
@@ -32,16 +31,10 @@ type temporalEncryptedId = string;
 export class GameLinkService {
     constructor(
         @InjectRepository(Game)
-        private readonly configService: ConfigService,
         private readonly gameEntityRepository: Repository<Game>,
         private readonly playersService: PlayersService,
         private readonly gameService: GameService,
     ) {}
-
-    private sqids = new Sqids({
-        minLength: 4,
-        alphabet: this.configService.getOrThrow<string>("ALPHABET"),
-    });
 
     /**
      * A map that associates a temporary encrypted ID with the data required to create a new game by link.
@@ -54,11 +47,15 @@ export class GameLinkService {
 
     /** Creates a temporary game link for inviting another player. */
     async createGameLink(data: CreateGameLinkDto, socketId: string) {
-        const { userId, gameMode, timeInMinutes, timeIncrementPerMoveSeconds } =
-            data;
+        const {
+            playerId,
+            gameMode,
+            timeInMinutes,
+            timeIncrementPerMoveSeconds,
+        } = data;
 
         const playerA = await this.playersService.createPlayer(
-            userId,
+            playerId,
             gameMode,
         );
 
@@ -67,7 +64,7 @@ export class GameLinkService {
         // random postfix to avoid collisions. range [0, 999]
         const randomIdPostfix = Math.floor(Math.random() * 1000);
 
-        const temporalEncryptedId = this.genGameLinkEncodeByGameId(
+        const temporalEncryptedId = SqidsUtils.encodeGameId(
             currentTime + randomIdPostfix,
         );
         this.tempGameCreationByLinkMap.set(temporalEncryptedId, {
@@ -101,8 +98,8 @@ export class GameLinkService {
     }
 
     async getGameByGameLink({ encodedId }: GetGameByGameLinkDto) {
-        const decodedId = this.decodeGameLink(encodedId);
-        const reEncodedId = this.genGameLinkEncodeByGameId(decodedId);
+        const decodedId = SqidsUtils.decodeGameId(encodedId);
+        const reEncodedId = SqidsUtils.encodeGameId(decodedId);
 
         if (reEncodedId !== encodedId)
             throw new NotAcceptableException("Invalid ID");
@@ -121,6 +118,8 @@ export class GameLinkService {
         const gameData = this.tempGameCreationByLinkMap.get(encodedId);
 
         if (!gameData) throw new NotFoundException("Game not found");
+        // do nothing if playerB is the same as playerA
+        if (gameData.playerA.userInfo.userId.toString() === playerBId) return;
 
         const playerB = await this.playersService.createPlayer(
             playerBId,
@@ -137,6 +136,8 @@ export class GameLinkService {
                 gameData.timeIncrementPerMoveSeconds,
             );
 
+            this.tempGameCreationByLinkMap.delete(encodedId);
+
             return {
                 player1Socket: gameData.playerASocketId,
                 gameData: newGame.getProperties(),
@@ -144,14 +145,5 @@ export class GameLinkService {
         } catch (error) {
             throw new WsException("Failed to create game");
         }
-    }
-
-    // generic functions
-    genGameLinkEncodeByGameId(gameId: number) {
-        return this.sqids.encode([gameId]);
-    }
-
-    decodeGameLink(encodedId: string) {
-        return this.sqids.decode(encodedId)[0];
     }
 }

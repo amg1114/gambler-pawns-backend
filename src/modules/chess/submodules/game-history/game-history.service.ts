@@ -4,8 +4,7 @@ import { Repository } from "typeorm";
 import { Game } from "../../entities/db/game.entity";
 import { User } from "../../../user/entities/user.entity";
 import { GameModeType } from "../../entities/db/game.entity";
-import { GameLinkService } from "../game-link/game-link.service";
-import { UserAvatarImg } from "src/modules/user/entities/userAvatar.entity";
+import { SqidsUtils } from "src/common/utils/sqids.utils";
 
 @Injectable()
 export class GameHistoryService {
@@ -14,9 +13,6 @@ export class GameHistoryService {
         private readonly gameRepository: Repository<Game>,
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
-        @InjectRepository(UserAvatarImg)
-        private readonly userAvatarImgRepository: Repository<UserAvatarImg>,
-        private readonly gameLinkService: GameLinkService,
     ) {}
 
     async getUserGameHistory(
@@ -104,9 +100,7 @@ export class GameHistoryService {
                 opponentAvatar: isWhite
                     ? game.blacksPlayer.userAvatarImg?.fileName
                     : game.whitesPlayer.userAvatarImg?.fileName,
-                gameIdEncrypted: this.gameLinkService.genGameLinkEncodeByGameId(
-                    game.gameId,
-                ),
+                gameIdEncrypted: SqidsUtils.encodeGameId(game.gameId),
             };
         });
 

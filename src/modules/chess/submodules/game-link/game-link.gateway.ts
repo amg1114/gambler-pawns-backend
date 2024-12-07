@@ -36,8 +36,10 @@ export class GameLinkGateway {
         @MessageBody() { userId, gameLink }: GameJoinLinkDto,
         @ConnectedSocket() socket: Socket,
     ) {
-        const { player1Socket, gameData } =
-            await this.gameService.startGameByLink(gameLink, userId);
+        const result = await this.gameService.startGameByLink(gameLink, userId);
+        if (!result) return;
+
+        const { player1Socket, gameData } = result;
 
         // Join players to their own rooms
         socket.join(gameData.playerBlack.userInfo.userId.toString());
@@ -61,6 +63,6 @@ export class GameLinkGateway {
             ...gameData,
         });
 
-        // TODO: if user disconnects delete from map of game links
+        // TODO: if user player A disconnects delete from map of game links
     }
 }
