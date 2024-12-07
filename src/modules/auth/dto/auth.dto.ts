@@ -9,6 +9,7 @@ import {
     ValidateIf,
     IsISO31661Alpha2,
     IsJWT,
+    IsNotEmpty,
 } from "class-validator";
 
 const strongPasswordOptions = {
@@ -79,4 +80,14 @@ export class resetPasswordDto {
 
     @IsStrongPassword(strongPasswordOptions)
     newPassword: string;
+}
+
+export class UpdatePasswordDto {
+    @IsStrongPassword(strongPasswordOptions)
+    @IsNotEmpty()
+    newPassword: string;
+
+    @IsString()
+    @IsNotEmpty()
+    currentPassword: string;
 }
