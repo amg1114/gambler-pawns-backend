@@ -84,11 +84,13 @@ export class GameHistoryService {
 
         // Mapear los resultados
         const resultData = games.map((game) => {
-            const isWhite = game.whitesPlayer.userId === userId;
+            const isWhite = game.whitesPlayer?.userId === userId;
+            const opponentPlayer = isWhite
+                ? game.blacksPlayer
+                : game.whitesPlayer;
+
             return {
-                opponentNickname: isWhite
-                    ? game.blacksPlayer.nickname
-                    : game.whitesPlayer.nickname,
+                opponentNickname: opponentPlayer?.nickname || "Guest",
                 gameDate: game.gameTimestamp,
                 mode: game.gameMode,
                 eloBefore: isWhite
@@ -97,9 +99,8 @@ export class GameHistoryService {
                 eloAfter: isWhite
                     ? game.eloWhitesAfterGame
                     : game.eloBlacksAfterGame,
-                opponentAvatar: isWhite
-                    ? game.blacksPlayer.userAvatarImg?.fileName
-                    : game.whitesPlayer.userAvatarImg?.fileName,
+                opponentAvatar:
+                    opponentPlayer?.userAvatarImg?.fileName || "1.png",
                 gameIdEncrypted: SqidsUtils.encodeGameId(game.gameId),
             };
         });

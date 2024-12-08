@@ -12,6 +12,7 @@ import { Game, GameModeType } from "../../entities/db/game.entity";
 export class GameHistoryController {
     constructor(private readonly gameHistoryService: GameHistoryService) {}
 
+    // TODO: The userId could be extracted from the token (AuthGuard)
     @Get()
     async getGameHistory(
         @Query("userId") userId: number,
