@@ -116,24 +116,30 @@ export class AuthService {
             { expiresIn: "10m" },
         );
 
-        //FIXME: write a better email html+css template
+        const domain = this.configService.getOrThrow("FRONTEND_DOMAIN");
+        const link = `${domain}/reset-password?token=${token}`;
         const msg = {
             from:
                 "Gambler Pawns <" +
                 this.configService.getOrThrow("NODEMAILER_EMAIL") +
                 ">",
             to: email,
-            subject: "Password reset",
-            html: "Your requested password reset token is: " + token,
+            subject: "Password reset request",
+            html: `
+                You have requested a password reset email.<br><br>
+
+                Please, <a href="${link}">click here</a> 
+                to proceed with the password recovery process or copy and paste the following link. 
+                Keep in mind that the process invalidates itself after 10 minutes.<br><br>
+                ${link}
+                `,
         };
 
         await this.mailerService.sendMail(msg).catch(() => {
             throw new InternalServerErrorException("Failed to send email");
         });
 
-        // FIXME: This return must be changed so the response doesnt return the token since it will be only accessible by the user's email
-        // This is just for debugging/development purposes
-        return { token: token };
+        return;
     }
 
     async resetPassword({ token, newPassword }: resetPasswordDto) {
