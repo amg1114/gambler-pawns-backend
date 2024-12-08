@@ -119,7 +119,6 @@ export class RandomPairingService {
     private async findMatch(
         mode: GameModeType,
         timeKey: TimeKey,
-        // player: PlayerCandidateToBeMatchedData,
     ): Promise<any> {
         // TODO: search if the are better ways to do this: data structures and algos for deletion and matching
         const timePool = this.pools[mode].get(timeKey)!;
@@ -169,10 +168,6 @@ export class RandomPairingService {
                 "Random Pairing",
                 timeInMinutes,
                 timeIncrementPerMoveSeconds,
-            );
-
-            console.log(
-                `Game created between ${player1.userData.userInfo.userId} and ${player2.userData.userInfo.userId}`,
             );
 
             return {

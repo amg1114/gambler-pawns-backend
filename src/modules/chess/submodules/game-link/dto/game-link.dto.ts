@@ -6,7 +6,7 @@ import {
 
 export class CreateGameLinkDto {
     @IsString()
-    userId: string;
+    playerId: string;
 
     @IsEnum(gameModeEnum)
     gameMode: GameModeType;

@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { Module, OnModuleInit } from "@nestjs/common";
 
 // config
 import { ConfigModule, ConfigService } from "@nestjs/config";
@@ -19,6 +19,7 @@ import { ClubModule } from "./modules/club/club.module";
 import { ScheduleModule } from "@nestjs/schedule";
 import { EventEmitterModule } from "@nestjs/event-emitter";
 import { JwtModule } from "@nestjs/jwt";
+import { SqidsUtils } from "./common/utils/sqids.utils";
 
 @Module({
     imports: [
@@ -55,4 +56,10 @@ import { JwtModule } from "@nestjs/jwt";
         }),
     ],
 })
-export class AppModule {}
+export class AppModule implements OnModuleInit {
+    constructor(private readonly configService: ConfigService) {}
+
+    onModuleInit() {
+        SqidsUtils.initialize(this.configService);
+    }
+}

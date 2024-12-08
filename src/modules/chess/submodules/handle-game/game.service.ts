@@ -15,7 +15,6 @@ import { Game } from "../../entities/game";
 
 // services
 import { TimerService } from "./timer.service";
-import { GameLinkService } from "../game-link/game-link.service";
 import { EloService } from "./elo.service";
 import { GameWinner } from "../../entities/db/game.entity";
 import { UserService } from "src/modules/user/user.service";
@@ -25,6 +24,7 @@ import { User } from "src/modules/user/entities/user.entity";
 import { InactivityService } from "./inactivity.service";
 import { BLACK, WHITE } from "chess.js";
 import { formatEloVariationAfterGameEnd } from "src/common/utils/chess";
+import { SqidsUtils } from "src/common/utils/sqids.utils";
 
 @Injectable()
 /** Handle chess game logic */
@@ -33,7 +33,6 @@ export class GameService {
         @InjectRepository(GameEntity)
         private readonly gameRepository: Repository<GameEntity>,
         private readonly timerService: TimerService,
-        private readonly gameLinkService: GameLinkService,
         private readonly eloService: EloService,
         private readonly userService: UserService,
         private readonly activeGamesService: ActiveGamesService,
@@ -77,9 +76,7 @@ export class GameService {
         });
         const newGame = await this.gameRepository.save(newGameEntity);
 
-        const gameEncryptedId = this.gameLinkService.genGameLinkEncodeByGameId(
-            newGame.gameId,
-        );
+        const gameEncryptedId = SqidsUtils.encodeGameId(newGame.gameId);
 
         gameInstance.gameId = gameEncryptedId;
 
@@ -223,7 +220,7 @@ export class GameService {
 
         // update game in
         await this.gameRepository.update(
-            this.gameLinkService.decodeGameLink(gameInstance.gameId),
+            SqidsUtils.decodeGameId(gameInstance.gameId),
             {
                 pgn: gameInstance.board.pgn(),
                 winner,
