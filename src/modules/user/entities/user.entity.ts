@@ -9,6 +9,7 @@ import {
     JoinTable,
     Index,
     Relation,
+    DeleteDateColumn,
 } from "typeorm";
 import { UserAvatarImg } from "./userAvatar.entity";
 import { UserSolvedPuzzle } from "../../puzzle/entities/userSolvedPuzzle.entity";
@@ -144,4 +145,7 @@ export class User {
         (clubPostComments) => clubPostComments.user,
     )
     clubPostComments: Relation<ClubPostComment[]>;
+
+    @DeleteDateColumn()
+    deletedAt: Date;
 }

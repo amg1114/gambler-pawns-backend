@@ -1,12 +1,14 @@
 import {
     Body,
     Controller,
+    Delete,
     Get,
     Param,
     Patch,
     Post,
     Query,
     Req,
+    UnauthorizedException,
     UseGuards,
 } from "@nestjs/common";
 import {
@@ -99,5 +101,19 @@ export class UserController {
     async removeFriend(@Body("friendId") friendId: number, @Req() req: any) {
         const userId = req.user.userId;
         return this.userService.removeFriend(userId, friendId);
+    }
+
+    @Delete(":id")
+    @UseGuards(AuthGuard)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: "Delete user" })
+    @ApiResponse({ status: 200, description: "User deleted successfully" })
+    @ApiResponse({ status: 404, description: "User not found" })
+    async deleteUser(@Param("id") id: number, @Req() req: any) {
+        if (req.user.userId !== id) {
+            throw new UnauthorizedException("You can't delete another user");
+        }
+
+        return this.userService.deleteUserById(id);
     }
 }
