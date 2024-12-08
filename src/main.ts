@@ -41,7 +41,7 @@ async function bootstrap() {
     SwaggerModule.setup("api/v1", app, document);
     // interceptor for standard api response
     app.useGlobalInterceptors(
-        // new FormatAPIResponseInterceptor(),
+        new FormatAPIResponseInterceptor(),
         new ClassSerializerInterceptor(reflector),
     );
 
