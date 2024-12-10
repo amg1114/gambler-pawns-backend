@@ -7,7 +7,7 @@ import {
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { User } from "./entities/user.entity";
-import { QueryRunner, Repository, UpdateResult } from "typeorm";
+import { DeleteResult, QueryRunner, Repository, UpdateResult } from "typeorm";
 import { UpdateUserDto } from "./dto/updateUser.dto";
 import { UserAvatarImg } from "./entities/userAvatar.entity";
 import { GameModeType, GameWinner } from "../chess/entities/db/game.entity";
@@ -85,7 +85,6 @@ export class UserService {
         }
     }
 
-    //TODO: Fix this because wtf is this shit even doing
     async updateUserAvatar(id: number, fileName: string) {
         try {
             const avatar = await this.userAvatarImgRepository.findOne({
@@ -114,6 +113,18 @@ export class UserService {
             }
             throw new HttpException("Internal Server error", 500);
         }
+    }
+
+    async deleteUserById(id: number): Promise<DeleteResult> {
+        const result = await this.userRepository.softDelete({
+            userId: id,
+        });
+
+        if (result.affected === 0) {
+            throw new NotFoundException(`User with ID ${id} not found`);
+        }
+
+        return result;
     }
 
     async findUserFriends(userId: number, page: number = 1, limit: number = 5) {

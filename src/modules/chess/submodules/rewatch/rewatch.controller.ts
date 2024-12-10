@@ -38,7 +38,7 @@ export class RewatchGameController {
         description: "Game not found",
         type: RewatchGameResponse404Dto,
     })
-    getGameLinkByGameId(@Param() param: GetGameByGameLinkDto) {
-        return this.gameService.getGameByGameLink(param);
+    async getGameLinkByGameId(@Param() param: GetGameByGameLinkDto) {
+        return await this.gameService.getGameByGameLink(param);
     }
 }

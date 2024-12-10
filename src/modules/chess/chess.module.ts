@@ -9,7 +9,6 @@ import { User } from "../user/entities/user.entity";
 import { GameWithArcadeModifiers } from "./entities/db/gameWithArcadeModifiers.entity";
 // providers
 import { HandleGameGateway } from "./submodules/handle-game/handle-game.gateway";
-import { GameLinkController } from "./submodules/game-link/game-link.controller";
 import { ActiveGamesService } from "./submodules/active-games/active-games.service";
 import { GameLinkService } from "./submodules/game-link/game-link.service";
 import { RandomPairingGateway } from "./submodules/random-pairing/random-pairing.gateway";
@@ -26,6 +25,7 @@ import { PlayersService } from "./submodules/players.service";
 import { InactivityService } from "./submodules/handle-game/inactivity.service";
 import { GameHistoryService } from "./submodules/game-history/game-history.service";
 import { GameHistoryController } from "./submodules/game-history/game-history.controller";
+import { GameLinkGateway } from "./submodules/game-link/game-link.gateway";
 
 @Module({
     imports: [
@@ -54,12 +54,9 @@ import { GameHistoryController } from "./submodules/game-history/game-history.co
         PlayersService,
         InactivityService,
         GameHistoryService,
+        GameLinkGateway,
     ],
-    controllers: [
-        GameLinkController,
-        RewatchGameController,
-        GameHistoryController,
-    ],
+    controllers: [RewatchGameController, GameHistoryController],
     exports: [GameService, PlayersService],
 })
 export class ChessModule {}
