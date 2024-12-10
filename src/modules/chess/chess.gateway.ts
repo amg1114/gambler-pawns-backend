@@ -29,10 +29,12 @@ export class ChessGateway {
     @SubscribeMessage("game:reconnect")
     handleReconnect(
         @MessageBody()
-        payload: { playerId: string; gameId: string },
+        payload: { gameId: string },
         @ConnectedSocket() socket: Socket,
     ) {
-        const { playerId, gameId } = payload;
+        const { gameId } = payload;
+        const { playerId } = socket.handshake.auth;
+
         console.log(
             `Player ${playerId} attempting to reconnect to game ${gameId}`,
         );

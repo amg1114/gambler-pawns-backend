@@ -54,13 +54,12 @@ export class GameLinkService {
     /**
      * Creates a temporary game link for inviting another player.
      */
-    async createGameLink(data: CreateGameLinkDto, socketId: string) {
-        const {
-            playerId,
-            gameMode,
-            timeInMinutes,
-            timeIncrementPerMoveSeconds,
-        } = data;
+    async createGameLink(
+        playerId: string,
+        data: CreateGameLinkDto,
+        socketId: string,
+    ) {
+        const { gameMode, timeInMinutes, timeIncrementPerMoveSeconds } = data;
 
         const playerA = await this.playersService.createPlayer(
             playerId,

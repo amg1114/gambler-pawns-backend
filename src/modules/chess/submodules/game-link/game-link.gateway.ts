@@ -35,15 +35,24 @@ export class GameLinkGateway implements OnGatewayConnection {
         @MessageBody() payload: CreateGameLinkDto,
         @ConnectedSocket() socket: Socket,
     ) {
-        return await this.gameService.createGameLink(payload, socket.id);
+        const { playerId } = socket.handshake.auth;
+        return await this.gameService.createGameLink(
+            playerId,
+            payload,
+            socket.id,
+        );
     }
 
     @SubscribeMessage("game:joinWithLink")
     async handleJoinWithLink(
-        @MessageBody() { userId, gameLink }: GameJoinLinkDto,
+        @MessageBody() { gameLink }: GameJoinLinkDto,
         @ConnectedSocket() socket: Socket,
     ) {
-        const result = await this.gameService.startGameByLink(gameLink, userId);
+        const { playerId } = socket.handshake.auth;
+        const result = await this.gameService.startGameByLink(
+            gameLink,
+            playerId,
+        );
         if (!result) return;
 
         const { player1Socket, gameData } = result;
