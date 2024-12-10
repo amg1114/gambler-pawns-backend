@@ -45,7 +45,15 @@ export class GameLinkService {
         CreateNewGameByLinkData
     >();
 
-    /** Creates a temporary game link for inviting another player. */
+    /**
+     * A map that associates a player ID with the temporary encrypted ID.
+     * playerId -> temporalEncryptedId
+     */
+    private playerIdToGameLinkMap = new Map<string, string>();
+
+    /**
+     * Creates a temporary game link for inviting another player.
+     */
     async createGameLink(data: CreateGameLinkDto, socketId: string) {
         const {
             playerId,
@@ -75,7 +83,24 @@ export class GameLinkService {
             timeIncrementPerMoveSeconds,
             timeInMinutes,
         });
+
+        this.playerIdToGameLinkMap.set(
+            playerId.toString(),
+            temporalEncryptedId,
+        );
+
         return temporalEncryptedId;
+    }
+
+    checkAndUpdatePlayerSocketId(playerId: string, socketId: string) {
+        const temporalEncryptedId = this.playerIdToGameLinkMap.get(playerId);
+        if (!temporalEncryptedId) return;
+
+        const gameData =
+            this.tempGameCreationByLinkMap.get(temporalEncryptedId);
+        if (!gameData) return;
+
+        gameData.playerASocketId = socketId;
     }
 
     /**
@@ -84,14 +109,15 @@ export class GameLinkService {
      */
     @Cron(CronExpression.EVERY_12_HOURS)
     cleanExpiredGames() {
-        const expirationTime = 12 * 60 * 60 * 1000;
+        const expirationTime = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
         const now = Date.now();
 
-        for (const [
-            id,
-            { createdAt },
-        ] of this.tempGameCreationByLinkMap.entries()) {
-            if (now - createdAt > expirationTime) {
+        for (const [id, gameData] of this.tempGameCreationByLinkMap.entries()) {
+            if (now - gameData.createdAt > expirationTime) {
+                // Remove entry from both maps
+                this.playerIdToGameLinkMap.delete(
+                    gameData.playerA.userInfo.userId.toString(),
+                );
                 this.tempGameCreationByLinkMap.delete(id);
             }
         }
@@ -137,6 +163,9 @@ export class GameLinkService {
             );
 
             this.tempGameCreationByLinkMap.delete(encodedId);
+            this.playerIdToGameLinkMap.delete(
+                gameData.playerA.userInfo.userId.toString(),
+            );
 
             return {
                 player1Socket: gameData.playerASocketId,

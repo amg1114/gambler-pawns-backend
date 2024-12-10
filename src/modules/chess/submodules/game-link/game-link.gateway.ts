@@ -1,6 +1,7 @@
 import {
     ConnectedSocket,
     MessageBody,
+    OnGatewayConnection,
     SubscribeMessage,
     WebSocketGateway,
     WebSocketServer,
@@ -17,11 +18,17 @@ import { GameJoinLinkDto } from "./dto/gameJoin-link.dto";
 @UseFilters(new CustomWsFilterException())
 @UsePipes(new ParseJsonPipe(), new ValidationPipe({ transform: true }))
 @WebSocketGateway(CORS)
-export class GameLinkGateway {
+export class GameLinkGateway implements OnGatewayConnection {
     @WebSocketServer()
     server: Server;
 
     constructor(private readonly gameService: GameLinkService) {}
+
+    handleConnection(client: Socket) {
+        const { playerId } = client.handshake.auth;
+        // verify if player has created a game link and update its socket id
+        this.gameService.checkAndUpdatePlayerSocketId(playerId, client.id);
+    }
 
     @SubscribeMessage("game:createLink")
     async handleCreateLink(
@@ -62,7 +69,5 @@ export class GameLinkGateway {
             color: "black",
             ...gameData,
         });
-
-        // TODO: if user player A disconnects delete from map of game links
     }
 }
