@@ -9,6 +9,7 @@ import {
     JoinTable,
     Index,
     Relation,
+    DeleteDateColumn,
 } from "typeorm";
 import { UserAvatarImg } from "./userAvatar.entity";
 import { UserSolvedPuzzle } from "../../puzzle/entities/userSolvedPuzzle.entity";
@@ -91,9 +92,6 @@ export class User {
     @Column({ type: "smallint", default: 0 })
     streakDays: number;
 
-    @Column({ type: "boolean", default: false })
-    isDeleted: boolean;
-
     // --- For Many to many relations with custom properties ---
     // https://orkhan.gitbook.io/typeorm/docs/many-to-many-relations#many-to-many-relations-with-custom-properties
     @ManyToMany(() => User, {
@@ -144,4 +142,7 @@ export class User {
         (clubPostComments) => clubPostComments.user,
     )
     clubPostComments: Relation<ClubPostComment[]>;
+
+    @DeleteDateColumn()
+    deletedAt: Date;
 }
