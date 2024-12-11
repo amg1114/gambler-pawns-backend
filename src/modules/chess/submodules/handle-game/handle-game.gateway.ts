@@ -1,5 +1,6 @@
 import { UseFilters, UsePipes, ValidationPipe } from "@nestjs/common";
 import {
+    ConnectedSocket,
     MessageBody,
     SubscribeMessage,
     WebSocketGateway,
@@ -7,7 +8,7 @@ import {
     WsException,
 } from "@nestjs/websockets";
 import { OnEvent } from "@nestjs/event-emitter";
-import { Server } from "socket.io";
+import { Server, Socket } from "socket.io";
 import { CORS } from "src/config/constants";
 // ws utils
 import { CustomWsFilterException } from "src/common/websockets-utils/websocket.filter";
@@ -36,21 +37,21 @@ export class HandleGameGateway {
     async handleMakeMove(
         @MessageBody()
         payload: MakeMoveDTO,
-        //@ConnectedSocket() socket: Socket,
+        @ConnectedSocket() socket: Socket,
     ) {
         // TODO: validar que el mismo socket registrado sea quien haga la solicitud
         // TODO: pedir player id y game id para simplificar la logica
+        const { playerId } = socket.handshake.auth;
 
-        const gameInstance = this.activeGamesService.findGameByPlayerId(
-            payload.playerId,
-        );
+        const gameInstance =
+            this.activeGamesService.findGameByPlayerId(playerId);
 
         if (!gameInstance) {
             throw new WsException("Player not found in any game");
         }
 
         const result = await this.gameService.playerMove(
-            payload.playerId,
+            playerId,
             {
                 from: payload.from,
                 to: payload.to,
@@ -62,15 +63,16 @@ export class HandleGameGateway {
     }
 
     @SubscribeMessage("game:resign")
-    handleResign(
-        @MessageBody()
-        payload: { playerId: string },
-        //@ConnectedSocket() socket: Socket,
-    ) {
+    handleResign(@ConnectedSocket() socket: Socket) {
         // TODO: validar que el mismo socket que hace la petición este registrado en el juego
-        this.gameService.handleResign(payload.playerId);
+        const { playerId } = socket.handshake.auth;
+
+        this.gameService.handleResign(playerId);
     }
 
+    /**
+     * Notifies all clients in the specified game room that game has ended
+     */
     @OnEvent("game.end")
     endGame(payload: { gameId: string; resultData: any }) {
         this.server.to(payload.gameId).emit("gameEnd", payload.resultData);

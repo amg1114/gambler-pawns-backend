@@ -5,9 +5,6 @@ import {
 } from "src/modules/chess/entities/db/game.entity";
 
 export class CreateGameLinkDto {
-    @IsString()
-    playerId: string;
-
     @IsEnum(gameModeEnum)
     gameMode: GameModeType;
 
