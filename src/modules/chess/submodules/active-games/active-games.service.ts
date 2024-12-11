@@ -68,11 +68,3 @@ export class ActiveGamesService {
         return this.gameIdToGameInstanceMap.get(gameId);
     }
 }
-
-// old methods (sockets)
-//private playerSocketMap: Map<socketId, playerId> = new Map();
-// (antes usados, ya no son necesarios con las pools de socket.io)
-// -> getSocketIdByPlayerId(playerId: string): string | undefined {
-// -> registerPlayerSocket(playerId: string, socketId: string) {
-// -> unRegisterPlayerSocket(playerId: string)
-// -> findPlayerIdBySocketId(socketId: string): string | undefined {

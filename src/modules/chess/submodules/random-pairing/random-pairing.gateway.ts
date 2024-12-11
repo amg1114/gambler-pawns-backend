@@ -27,8 +27,8 @@ export class RandomPairingGateway {
         payload: JoinGameDTO,
         @ConnectedSocket() socket: Socket,
     ) {
-        const { playerId, mode, timeInMinutes, timeIncrementPerMoveSeconds } =
-            payload;
+        const { playerId } = socket.handshake.auth;
+        const { mode, timeInMinutes, timeIncrementPerMoveSeconds } = payload;
 
         const pairing = await this.randomPairingService.addToPool(
             {

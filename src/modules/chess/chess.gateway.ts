@@ -35,10 +35,6 @@ export class ChessGateway {
         const { gameId } = payload;
         const { playerId } = socket.handshake.auth;
 
-        console.log(
-            `Player ${playerId} attempting to reconnect to game ${gameId}`,
-        );
-
         const game = this.activeGamesService.findGameByPlayerId(playerId);
 
         if (game && game.gameId === gameId) {
