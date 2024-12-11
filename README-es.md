@@ -1,7 +1,7 @@
 # Gambler Pawns ♟️
 
-[![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/jfmonsa/AtlasBooks-front/blob/main/README.md)
-[![es](https://img.shields.io/badge/lang-es-red.svg)](https://github.com/jfmonsa/AtlasBooks-front/blob/main/README-es.md)
+[![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/amg1114/gambler-pawns-backend/blob/main/README.md)
+[![es](https://img.shields.io/badge/lang-es-red.svg)](https://github.com/amg1114/gambler-pawns-backend/blob/main/README-es.md)
 
 Gambler Pawns es una plataforma web innovadora para jugar ajedrez en línea, diseñada para llevar la experiencia clásica del ajedrez a otro nivel con características únicas y emocionantes. ¡Juega en tiempo real, conecta con amigos y mejora tus habilidades con desafíos personalizados!
 **[🚀 Prueba la demo en vivo aquí!](https://gamblerpawns.up.railway.app/)**
