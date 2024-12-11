@@ -398,8 +398,6 @@ export class UserService {
             relations: ["friends"],
         });
 
-        console.log(userId, friendId);
-
         // Verificar si los usuarios existen
         if (!user || !friend) {
             throw new NotFoundException("User or friend not found");

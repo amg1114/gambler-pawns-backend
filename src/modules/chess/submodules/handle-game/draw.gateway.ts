@@ -40,19 +40,18 @@ export class DrawGateway {
         payload: OfferDrawDTO,
         @ConnectedSocket() socket: Socket,
     ) {
+        const { playerId } = socket.handshake.auth;
         // TODO: validar que el socket sea el mismo que el que se registró en el servicio
-        const game = this.activeGamesService.findGameByPlayerId(
-            payload.playerId,
-        );
+        const game = this.activeGamesService.findGameByPlayerId(playerId);
         if (!game) throw new WsException("Game not found");
 
         const drawOfferResult = this.drawService.offerDraw(
             payload.gameId,
-            payload.playerId,
+            playerId,
         );
         if (drawOfferResult) {
             socket.to(payload.gameId).emit("drawOffered", {
-                playerId: payload.playerId,
+                playerId: playerId,
                 gameId: payload.gameId,
             });
         } else {
@@ -64,10 +63,11 @@ export class DrawGateway {
     async handleAcceptDraw(
         @MessageBody()
         payload: AcceptDrawDTO,
-        //@ConnectedSocket() socket: Socket,
+        @ConnectedSocket() socket: Socket,
     ) {
         // TODO: validar que el socket sea el mismo que el que se registró en el servicio
-        await this.drawService.acceptDraw(payload.gameId, payload.playerId);
+        const { playerId } = socket.handshake.auth;
+        await this.drawService.acceptDraw(payload.gameId, playerId);
     }
 
     @SubscribeMessage("game:rejectDraw")
@@ -76,10 +76,10 @@ export class DrawGateway {
         payload: AcceptDrawDTO,
         @ConnectedSocket() socket: Socket,
     ) {
+        const { playerId } = socket.handshake.auth;
+
         // TODO: validar que el socket sea el mismo que el que se registró en el servicio
-        const game = this.activeGamesService.findGameByPlayerId(
-            payload.playerId,
-        );
+        const game = this.activeGamesService.findGameByPlayerId(playerId);
         if (!game) throw new WsException("Game not found");
 
         const drawRejected = this.drawService.rejectDraw(game.gameId);
@@ -89,7 +89,7 @@ export class DrawGateway {
         }
 
         socket.to(game.gameId).emit("drawRejected", {
-            playerId: payload.playerId,
+            playerId: playerId,
         });
     }
 }

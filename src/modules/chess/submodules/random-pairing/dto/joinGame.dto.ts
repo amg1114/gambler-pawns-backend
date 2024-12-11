@@ -1,13 +1,10 @@
-import { IsNumber, IsOptional, IsString, IsEnum } from "class-validator";
+import { IsNumber, IsOptional, IsEnum } from "class-validator";
 import {
     GameModeType,
     gameModeEnum,
 } from "src/modules/chess/entities/db/game.entity";
 
 export class JoinGameDTO {
-    @IsString()
-    playerId: string;
-
     @IsEnum(gameModeEnum)
     mode: GameModeType;
 
