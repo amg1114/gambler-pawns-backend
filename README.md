@@ -1,70 +1,45 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
+# Gambler Pawns ♟️
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+[![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/jfmonsa/AtlasBooks-front/blob/main/README.md)
+[![es](https://img.shields.io/badge/lang-es-red.svg)](https://github.com/jfmonsa/AtlasBooks-front/blob/main/README-es.md)
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Gambler Pawns is an innovative web platform for playing chess online, designed to elevate the classic chess experience with unique and exciting features. Play in real-time, connect with friends, and sharpen your skills with tailored challenges!
 
-## Description
+**[🚀 Check out the live demo here!](https://gamblerpawns.up.railway.app/)**
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 🌟 Key Features
 
-## Installation
+- 🎮 **Real-time gameplay**: Enjoy chess across multiple game modes.
+- 🤝 **Flexible matchmaking**: Play with friends, share a link, or let the system randomly pair you.
+- 🕰️ **Rewatch your games**: Relive your matches by advancing and rewinding moves like a music player.
+- 🧩 **Challenging puzzles**: Enhance your skills with over **2000 puzzles** sourced from [Lichess open data base](https://database.lichess.org/#puzzles).
+- 🤖 **Play against Stockfish**: Challenge the most powerful chess bot.
+- 👤 **User profile management**: Personalize your experience and control your data.
+- 👫 **Friends system**: Add and manage your friends list for playing and competing.
 
-```bash
-$ pnpm install
-```
+### 🚀 Upcoming Features
 
-## Running the app
+- 🛍️ **Store**: Customize your gameplay with new piece skins and chessboards.
+- 🏠 **Clubs**: Join or create communities to connect with other players.
+- 🕹️ **Arcade Mode**: Fun and dynamic challenges to spice up your games.
+- 📊 **User Statistics**: Analyze your performance and improve consistently.
+- 🏆 **Leaderboards**: Climb the rankings and prove you’re the best player.
 
-```bash
-# development (watch mode)
-$ pnpm run dev
+This project was developed as academic product for the **Universidad del Valle**.
 
-# production mode
-$ pnpm run start:prod
-```
+## 🛠️ Tech Stack
 
-## Test
+- **Frontend**: Built with **React.js** and **Next.js**, styled with **Tailwind CSS** to create responsive and visually appealing interfaces.
+- **Backend**: Developed with **NestJS** and **TypeScript**, providing robust and scalable API handling with real-time communication via **Socket.io**.
+- **Database**: **PostgreSQL** serves as the foundation for efficient and reliable data storage, with database design managed using **TypeORM** for seamless ORM functionality and optimized performance.
+- **Development Tools**: Leveraging tools like **Azure DevOps**, Git, and Scrum methodologies to ensure streamlined development processes.
+- **Documentation**: Clear and concise documentation created using Swagger and jsdoc to maintain high code quality and collaboration standards.
 
-```bash
-# unit tests
-$ pnpm run test
+## 👥 Development Team
 
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:cov
-```
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](LICENSE).
+- [@amg1114](https://www.github.com/amg1114)
+- [@NicolasPL64](https://www.github.com/NicolasPL64)
+- [@JSebastianMarin](https://www.github.com/JSebastianMarin)
+- [@RamSterB](https://www.github.com/RamSterB)
+- [@JuanPidarraga](https://www.github.com/JuanPidarraga)
+- [@jfmonsa](https://www.github.com/jfmonsa)
