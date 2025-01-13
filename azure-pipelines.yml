@@ -1,29 +1,58 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
+# Resources:
+# + https://aka.ms/yaml
+# tutorial: 
+# + https://medium.com/@muppedaanvesh/%EF%B8%8F-azure-devops-pipeline-essentials-jobs-stages-tasks-steps-%EF%B8%8F-1757d6366201
+# + https://learn.microsoft.com/en-us/azure/devops/pipelines/get-started/key-pipelines-concepts?view=azure-devops
 trigger:
-- dev
+    - dev
 
 pool:
-  vmImage: ubuntu-latest
+    vmImage: ubuntu-latest
 
-steps:
-- task: UseNode@1
-  inputs:
-    version: '16.x'
-  displayName: 'Install Node.js'
 
-- script: |
-    npm install
-  displayName: 'npm install'
+stages:
+  - stage: Build
+    jobs:
+      - job: BuildJob
+        steps:
+          - task: UseNode@1
+            inputs:
+              version: "16.x"
+            displayName: "Install Node.js"
 
-- script: |
-    npm run build
-  displayName: 'npm build'
+          - script: |
+              npm install
+            displayName: "npm install"
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+          - script: |
+              npm run lint:check
+            displayName: "npm lint:check"
+
+          - script: |
+              npm run format:check
+            displayName: "npm format:check"
+
+          - script: |
+              npm run build
+            displayName: "npm build"
+
+#          - script: |
+#              npm run test
+#            displayName: "npm test"
+
+  - stage: Deploy
+    jobs:
+      - job: DeployJob
+        steps:
+        - task: AzureRmWebAppDeployment@4
+          inputs:
+            ConnectionType: 'AzureRM'
+            azureSubscription: 'Azure for Students(afcb3461-de74-49a5-aa96-4fb6c265710e)'
+            appType: 'webAppLinux'
+            WebAppName: 'gambler-pawns-back'
+            deployToSlotOrASE: true
+            ResourceGroupName: 'gambler-pawns-back_group'
+            SlotName: 'production'
+            packageForLinux: '$(System.DefaultWorkingDirectory)/**/*.zip'
+            RuntimeStack: 'NODE|18-lts'
+            StartupCommand: 'npm run start:prod'
