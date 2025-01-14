@@ -39,6 +39,7 @@ stages:
 #          - script: |
 #              npm run test
 #            displayName: "npm test"
+          
           - task: ArchiveFiles@2
             inputs:
               rootFolderOrFile: '$(Build.SourcesDirectory)/dist'
@@ -46,26 +47,29 @@ stages:
               archiveType: 'zip'
               archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
               replaceExistingArchive: true
-            displayName: "Archive build output"
+            displayName: "Archive files"
 
           - task: PublishBuildArtifacts@1
             inputs:
-              PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+              PathtoPublish: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
               ArtifactName: 'drop'
-            displayName: "Publish Artifact"
+              publishLocation: 'Container'
+            displayName: "Publish Build Artifact"
+
   - stage: Deploy
     jobs:
-      - job: DeployJob
-        steps:
-        - task: AzureRmWebAppDeployment@4
-          inputs:
-            ConnectionType: 'AzureRM'
-            azureSubscription: 'Azure for Students(afcb3461-de74-49a5-aa96-4fb6c265710e)'
-            appType: 'webAppLinux'
-            WebAppName: 'gambler-pawns-back'
-            deployToSlotOrASE: true
-            ResourceGroupName: 'gambler-pawns-back_group'
-            SlotName: 'production'
-            packageForLinux: '$(System.DefaultWorkingDirectory)/**/*.zip'
-            RuntimeStack: 'NODE|18-lts'
-            StartupCommand: 'npm run start:prod'
+      - deployment: DeployJob
+        environment: 'AzureAppService'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - download: current
+                  artifact: drop
+                - task: AzureWebApp@1
+                  inputs:
+                    azureSubscription: 'Azure for Students(afcb3461-de74-49a5-aa96-4fb6c265710e)'
+                    appType: 'webApp'
+                    appName: 'gambler-pawns-back'
+                    package: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
+                  displayName: "Deploy to Azure App Service"
