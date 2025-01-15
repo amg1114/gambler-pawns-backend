@@ -1,0 +1,77 @@
+# Resources:
+# + https://aka.ms/yaml
+# tutorial: 
+# + https://medium.com/@muppedaanvesh/%EF%B8%8F-azure-devops-pipeline-essentials-jobs-stages-tasks-steps-%EF%B8%8F-1757d6366201
+# + https://learn.microsoft.com/en-us/azure/devops/pipelines/get-started/key-pipelines-concepts?view=azure-devops
+trigger:
+  - dev
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  azureSubscription: $(azureSubscription)
+
+stages:
+- stage: Build
+  jobs:
+    - job: BuildJob
+      steps:
+        - task: UseNode@1
+          inputs:
+            version: "16.x"
+          displayName: "Install Node.js"
+
+        - script: |
+            npm install
+          displayName: "npm install"
+
+        - script: |
+            npm run lint:check
+          displayName: "npm lint:check"
+
+        - script: |
+            npm run format:check
+          displayName: "npm format:check"
+
+        - script: |
+            npm run build
+          displayName: "npm build"
+
+#          - script: |
+#              npm run test
+#            displayName: "npm test"
+        
+        - task: ArchiveFiles@2
+          inputs:
+            rootFolderOrFile: '$(Build.SourcesDirectory)/dist'
+            includeRootFolder: false
+            archiveType: 'zip'
+            archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
+            replaceExistingArchive: true
+          displayName: "Archive files"
+
+        - task: PublishBuildArtifacts@1
+          inputs:
+            PathtoPublish: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
+            ArtifactName: 'drop'
+            publishLocation: 'Container'
+          displayName: "Publish Build Artifact"
+
+- stage: Deploy
+  jobs:
+    - deployment: DeployJob
+      environment: 'AzureAppService'
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - download: current
+                artifact: drop
+              - task: AzureWebApp@1
+                inputs:
+                  azureSubscription: '$(azureSubscription)'
+                  appType: 'webApp'
+                  appName: 'gambler-pawns-back'
+                  package: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
+                displayName: "Deploy to Azure App Service"
